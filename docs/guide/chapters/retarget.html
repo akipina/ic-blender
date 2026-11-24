@@ -1,0 +1,169 @@
+<section id="retarget">
+<h2>Retargeting: an existing creature takes another shape</h2>
+
+<p>Fitting a mesh (previous chapter) gives you a new patch net and nothing else — no limbs of your choosing, no sockets
+where you want them, a borrowed skeleton. <strong>Retargeting</strong> is the other way round: keep a creature that
+already works — its patch layout, limbs, connection rings, skeleton, skinning and clips — and make its <em>surface</em>
+take the shape of another mesh. Three tools do it, and each exists because the one before it has a limit you can
+measure.</p>
+
+<div class="tablewrap">
+<table>
+<tr><th>Tool</th><th>What it does</th><th>Reach for it when</th></tr>
+<tr><td><strong>Retarget Creature to Mesh</strong></td><td>fits every control point to the nearest place on the target, and carries the rest bones</td><td>the target is the same animal in another shape</td></tr>
+<tr><td><strong>Create Landmarks</strong> + <strong>Landmark Retarget</strong></td><td>warps the whole creature (and its rig) through a thin-plate spline you place by hand, then fits</td><td>parts have to travel ACROSS the body</td></tr>
+<tr><td><strong>Trim Stray Surface</strong></td><td>finds the surface the target does not have, and selects, deletes or folds it</td><td>the donor has a limb your target has not</td></tr>
+</table>
+</div>
+
+<p>All three are in the SGM panel's <strong>Tools</strong> box, and all three work on the stock cheetah below, against
+targets made from its own baked surface so that the numbers are checkable.</p>
+
+<figure><img src="img/retarget_panel.jpg" alt="The SGM panel's Tools box: Attach, Symmetrize, Relax Seam Tangents, Retarget, Create Landmarks, Landmark Retarget, Trim Stray Surface, Validate"><figcaption>The <strong>Tools</strong> box. Each tool's options are in the redo panel (<kbd>F9</kbd>) after you run it.</figcaption></figure>
+
+<h3>Retarget Creature to Mesh</h3>
+
+<ol>
+  <li>Bring the target into the file: one closed skin, in the same units. (Here: the cheetah's own bake, welded, with
+  the legs 25 % further apart and the head 10 cm up.)</li>
+  <li>Select the creature and press <strong>Tools &gt; Retarget Creature to Mesh</strong>, then pick the
+  <strong>Target Mesh</strong> by name in the redo panel.</li>
+</ol>
+
+<figure><img src="img/retarget_target.jpg" alt="The deformed target mesh alone in the viewport"><figcaption>The target. In practice this is a sculpt, a scan or an imported model; it only has to be one closed skin, and the same weld-before-judging rule as Fit applies (a seam-split glTF is fine).</figcaption></figure>
+
+<p>The options that matter:</p>
+
+<ul>
+  <li><strong>Pin Rings</strong> (on): every connection ring's control points stay exactly where they are, so each
+  socket keeps the stock ring geometry the combiner welds and scales at. Off, the rings follow the target and the report
+  says the combiner will scale them and may warn.</li>
+  <li><strong>Scale to Target</strong> (on): the <em>target</em> is first aligned into the creature's frame (centred on
+  the creature's surface bounding box, scaled by the bounding-diagonal ratio), so a model in other units fits the rig at
+  its game size. The creature keeps its size; the report says the scale.</li>
+  <li><strong>Keep Symmetry</strong> (on): when the creature's net and the target are both X-symmetric, the fitted
+  displacement is mirrored exactly, so the net stays as symmetric as it was.</li>
+  <li><strong>Move Bones</strong> (on): each rest bone is translated by the mean displacement of the control points it
+  owns (a bone owning none follows its parent), through the same rest-edit path as editing the armature by hand — so the
+  rig stays inside the new skin. Hierarchy, names and roll are untouched.</li>
+  <li><strong>Seam Smoothness</strong> defaults to 0, because stock seams are C0 by design.</li>
+</ul>
+
+<figure><img src="img/retarget_retargeted.jpg" alt="The cheetah after the retarget, legs wider apart"><figcaption><strong>Retarget</strong>: <em>288 patches, rms 1.7 mm (p95 4.0 mm, max 16.5 mm; 0.06 / 0.15 / 0.62 % of size); rings pinned (30 points); symmetry kept (2428 control points paired, 120 on the plane); bones: 54 moved (max 49.9 mm; 34 own points, 20 followed their parent; orientation kept to 0.77 mrad); 2564 control points moved, before the fit rms 0.87 %.</em> Only the points and the rest bones changed; every table is still the cheetah's.</figcaption></figure>
+
+<p>One Undo restores the control points and the bind pose together, and Export then writes only the moved points and
+bones. A retarget to the creature's own bake moves nothing at all — 0 float32 changes, export byte-identical — which is
+what makes the tool safe to try.</p>
+
+<h3>The limit a closest-point fit has</h3>
+
+<p><strong>A closest-point fit only sees displacement along the surface normal.</strong> Each control point looks for the
+nearest place on the target and goes there, so the creature can get fatter, thinner, longer or lumpier — but a limb
+cannot <em>travel</em>. Fitting a beetle to a pillbug scan left the beetle's head wedged into the pillbug's and its six
+legs bunched under the shell, although the scan-to-surface residual was a respectable 0.36 %. The fit was doing exactly
+what it promises; what it promises is not enough.</p>
+
+<h3>Create Landmarks and Landmark Retarget</h3>
+
+<p><strong>Create Landmarks</strong> derives the creature's own landmarks and drops them as Empties named
+<code>LM_&lt;name&gt;</code>, in a collection, <em>at the creature's positions</em>:</p>
+
+<ul>
+  <li>per limb its <strong>tip</strong> (<code>LM_LFLeg</code> — the head of the last bone of its chain; for the Head and
+  Tail limbs, the surface point farthest along or against the creature's heading),</li>
+  <li>per limb its <strong>root</strong> (<code>LM_LFLeg_root</code> — the head of the limb's root bone),</li>
+  <li>and <code>LM_Torso</code>, the Torso's surface centroid.</li>
+</ul>
+
+<p>You then <strong>drag each Empty onto the matching place on the target</strong>. An Empty may also name any rig bone
+(<code>LM_endfeeler_l</code>) for a correspondence the limb names do not offer.</p>
+
+<figure><img src="img/retarget_landmarks.jpg" alt="The cheetah with 19 LM_ Empties placed on it, listed in the Outliner"><figcaption><strong>Create Landmarks</strong> dropped 19 Empties — each limb's tip and root, plus <code>LM_Torso</code> — and each has been dragged onto the matching place on the target.</figcaption></figure>
+
+<p><strong>Landmark Retarget</strong> then reads them back by name, fits a 3-D <strong>thin-plate spline</strong> from the
+donor positions to yours, applies it to <em>every control point and every rest bone's head and tail</em> — so the rig
+travels inside the skin and turns with the warp instead of merely translating — and runs the closest-point fit from that
+start. Its own options:</p>
+
+<ul>
+  <li><strong>Warp Smoothing</strong> (0.001 of the landmarks' extent): 0 passes exactly through every landmark; the
+  default smooths a rough placement, and the report says by how much it then misses.</li>
+  <li><strong>Warp Rings</strong> (on): the connection rings follow the warp and are pinned there. Off, every ring stays
+  at the stock geometry.</li>
+  <li>Symmetry, Scale to Target, Iterations, Seam Smoothness and Move Bones are the plain retarget's — and the symmetry
+  is judged and mirrored against the <em>original</em> net, never the warped one.</li>
+</ul>
+
+<figure><img src="img/retarget_landmark_retargeted.jpg" alt="The cheetah after the landmark retarget"><figcaption><strong>Landmark Retarget</strong>: <em>19 landmarks, TPS residual at the landmarks max 0.33 mm; rms 0.9 mm (p95 2.0 mm, max 8.4 mm; 0.04 / 0.07 / 0.31 % of size); before the warp rms 0.87 %, after the warp rms 0.38 %; bones: 54 moved (max 74.2 mm; warped with the landmarks, turned by up to 5.4°)</em> — against the plain retarget's 1.7 mm / 16.5 mm on the same target.</figcaption></figure>
+
+<p>The report ends with the honest number: <strong>coverage by limb</strong>, the fraction of each limb's surface samples
+still more than 2 % of the size from any target point, with a warning naming the limbs that still miss. On the measured
+case it is 0 % everywhere; on the pillbug it took the creature's surface off the scan from 28 % of its samples to 20 %
+(head 25 % → 12 %) and made the body run the scan's whole length — better, and still not right, which is what the number
+is for.</p>
+
+<aside class="note">
+<p><strong>A donor's body plan carries its biomechanics.</strong> Landmarks move a limb across the body; they do not
+change how many limbs there are, where they hinge, or how many bones they have. A six-legged donor retargeted to a
+four-legged scan still has six legs' worth of bones and sockets, and its walk clip still swings them. Choose the donor
+for its body plan first and its silhouette second; the retarget is for the silhouette.</p>
+</aside>
+
+<h3>Trim Stray Surface</h3>
+
+<p>The fit measures <em>target → surface</em>. It never measures <em>surface → target</em>, so donor surface with no
+target under it — a beetle leg where the scan has no leg — is invisible to it. Retargeting the cheetah to its own bake
+<strong>with the tail cut off</strong> moves not one control point and reports rms 0.00 %, leaving 14 invented patches
+standing in the air.</p>
+
+<figure><img src="img/retarget_trim_target.jpg" alt="The cheetah and a target mesh that stops half way along the tail"><figcaption>A target the creature has <em>more</em> than: the cheetah's bake with the outer half of the tail cut away.</figcaption></figure>
+
+<p><strong>Trim Stray Surface</strong> measures the other direction, per patch: the fraction of its 7 × 7 surface samples
+farther than <strong>Stray Distance</strong> (2 % of the creature's size) from the nearest target point. A patch is
+<em>stray</em> when that reaches <strong>Stray Fraction</strong> (half). The target defaults to the mesh the creature was
+fitted or retargeted to, which Fit, Retarget and Landmark Retarget all record. There are three actions:</p>
+
+<ul>
+  <li><strong>Select</strong> (the default): the stray patches' faces are selected and nothing else changes. The modder
+  decides.</li>
+  <li><strong>Delete</strong>: through the one Delete Patch path — tables, rings, pool compaction — then
+  <strong>Fill Hole</strong> on every hole it can take, so the mesh stays closed. It is two undo steps and the report
+  says so, and a stray patch carrying a connection ring is refused by name.</li>
+  <li><strong>Collapse onto Target</strong>: the stray patches' control points move onto their nearest target point, so
+  the sheet folds flat against the body instead of webbing across it. <em>The patch table is never touched</em>, so the
+  creature stays exactly as watertight, skinned and combinable as it was — which is what you want for a limb the target
+  does not have. <strong>Keep the Shared Edge</strong> (on) leaves a point that a patch which <em>is</em> on the target
+  also uses exactly where it is, so nothing that fits moves.</li>
+</ul>
+
+<figure><img src="img/retarget_trim_select.jpg" alt="The cheetah in Edit Mode with the outer tail patches selected"><figcaption><strong>Select</strong>: <em>14 of 288 patches stray (728 of 14112 surface samples more than 2 % of the size from the target, 5.2 %; worst 21.7 %); Cheetah_Tail 14 of 26</em> — exactly the tail beyond the cut, and none of them on a ring.</figcaption></figure>
+
+<figure><img src="img/retarget_trim_collapse.jpg" alt="The cheetah with its tail folded flat onto the body"><figcaption><strong>Collapse onto Target</strong>: <em>118 control points moved (max 590.7 mm; 18 kept where a patch on the target shares them, 0 on connection rings); symmetry mirrored; stray patches 14 → 0, surface off the target 5.2 % → 0.6 %; 0 open side(s)</em>. The tail is folded onto the body, and the creature is as watertight as it was.</figcaption></figure>
+
+<p><strong>Validate</strong> carries a non-blocking read-out whenever a fit or retarget source is recorded and still in
+the file: <em>WARN trim: N patch(es) of M are surface the target (X) does not have</em>. Measured on a real conversion,
+the pillbug: 51 of 363 patches stray, 18.6 % of the surface samples off the scan — the front legs worst — and Collapse
+brought that to 9 patches and 8.9 %, watertight throughout, and the Object Editor loaded it.</p>
+
+<aside class="limits">
+<h4>Not possible yet</h4>
+<ul>
+  <li><strong>A closest-point fit cannot shorten a limb.</strong> It moves each point to the nearest target surface; a
+  leg with no leg under it is not pulled home, it is pulled sideways onto whatever is nearest. Landmark Retarget moves
+  it, Trim removes or folds it — neither <em>retracts</em> it.</li>
+  <li><strong>Trim removes invented surface; it does not add missing surface.</strong> The sheets end up lying on the
+  body; they do not become the four leg pairs the donor never had. That is Attach and Extrude Region's work
+  (<em>Topology</em>).</li>
+  <li><strong>Nothing here re-limbs or re-sockets the creature.</strong> A retargeted donor still has the donor's limb
+  classes, sockets and bone counts — its biomechanics — however well its silhouette now matches.</li>
+  <li><strong>Landmarks are placed by hand.</strong> There is no automatic correspondence between a creature and a scan,
+  and the tool refuses rather than guess: fewer than 4 landmarks, an <code>LM_</code> name that is neither a donor
+  landmark nor a rig bone (the known names are listed), a name placed twice, a landmark naming a bone that is no longer
+  on the rig.</li>
+  <li><strong>Clips are not retargeted.</strong> The rest bones move, so the existing Actions play on the new shape as
+  best they can; a clip authored for the old proportions may need re-keying (see <em>Animations</em>).</li>
+  <li><strong>The target must be one closed skin after a positional weld.</strong> A real floater is refused with the
+  part count, the boundary edges and the true non-manifold edges given separately.</li>
+</ul>
+</aside>
+</section>

@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+# compiled per-platform dependencies fetched by tools/fetch_blender_deps.py (never commit)
+_deps_bin/
+# the built distributable extension and its cached PyPI wheels (tools/build_extension.py; never commit)
+dist/

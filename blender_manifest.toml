@@ -1,0 +1,33 @@
+# The DEV manifest: it makes this working copy installable as an extension straight from disk, with the add-on's
+# dependencies still coming from the repo through __init__._setup_paths() (sibling ICParse / pyRDN/combotest,
+# _deps/construct, _deps_bin/<tag>/lupa, or the $BZ_* overrides).
+#
+# The DISTRIBUTABLE manifest is generated -- with a `wheels = [...]` list carrying ICParse, combotest, construct and
+# lupa, so a modder needs none of this repo -- by
+#
+#     .venv/bin/python3 blender_native/tools/build_extension.py
+#
+# Edit that tool's MANIFEST template, not this file, for anything that must reach a released .zip.
+schema_version = "1.0.0"
+
+id = "sgm_native_patches"
+version = "0.8.1"
+name = "SGM Native Patches"
+tagline = "Make and edit Impossible Creatures models in Blender"
+maintainer = "akipina (github.com/akipina)"
+type = "add-on"
+
+blender_version_min = "5.3.0"
+license = ["SPDX:GPL-3.0-or-later"]
+tags = ["Import-Export", "Mesh", "Modeling"]
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "*.pyc",
+  ".*",
+  "/dist/",
+  "/tests/",
+  "/tools/",
+  "/_deps_bin/",
+]

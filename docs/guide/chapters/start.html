@@ -1,0 +1,386 @@
+<section id="start">
+<h2>Getting started and the UI tour</h2>
+
+<p><code>blender_native</code> opens an Impossible Creatures creature (<code>.sgm</code>) in Blender as a
+<em>native bicubic-Bézier patch model</em>: the vertices of the object you edit are the file's own control points, one
+to one and in file order, and a viewport overlay draws the exact surface the game tessellates from them. Nothing is
+converted to a cage or a subdivision surface, so an untouched creature exports byte-identical and an edit rewrites only
+the control points you moved. This chapter installs the add-on, imports the stock rhinoceros
+(<code>Assets/engine_stock/rhinoceros.sgm</code>: 2594 control points, 288 patches, 54 bones, 10 clips), walks through
+every part of the <strong>SGM</strong> sidebar tab, plays a clip, runs <strong>Validate</strong> and exports the creature
+unchanged. Gatherers, characters, structures and props, and their blueprints, have their own chapters at the end of
+this guide.</p>
+
+<h3>Installing and launching</h3>
+
+<p>There are two ways in. As a <strong>modder</strong>, everything travels in one extension <code>.zip</code>;
+as a <strong>developer</strong> of the add-on, you run it from the repository. It needs <strong>Blender 5.3.0 or
+newer</strong>, and its tests run on Blender 5.3.0. The screenshots in this guide were taken in Blender 5.2.2 on
+2026-09-16, so a few panels have gained buttons since. <em>(Corrected 2026-11-17: this said the add-on was built
+against Blender 5.1 and tested on 5.2.)</em></p>
+
+<h4>The extension .zip</h4>
+
+<ol>
+  <li><strong>Edit &gt; Preferences &gt; Get Extensions</strong>, the drop-down menu at the top right of that page,
+  <strong>Install from Disk...</strong>; pick <code>sgm_native_patches-&lt;version&gt;.zip</code> and make sure
+  <strong>SGM Native Patches</strong> is ticked under <strong>Add-ons</strong>. The SGM tab appears in the viewport
+  sidebar (<kbd>N</kbd>) and <strong>File &gt; Import &gt; Impossible Creatures Model (.sgm / .ebp)</strong> works. A
+  newer zip installs over an older one the same way, with no need to uninstall the older one first (since 0.3.1),
+  and since 0.4.0 with no need to restart Blender: the new version puts away the libraries the older one left loaded
+  and uses its own. If the add-on fails to load after an upgrade, uninstall it in <strong>Get Extensions</strong> (its
+  drop-down menu, <strong>Uninstall</strong>), restart Blender and install the zip again.</li>
+  <li>Inside the zip, as wheels: <code>ICParse</code> (the format source of truth), <code>combotest</code> (the
+  combiner behind Combine Preview and the combine checks), <code>construct</code> and <code>lupa</code> (the Lua VM
+  that runs the game's own <code>attrcombiner.lua</code> for ratings, cost and rank). Blender installs the wheels whose
+  tags match the machine, so one zip serves every platform &mdash; except that <code>lupa</code> is not published for
+  Intel macOS or ARM Windows, where the add-on installs and works without it and says so in the Combine Preview status
+  box.</li>
+  <li>Two things the zip cannot carry, because they are the game's: the <strong>game install</strong> for the
+  combiner's size tables and <code>attrcombiner.lua</code> (Combine Preview finds it through <code>IC_INSTALL</code>,
+  else the usual Steam folders), and the <strong>stock creatures</strong> (Combine Preview &gt; <em>Extract Stock
+  Creatures</em> pulls them out of the install into Blender's user data). The rest of the add-on (New Project, the
+  model and map imports, the Blueprint panel) looks first in the <strong>Game folder</strong> set in its preferences,
+  then in <code>IC_INSTALL</code>, then in the usual Steam folders.</li>
+  <li>Uninstalling takes its bundled libraries with it: Blender keeps the libraries of every enabled extension in one
+  folder of your profile (<code>extensions/.local</code>) and removes the ones no extension needs any more.
+  <em>(Corrected 2026-11-17: this said each extension had its own <code>site-packages</code>.)</em> Build the zip
+  yourself with <code>.venv/bin/python3 blender_native/tools/build_extension.py</code>.</li>
+</ol>
+
+<h4>From the repository</h4>
+
+<p>The add-on lives in the <code>pyIC</code> repository and needs two sibling packages from it: <code>ICParse</code>
+(the file formats) and, for the combine features, <code>pyRDN/combotest</code> (the game's combiner).</p>
+
+<ol>
+  <li>Set up the repository once: <code>cd pyIC &amp;&amp; uv sync</code> (creates <code>.venv</code> with every local
+  package). Point <code>IC_INSTALL</code> at the game directory if it is not the default Steam location; the add-on reads
+  the combiner's size tables and <code>attrcombiner.lua</code> from there, and scene objects find their textures in the
+  game's <code>.sga</code> archives through it.</li>
+  <li>Optional, once per machine: <code>.venv/bin/python3 blender_native/tools/fetch_blender_deps.py</code> downloads the
+  <code>lupa</code> wheel for Blender's own Python into <code>blender_native/_deps_bin/</code> (nothing is installed into
+  Blender). Without it the Combine Preview still works, but ratings, cost and rank are not computed.</li>
+  <li>Stock creatures: <code>Assets/engine_stock/</code> holds each creature as four files, <code>rhinoceros.sgm</code>
+  (geometry, skeleton, skin, clips), <code>rhinoceros.ebp</code> (the entity blueprint), <code>rhinoceros.lua</code> and
+  <code>rhinoceros.lsc</code> (attributes and limb-scale rules). <code>tools/extract_stock.py</code> fills the folder from
+  the game's archives; the Combine Preview panel's <strong>Extract Stock Creatures</strong> button does the same into
+  Blender's user data.</li>
+  <li>Fastest way in, from the repository root:
+  <code>blender --python blender_native/tools/dev_launch.py -- Assets/engine_stock/rhinoceros.sgm</code>. This opens
+  Blender, registers the add-on for the session, imports the creature and frames it.</li>
+  <li>Blender's <strong>Install from Disk</strong> takes only a <code>.zip</code> or a <code>.py</code>, so to try the
+  add-on as it is packaged, build the zip and install that. Run from the repository, the add-on finds
+  <code>construct</code> (bundled in <code>_deps/</code>),
+  <code>ICParse</code> (<code>$BZ_ICPARSE</code>, else the sibling <code>../ICParse</code>), <code>combotest</code>
+  (<code>$BZ_COMBOTEST</code>, else <code>../pyRDN/combotest</code>) and <code>lupa</code> (<code>$BZ_DEPS_BIN</code>,
+  else <code>_deps_bin/</code>); what it found is listed in the Combine Preview panel's status box.</li>
+  <li>Open the sidebar with <kbd>N</kbd> and pick its last tab, <strong>SGM</strong>.</li>
+</ol>
+
+<figure><img src="img/start_empty.jpg" alt="Blender with an empty scene and the N sidebar open on the SGM tab: Import SGM / EBP, New Creature (From Scratch) and the Display box">
+<figcaption>A fresh scene with the add-on enabled. The SGM tab offers <strong>Import SGM / EBP (Native Patches)</strong> and <strong>New Creature (From Scratch)</strong>, and since this screenshot also <strong>New Impossible Creatures Project</strong> between the two; the Display toggles apply once a creature is loaded.</figcaption></figure>
+
+<aside class="note">
+<p><code>dev_launch.py</code> disables the older <code>io_scene_sgm</code> add-on for the session so its cage panels do
+not clutter the SGM tab; nothing is saved to your preferences. <code>ICParse</code> and the combiner are not reloaded with
+the add-on: restart Blender after editing them.</p>
+</aside>
+
+<h3>Importing a stock creature</h3>
+
+<ol>
+  <li><strong>SGM Native Patches &gt; Import SGM / EBP (Native Patches)</strong> (also <strong>File &gt; Import &gt;
+  Impossible Creatures Model (.sgm / .ebp)</strong>). Pick <code>rhinoceros.sgm</code>. The file browser's
+  <strong>Clips as Actions</strong> option (on by default) bakes every animation clip into a named Action on the rig.</li>
+  <li>You can pick the <code>.ebp</code> instead: a proxy blueprint opens the same-named <code>.sgm</code> beside it, a
+  blueprint that embeds its creature opens the embedded one. Only the geometry is imported; the blueprint's own data
+  (motion tree, events, icon) stays with the <code>.ebp</code>.</li>
+  <li>The status bar reports <code>Imported Rhinoceros from rhinoceros.sgm: 2594 CPs, 288 patches, rig 54 bones,
+  10 clips as Actions</code>. Two objects appear in the Outliner: <code>Rhinoceros</code> (the control-point mesh,
+  active) and <code>Rhinoceros_rig</code> (the armature).</li>
+  <li>Frame it with <strong>View &gt; Frame Selected</strong> (numpad <kbd>.</kbd>).</li>
+</ol>
+
+<figure><img src="img/start_import.jpg" alt="The rhinoceros just imported: orange control points, the grey control net and the textured live surface, with the SGM panel open">
+<figcaption>The stock rhinoceros in Object Mode. The orange dots are the file's control points, the grey lines the control net, the textured skin the live surface; the armature sits inside.</figcaption></figure>
+
+<p>Gatherers, characters, structures and props (scene <code>.sgm</code> files) import through the same button, as
+ordinary triangle meshes drawn exactly as the engine draws them; the SGM panel then shows a shorter set of controls,
+and their meshes can be edited and exported: see the chapter <em>Gatherers, characters, structures and props</em>.
+<em>(Corrected 2026-11-17: this said their geometry could not be edited.)</em></p>
+
+<h3>What you are looking at</h3>
+
+<ul>
+  <li><strong>The control points are the file's.</strong> The <code>Rhinoceros</code> mesh has 2594 vertices and no
+  faces: vertex <em>i</em> is control point <em>i</em> of the <code>.sgm</code>. Every native selection and transform tool
+  moves real control points; a shared corner is one vertex, so the surface stays watertight by construction.</li>
+  <li><strong>The surface is a live overlay.</strong> A GPU handler evaluates the exact bicubic surface from the current
+  vertices, re-tessellating only the patches that changed, with the engine's normal rule (analytic normals welded across
+  seams and per smoothing group at corners). It is drawn with the creature's real textures, and it follows the rig when
+  you pose it (the overlay reads the evaluated mesh).</li>
+  <li><strong>The control net</strong> is a second overlay: the 4x4 grid of every patch.</li>
+  <li><strong>The rig</strong> is a Blender armature with one bone per SGM bone at its bind-pose world transform; every
+  control point sits in its owner bone's vertex group at weight 1 (the file skins each point to exactly one bone).</li>
+  <li><strong>Clips are Actions.</strong> Each of the 10 clips became a named Action on <code>Rhinoceros_rig</code> (one
+  key per clip frame, stashed on a muted NLA track). An Action is a clip: edit, rename, add or delete Actions and Export
+  writes them back.</li>
+</ul>
+
+<p>The <strong>Display</strong> box drives the overlays:</p>
+
+<ul>
+  <li><strong>Surface Only</strong> hides the control-point object and the armature and leaves the surface (turn it off
+  again to edit).</li>
+  <li><strong>Show Surface</strong> and <strong>Show Control Net</strong> toggle the two overlays.</li>
+  <li><strong>Evaluated Surface</strong> (off by default) builds the surface as <em>real geometry</em> with a Geometry
+  Nodes modifier instead of drawing it, so it renders in Eevee and Cycles with the creature's materials and UVs, and
+  snapping and click-select see it. It re-evaluates the whole surface on every control-point move (about 8x the
+  overlay's cost at 800 patches), so the overlay stays the editing view.</li>
+  <li>The shading dropdown: <strong>Textured</strong> (the creature's skins), <strong>By Limb</strong> (one colour per
+  body part), <strong>By Bone</strong> (surface and points coloured by owning bone) and <strong>Plain</strong> (grey).</li>
+  <li><strong>Surface Density</strong> is the number of samples per patch edge for the overlay and the bake (2 to 16,
+  default 4; the engine itself uses 5x5 per patch).</li>
+  <li><strong>Show Handle Dots</strong> colours the points by kind, on-surface corners gold and off-surface handles
+  blue.</li>
+  <li><strong>Show Connections</strong> highlights the graft rings, the control-point loops where limbs attach.</li>
+  <li><strong>Edit Opacity</strong> is the surface's opacity in Edit Mode, so you can reach the handles through it.</li>
+  <li><strong>Patch Rules (Max feel)</strong> is what makes editing feel like a 3ds Max / gmax Editable Patch: a corner
+  drags its tangent handles with it, and the interior points follow Max's Auto Interior rule. Turn it off for raw
+  control-point editing.</li>
+  <li><strong>Show Interior Points</strong> reveals the interior points, which are hidden by default (Blender's vertex
+  hide: not drawn, not selectable) because the rule computes them.</li>
+  <li><strong>Lock Handles</strong> turns a corner's other handles by the same rotation as the one you move.</li>
+  <li><strong>Live Checks</strong> keeps the panel's warnings (a broken pool, a pending skeleton edit, a stale UV cage)
+  up to date as you work rather than only at Export.</li>
+</ul>
+
+<figure><img src="img/start_surface_only.jpg" alt="The rhinoceros with Surface Only on: only the textured surface is drawn">
+<figcaption><strong>Display &gt; Surface Only</strong>: the control points and the rig are hidden, leaving the surface as the game tessellates it.</figcaption></figure>
+
+<ol>
+  <li>Press <kbd>Tab</kbd> for Edit Mode. The surface turns translucent and the panel gains three boxes:
+  <strong>Modeling</strong> (Extrude Patch, Delete Patch, Auto Interiors, Set Corner / Set Coplanar),
+  <strong>Topology</strong> (Weld, Weld Target, Add Quad, Fill Hole, Subdivide, Extrude Region, Mirror to Whole) and
+  <strong>Select</strong> (Corners / Handles, Hide Patches / Unhide). A button the creature cannot use is greyed out
+  with the reason: Add Quad and Fill Hole need an open side, which a stock creature has none of.</li>
+  <li>Turn on <strong>Show Handle Dots</strong>, select a point and press <kbd>G</kbd>: the surface deforms under it as
+  you drag. Box and lasso select, proportional editing (<kbd>O</kbd>), snapping and mirror all work. <strong>X-Mirror
+  Editing</strong> (in the creature's info box) is on after import, so an edit on one side drives its spatial
+  partner.</li>
+  <li>Press <kbd>3</kbd> for Face select: <strong>that is patch select</strong>. The mesh carries one quad over each
+  patch's four corners, so a click, a box, a lasso, Select Linked and Grow / Shrink all take whole patches, and the
+  selected patch is outlined in orange.</li>
+</ol>
+
+<figure><img src="img/start_edit.jpg" alt="Edit Mode: translucent surface, corners in gold and handles in blue over the whole rhinoceros">
+<figcaption>Edit Mode with <strong>Show Handle Dots</strong>: corners gold, off-surface handles blue, the surface translucent at <strong>Edit Opacity</strong> 0.60.</figcaption></figure>
+
+<h3>The SGM panel, top to bottom</h3>
+
+<p>Below <strong>Display</strong> the panel shows, for a native creature:</p>
+
+<ul>
+  <li>The creature's name, control-point and patch counts, and <strong>X-Mirror Editing</strong>.</li>
+  <li>The rig box: <code>Rig: Rhinoceros_rig (54 bones)</code>, <code>10 clips as Actions</code>, the <strong>Load
+  Animation</strong> menu, the active Action (<code>active: none (rest pose)</code> after import) and <strong>Select
+  Rig</strong>.</li>
+  <li><strong>Sculpt</strong>: <strong>Sculpt Surface</strong> (and, while a sculpt is in progress,
+  <strong>Refit Patches</strong> and Discard Sculpt) &mdash; see the sculpting chapter.</li>
+  <li><strong>Tools</strong>: <strong>Attach</strong>, <strong>Symmetrize (X)</strong>, <strong>Relax Seam
+  Tangents</strong>, <strong>Retarget Creature to Mesh</strong>, <strong>Create Landmarks</strong> /
+  <strong>Landmark Retarget</strong>, <strong>Trim Stray Surface</strong>, and <strong>Validate (will it load?)</strong>
+  with its <strong>Combine Checks</strong> dropdown (Quick / Off).</li>
+  <li><strong>Bake Textured Mesh</strong>, <strong>Paint Skin</strong>, <strong>Transfer Texture</strong>,
+  <strong>Edit UVs</strong> (and <strong>Apply UVs</strong> while a UV cage exists) and <strong>Export SGM (Native
+  Patches)</strong>.</li>
+  <li>The <strong>Boner</strong> sub-panel (bones, limbs, connections, skinning, joint limits and IK chains) and the
+  collapsed <strong>Combine Preview</strong> sub-panel.</li>
+  <li>Above <strong>Display</strong>, with an ordinary (non-native) mesh active: <strong>Convert Mesh to
+  Creature</strong> and <strong>Fit Patches to Mesh</strong>.</li>
+</ul>
+
+<h3>Boner: Bones, Limbs, Connections</h3>
+
+<p>The <strong>Boner</strong> sub-panel is the add-on's version of Relic's Boner tool, with the same three tabs. With the
+link toggle next to the Bones tab's <strong>Overlay</strong> field on (<em>Follow Shading</em>, the default), choosing the
+Limbs tab switches the shading to <strong>By Limb</strong> and the Bones tab to <strong>By Bone</strong>.</p>
+
+<ol>
+  <li><strong>Limbs</strong> lists every limb with its Boner class, patch and bone counts and a status (<code>ok</code>,
+  <code>stub</code>, <code>no bones</code>, ...). The rhinoceros has 13: Torso, Head, Tail, four legs, and six
+  <code>stub</code> limbs (wings and front arms with no patches, one bone each, so other creatures' parts can graft
+  there). Click a limb name to make it active: its classification boxes, its bone list and <strong>Rename</strong> /
+  <strong>Add Standard</strong> / <strong>Delete</strong> appear. In Edit Mode, <strong>Select Limb</strong> grabs a whole
+  body part and <strong>Assign Selected to Limb</strong> moves patches between parts.</li>
+</ol>
+
+<figure><img src="img/start_limbs.jpg" alt="By Limb shading: head blue, torso red, legs purple and orange; the Boner Limbs tab lists 13 limbs with class, counts and status">
+<figcaption>Shading <strong>By Limb</strong> with the <strong>Boner &gt; Limbs</strong> tab: every limb with its class, patch and bone counts and status.</figcaption></figure>
+
+<ol start="2">
+  <li><strong>Bones</strong> is the skinning loop and the skeleton editor: pick the active bone in the
+  <strong>Bone</strong> field or with the eyedropper (<strong>Pick Bone</strong>: click a control point or a bone),
+  rename it with the pencil, or <strong>Add Bone under Active</strong>. The read-out says what it owns
+  (<code>head · 272 points · parent neck3</code>). In Edit Mode <strong>Assign Selected</strong>,
+  <strong>Select Points</strong> and <strong>Remove from Bone</strong> move points between bones; <strong>Auto
+  Skin</strong> gives points their nearest bone. The <em>Unassigned</em> count warns when a point a patch uses has no
+  bone, which Export refuses. Below that sit the active bone's <strong>joint limits</strong> (the BONE record's own
+  values, with Reset to Stock) and the creature's <strong>IK chains</strong> (Add / Edit / Remove / Reset). Deleting
+  and re-parenting bones is Blender's own <kbd>X</kbd> and <kbd>Ctrl+P</kbd> in the rig's Edit Mode, and Export takes
+  them.</li>
+</ol>
+
+<figure><img src="img/start_bones.jpg" alt="By Bone shading with head active: the head bright green, the rest of the body dimmed; the Boner Bones tab shows head, 272 points, parent neck3">
+<figcaption>Shading <strong>By Bone</strong> with <code>head</code> active in <strong>Boner &gt; Bones</strong>: its points and surface bright, every other bone dimmed.</figcaption></figure>
+
+<ol start="3">
+  <li><strong>Connections</strong> lists the 12 connection rings (name, <em>Parent &gt; Child</em> class, corner count
+  such as <code>6/6</code> for the head, host bone, status) with <strong>Create for Limb</strong>, <strong>Rename</strong>,
+  <strong>Delete</strong> and, in Edit Mode, <strong>Add Stub Socket</strong>. The active connection's boxes below set its
+  Parent / Child classes, its host bone (<strong>Set</strong> / <strong>Default</strong>), its ring (<strong>Pick
+  Ring</strong> / <strong>From Selection</strong>, Edit Mode) and <strong>Optimise Start</strong> / <strong>All
+  Rings</strong>, which rotate a ring's corner list onto the start the combiner welds best. With <strong>Show
+  Connections</strong> on, the rings are drawn on the creature and the active one is bright; a ring's colour follows
+  its status.</li>
+</ol>
+
+<figure><img src="img/start_connections.jpg" alt="Plain shading with Show Connections: green graft rings around the neck and each leg socket; the Boner Connections tab lists 12 connections">
+<figcaption><strong>Show Connections</strong> highlights the graft rings (the active one bright); <strong>Boner &gt; Connections</strong> lists each ring with its classes, host bone and status.</figcaption></figure>
+
+<h3>Playing a clip</h3>
+
+<ol>
+  <li>In the rig box choose <strong>Load Animation &gt; walk</strong>. The clip's Action becomes the rig's active Action,
+  the scene's frame range and frame rate are set from it, and the status bar says <code>Active action 'walk' (51
+  frames): Space plays; Select Rig to see its keyframes</code>.</li>
+  <li>Scrub the timeline or press <kbd>Space</kbd>: the surface follows the posed rig.</li>
+  <li>Press <strong>Select Rig</strong> (or select <code>Rhinoceros_rig</code>) and turn an area into a Dope Sheet or
+  Action Editor to see and edit the keys. Every other clip is a stashed Action you can pick in the Action Editor too.</li>
+</ol>
+
+<figure><img src="img/start_anim.jpg" alt="The rhinoceros posed mid-walk at frame 26, with a Dope Sheet below showing the walk Action's keys">
+<figcaption><strong>Load Animation &gt; walk</strong> at frame 26. The bottom area was switched to a Dope Sheet to show the Action's keys.</figcaption></figure>
+
+<h3>Validate: three tiers</h3>
+
+<p><strong>Tools &gt; Validate (will it load?)</strong> judges the creature exactly as Export would write it, in memory
+(so limb, ring, skeleton, skinning and Action edits all count). It reports in three tiers plus the combine checks:</p>
+
+<ul>
+  <li><strong>Blocking problems</strong> (red): what would stop the Object Editor from loading the file, such as a
+  dangling patch edge, a patch not in any limb, a patch mesh over the engine&rsquo;s 12,288 display vertices (or one that a combine would push over), or a control point on a patch with no bone.
+  The summary then reads <code>N problem(s) block loading, ...</code>. <code>EXPORT BLOCKED: ...</code> means the
+  control-point pool itself is broken (a native Delete / Merge / Duplicate of vertices), which <kbd>Ctrl</kbd>+<kbd>Z</kbd>
+  recovers.</li>
+  <li><strong>STOCK</strong> gaps: things every base-game creature has (the 9 standard clips, the canonical bones, rings,
+  IK chains, a connection host that owns points, ...). They do not stop loading; some Tellurian add-on creatures lack them
+  too. The summary reads <code>Loads in the Object Editor; N stock-rulebook gap(s) ...</code>.</li>
+  <li><strong>WARN</strong> advisories: <code>WARN export:</code> lines are what Export will say (a rest-pose edit next to
+  a kept clip, a renamed bone the game looks up by name), <code>WARN oe:</code> lines repeat the Object Editor's own limb
+  and connection warnings in its wording.</li>
+  <li><strong>COMBINE</strong> lines, never blocking: with <strong>Combine Checks: Quick</strong> (the default) Validate
+  runs the combiner's precheck and 13 combines with 6 stock donors (about 2 s) and lists <code>COMBINE ERROR</code> /
+  <code>WARN</code> / <code>INFO</code> findings; with <strong>Off</strong> only the instant precheck runs.</li>
+</ul>
+
+<ol>
+  <li>Leave the dropdown on <strong>Quick</strong> and press <strong>Validate (will it load?)</strong>.</li>
+  <li>The verdict shows in the status bar; every line is kept in the Info editor (switch any area to
+  <strong>Info</strong>, or use the Scripting workspace). For the untouched rhinoceros it is one line:
+  <code>Valid: should load in the Object Editor, complete as a stock creature, and combines right</code>.</li>
+</ol>
+
+<figure><img src="img/start_validate.jpg" alt="The Info editor at the bottom shows Valid: should load in the Object Editor, complete as a stock creature, and combines right; the same line is in the status bar">
+<figcaption><strong>Validate</strong> with <strong>Combine Checks: Quick</strong>: the verdict and every finding go to the Info editor (the bottom area here) and the status bar.</figcaption></figure>
+
+<h3>Export: untouched means byte-identical</h3>
+
+<ol>
+  <li>Press <strong>Export SGM (Native Patches)</strong> (also <strong>File &gt; Export &gt; Impossible Creatures Patch
+  Mesh (.sgm)</strong>). Blender's file browser opens; choose where to write. Keep the stock files as they are &mdash;
+  export somewhere of your own.</li>
+  <li>Exporting <em>over the creature's own base file</em> (the file you imported, or the one Fit Patches to Mesh or
+  New Creature wrote) is a <strong>save in place</strong>: the object is re-based on what was just written, so the next
+  export gives the same bytes again. While a skeleton edit is pending &mdash; a bone added, deleted, re-parented or
+  renamed, or a stub bone created &mdash; that is refused by name instead, because those are recorded as a difference
+  against the base and would be applied to it twice. Export under another name.</li>
+</ol>
+
+<figure><img src="img/start_export_dialog.jpg" alt="Blender's file browser for Export SGM (Native Patches) with rhinoceros.sgm as the file name">
+<figcaption><strong>Export SGM (Native Patches)</strong> opens the file browser; pick the <code>.sgm</code> to write.</figcaption></figure>
+
+<ol start="2">
+  <li>The report line names what changed and, for an untouched creature, ends with <code>byte-identical to the
+  source</code>: <code>Wrote 348657 bytes to .../rhinoceros.sgm: no edits; byte-identical to the source</code>. After an
+  edit it names each change instead, for example <code>geometry: 12 control points re-encoded</code>, and a
+  <code>clips: 9 kept, 1 written</code> part once an Action was edited.</li>
+  <li>Only what you edited is rewritten: moved control points at the file's float32 precision, edited tables, painted
+  textures, re-encoded or new Actions. Everything else keeps its source bytes, and clean chunks are copied verbatim.</li>
+  <li>Export refuses rather than corrupts: a broken control-point pool, an object transform, shape keys or extra
+  modifiers, a deleted rig or skin image, a source file changed since import, and the skeleton edits the format cannot
+  express (the root bone deleted, a bone the game looks up by name deleted, a stub bone or a connection host taken
+  away) all cancel the export with the fix in the message. Each refusal is also shown in the panel
+  <em>when you make the edit</em>, not only when you press Export.</li>
+</ol>
+
+<figure><img src="img/start_export.jpg" alt="The Info editor shows Wrote 348657 bytes to /tmp/bz_guide/start/rhinoceros.sgm: no edits; byte-identical to the source">
+<figcaption>The untouched rhinoceros writes back byte-identical to its source, and the report line says so.</figcaption></figure>
+
+<h3>Combine Preview</h3>
+
+<p>Expand the <strong>Combine Preview</strong> sub-panel (it starts collapsed). It combines the creature you are editing
+with another one exactly the way the game's combiner does, on the in-memory export model, so unsaved edits count.</p>
+
+<ol>
+  <li>Choose the role: <strong>This Creature Is the Torso</strong> (the other creature donates parts) or <strong>This
+  Creature Donates Parts</strong>; the arrows button swaps them.</li>
+  <li>Choose the other creature: <strong>Stock</strong> (from the stock directory, <code>Cheetah</code> here),
+  <strong>Object</strong> (another native creature in the scene, edits included) or <strong>File</strong>.</li>
+  <li>Toggle the part buttons, ComboTest's own set: <strong>Head</strong>, <strong>Tail</strong>, <strong>Front Legs</strong>,
+  <strong>Rear Legs</strong>, <strong>Wings</strong>, <strong>Front Arms</strong> (plus <strong>All</strong> /
+  <strong>None</strong>). A part the donor has no limb for is greyed out.</li>
+  <li>Press <strong>Preview</strong>. The result is drawn beside the creature as a transient ghost (no datablocks, no undo
+  step); the readout lists size, body scale, each slot's source and scale, the game's stats with a delta against this
+  creature alone, and warnings such as <em>the combined creature won't load</em>. Any relevant edit marks it
+  <em>stale: press Refresh</em>. <strong>Clear</strong> removes the ghost; <strong>Materialize…</strong> writes the
+  combination as a real creature (<code>.sgm</code> + <code>.lua</code> + <code>.lsc</code>) and imports it;
+  <strong>Validate Combines</strong> runs the Quick tier alone.</li>
+</ol>
+
+<figure><img src="img/start_combine.jpg" alt="The Combine Preview panel expanded with Head and Tail toggled and the cheetah as donor; beside the rhinoceros a ghost shows the rhino body with a cheetah head and tail, and the readout lists stats such as Health 302 and Cost 158">
+<figcaption><strong>Combine Preview</strong>: the rhinoceros is the torso, the stock cheetah donates Head and Tail. The game's combiner draws the result beside the creature as a ghost, with its stats in the readout.</figcaption></figure>
+
+<h3>Bake Textured Mesh</h3>
+
+<p>The overlay exists only in the viewport, so to render the creature in Eevee or Cycles press <strong>Bake Textured
+Mesh</strong>. It creates a real mesh object (<code>Rhinoceros_baked</code>) tessellated at the current
+<strong>Surface Density</strong>, with the creature's materials, textures and UVs and the engine's normals as custom
+split normals, and switches the viewport to Material Preview. The redo panel's <strong>Posed</strong> option bakes the
+surface as the rig currently poses it instead of the rest pose. The bake is a copy: editing it changes nothing in the
+creature, and Export still reads the control-point object.</p>
+
+<figure><img src="img/start_bake.jpg" alt="The baked rhinoceros mesh alone in Material Preview shading, textured, with the overlays turned off">
+<figcaption><strong>Bake Textured Mesh</strong> made <code>Rhinoceros_baked</code>; shown alone here with the overlays off, in Material Preview.</figcaption></figure>
+
+<aside class="note">
+<p>Things that bite on day one: keep the creature at the origin with no transform, modifiers or shape keys (Export
+refuses them); never Delete, Merge, Duplicate or Sort vertices with Blender's own mesh tools, since the vertex order is
+the file's control-point order (the overlay turns grey with the reason, Export cancels, Validate says <code>EXPORT
+BLOCKED</code>, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> restores it); Blender meshes are float32, exactly like the file, which is
+why only moved points are rewritten and why a re-import of an export is identical again; and a saved <code>.blend</code>
+reopens exportable, but the source <code>.sgm</code> must still be where it was.</p>
+</aside>
+
+<aside class="limits">
+<p><strong>Not possible yet.</strong> The surface is drawn as an overlay, so Eevee / Cycles need either <strong>Bake
+Textured Mesh</strong> or the <strong>Evaluated Surface</strong> option (real geometry, at about eight times the
+overlay's editing cost). Importing a creature's <code>.ebp</code> reads only its geometry: a creature's blueprint
+(motion tree, events) is not generated or edited here. What is not possible yet for gatherers, characters, structures
+and props is listed at the end of their chapter. The Combine Preview builds the bind pose only (no animations). And the
+add-on has been developed and tested on <strong>Linux only</strong>: the extension zip carries wheels for Windows x64
+and macOS arm64 and the add-on is pure Python on Blender's API, but nobody has run it there, so treat those platforms
+as unverified.</p>
+</aside>
+</section>

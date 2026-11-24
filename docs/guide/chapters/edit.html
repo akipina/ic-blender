@@ -1,0 +1,257 @@
+<section id="edit">
+<h2>Editing an existing animal</h2>
+
+<p>The fastest way to a new creature is to reshape one that already works. This chapter takes the stock rhinoceros
+(<code>Assets/engine_stock/rhinoceros.sgm</code>, 2594 control points in 288 patches) through the geometry workflow:
+Tab into Edit Mode, pick the right kind of control points, move them and watch the live surface, use Blender's
+proportional editing and mirror tools, grow a patch, run <strong>Symmetrize</strong>, <strong>Relax Seam
+Tangents</strong> and <strong>Validate</strong>, and export. Every screenshot below was captured from the add-on
+exactly as described; the numbers in the captions are the numbers it reported.</p>
+
+<p>Two facts make the rest of the chapter predictable. First, the vertices of the imported object <em>are</em> the
+file's control points, one to one and in file order; there are no faces, the surface is an overlay drawn from the
+points. Second, export rewrites only what changed: an untouched creature comes out byte-identical, and a moved point
+is re-encoded at the file's own float32 precision while every other byte is copied.</p>
+
+<figure><img src="img/edit_import.jpg" alt="The stock rhinoceros imported in Object Mode with the textured surface overlay, the control net and the rig, the SGM sidebar tab open"><figcaption>The stock rhinoceros after <strong>Import SGM / EBP (Native Patches)</strong>: the textured surface the game draws, the control net, the rig, and the <strong>SGM</strong> tab of the sidebar (N).</figcaption></figure>
+
+<h3>Into Edit Mode: what the points are</h3>
+
+<ol>
+  <li>Import the creature (<strong>SGM &gt; Import SGM / EBP (Native Patches)</strong>, or <strong>File &gt; Import &gt;
+  Impossible Creatures Model (.sgm / .ebp)</strong>) and press <kbd>N</kbd> for the sidebar, tab <strong>SGM</strong>.
+  The info box reads <em>2594 control points, 288 patches</em>.</li>
+  <li>Press <kbd>Tab</kbd>. The surface turns translucent (<strong>Display &gt; Edit Opacity</strong>, 0.60 by default) so
+  you can reach the points behind it, and every control point is an ordinary vertex: click, box select
+  (<kbd>B</kbd>), lasso, <kbd>A</kbd> for all.</li>
+  <li>Turn on <strong>Display &gt; Show Handle Dots</strong>. Corners (the 4 points per patch that lie on the surface)
+  are drawn gold and the tangent handles blue.</li>
+  <li>The <strong>interior points</strong> &mdash; the four middle points of each patch &mdash; are <em>hidden</em>
+  (Blender's vertex hide: not drawn, not selectable), because the add-on computes them from Max's Auto Interior rule,
+  which every base-game patch obeys. <strong>Display &gt; Show Interior Points</strong> reveals them, and an interior
+  moved by hand flags its patch <em>manual</em> so the rule leaves it alone from then on (<strong>Modeling &gt; Auto
+  Interiors</strong> puts selected patches back on the rule).</li>
+  <li>In Edit Mode the panel gains a <strong>Select</strong> box with two buttons: <strong>Corners</strong> selects only
+  the on-surface points, <strong>Handles</strong> only the off-surface ones. Use them before a box select when you want
+  to shape the silhouette without dragging handles along, or the other way round.</li>
+  <li>Press <kbd>3</kbd> for Face select and a click takes a whole <strong>patch</strong> (its outline goes orange).
+  Patch-level selection, and everything that makes geometry with it, is its own chapter.</li>
+</ol>
+
+<h3>It edits like an Editable Patch</h3>
+
+<p>With <strong>Display &gt; Patch Rules (Max feel)</strong> on &mdash; it is on by default &mdash; the add-on behaves
+like a 3ds Max / gmax Editable Patch rather than like a bag of points:</p>
+
+<ul>
+  <li><strong>A corner drags its tangent handles with it.</strong> Grab one corner and its four handles come along, so
+  the surface translates instead of pinching. A handle moved on its own is a tangent edit and stays where you put
+  it.</li>
+  <li><strong>The interior points are automatic</strong> (<code>interior = row handle + column handle - corner</code>,
+  Max's Auto Interior rule), recomputed during the drag for the patches you touch. They are hidden, so they cannot get
+  in the way of a selection.</li>
+  <li><strong>Set Corner / Set Coplanar</strong> (Modeling) set the Max vertex type of the selected corners. Coplanar
+  flattens the corner's handles into one plane and keeps them there when you move one (the others turn with the plane);
+  Corner &mdash; which is what every stock handle is &mdash; leaves them free.</li>
+  <li><strong>Display &gt; Lock Handles</strong> turns a corner's other handles by the same rotation as the one you
+  move.</li>
+  <li><strong>Display &gt; Patch Rules</strong> off turns all of it into raw control-point editing, which is what the
+  add-on did before, and which is still what you want when you are placing a single point exactly.</li>
+</ul>
+
+<p>Nothing is rewritten until you move something, so an untouched creature still exports byte-identical &mdash; but the
+rules do mean that one corner move touches more than one point. The horn move below moves 16 selected points and
+re-encodes 59, because their handles and their patches' interiors followed.</p>
+
+<figure><img src="img/edit_editmode.jpg" alt="Edit Mode: the surface translucent, the control net and black vertex dots, the Modeling and Select boxes in the panel"><figcaption>Tab into Edit Mode: the overlay goes translucent and the panel shows the <strong>Modeling</strong> box (Extrude Patch, greyed out because a stock creature is closed) and the <strong>Select</strong> box.</figcaption></figure>
+
+<figure><img src="img/edit_corners.jpg" alt="The rhino head from the right with Show Handle Dots on, only the gold corner points selected"><figcaption><strong>Select &gt; Corners</strong> with <strong>Show Handle Dots</strong> on: gold dots are on-surface corners, and only they are selected.</figcaption></figure>
+
+<figure><img src="img/edit_handles.jpg" alt="The same view with only the blue handle and interior points selected"><figcaption><strong>Select &gt; Handles</strong>: the blue off-surface points, tangent handles and patch interiors, selected instead.</figcaption></figure>
+
+<aside class="note">
+<p>The selection buttons are one-shot: they set the selection once, they do not filter later box selects. A box select
+in <em>vertex</em> mode still takes the far side's points, so orbit and check before you move &mdash; but in
+<em>patch</em> (Face) mode with X-ray off it does not, because Blender depth-tests the corner quads (<kbd>Alt+Z</kbd>
+selects through).</p>
+</aside>
+
+<h3>Moving points: lengthen the horn</h3>
+
+<p>A corner now carries its handles and its patches' interiors, so a single-corner drag translates the shape instead
+of pinching it. Selecting a whole region &mdash; corners and the handles around them &mdash; is still the way to move a
+feature bodily, because it moves the handles you can see as well as the ones the rule owns.</p>
+
+<ol>
+  <li>Orbit to the right side of the head (<kbd>Numpad 3</kbd>) and box select the tip of the horn: on the rhino that is
+  16 control points, 3 corners and the handles around them.</li>
+  <li>Press <kbd>G</kbd> and move (here 0.15 m forward and 0.45 m up; type <kbd>G</kbd> <kbd>Z</kbd> <kbd>0.45</kbd>
+  <kbd>Enter</kbd> for an exact axis move). The overlay re-evaluates only the patches that touch a moved point, so the
+  surface follows the drag live even on a 288-patch creature.</li>
+  <li><strong>Export SGM (Native Patches)</strong> at any time. The report in the status bar says what was rewritten:
+  after this one move it reads <em>geometry: 59 control points re-encoded</em> &mdash; the 16 you selected plus the
+  handles and interiors the patch rules carried with them. Everything else in the file is the original bytes.</li>
+</ol>
+
+<figure><img src="img/edit_horn_before.jpg" alt="The 16 control points of the horn tip selected in orange, right orthographic view"><figcaption>The horn's 16 control points selected: its corners and the handles around them, so the move translates the shape instead of pinching it.</figcaption></figure>
+
+<figure><img src="img/edit_horn_after.jpg" alt="The same view after the move: the horn is visibly longer and the surface follows"><figcaption><kbd>G</kbd>, then move: the live surface follows the selected points and the horn is longer.</figcaption></figure>
+
+<figure><img src="img/edit_export_horn.jpg" alt="After Export SGM: the status bar reads the byte count and 'geometry: 59 control points re-encoded'"><figcaption><strong>Export SGM (Native Patches)</strong> right after the move. The status bar reports <em>geometry: 59 control points re-encoded</em>; the popup carries the warning explained under Validate below.</figcaption></figure>
+
+<h3>Undo, also across Tab</h3>
+
+<p>Every SGM operator pushes one undo step, and the add-on keeps a journal of its tables (patches, limbs, rings,
+skinning) per mesh state, so <kbd>Ctrl+Z</kbd> works in Edit Mode, in Object Mode and across the mode switch. Tab out
+after the horn move and press <kbd>Ctrl+Z</kbd>: the horn is back where it was, and the panel still reads 2594 control
+points / 288 patches. <kbd>Ctrl+Shift+Z</kbd> brings the move back.</p>
+
+<figure><img src="img/edit_undo.jpg" alt="Back in Edit Mode after the undo: the horn at its original length, the panel still listing 2594 control points and 288 patches"><figcaption>Tab out, <kbd>Ctrl+Z</kbd>: the horn is back where it was and the add-on's tables followed the mesh.</figcaption></figure>
+
+<h3>Symmetry: Symmetrize (X) and X-Mirror</h3>
+
+<p>Stock creatures are only approximately symmetric (the rhino pairs 95 % of its points within a millimetre).
+<strong>Tools &gt; Symmetrize (X)</strong> snaps every point that has a mirror partner to exact bilateral symmetry by
+averaging the pair, and puts the points on the centre plane at X = 0; it works in Object or Edit Mode and is one undo
+step. The report says how many pairs it found.</p>
+
+<figure><img src="img/edit_symmetrize.jpg" alt="The whole rhino from the front left after Symmetrize (X), the Tools box visible in the panel"><figcaption><strong>Tools &gt; Symmetrize (X)</strong>: every control point with a mirror partner is snapped to exact symmetry (one undo step).</figcaption></figure>
+
+<p><strong>X-Mirror Editing</strong> (the checkbox in the panel's info box, Blender's own mesh symmetry option) is on
+from import. Blender finds a partner by exact mirrored position, so it only has something to work with after
+Symmetrize, and any asymmetric edit in between (a proportional move, Relax Seam Tangents) breaks the pairing again.
+After a Symmetrize it carries every selectable partner: in this capture a scripted <kbd>G</kbd> move on the left ear
+moved 30 of the ear region's points and 30 partners on the right. The route that always works &mdash; and that you can
+see working &mdash; is to select both sides first:</p>
+
+<ol>
+  <li>Select the points of one side, here the left ear (30 selectable points; the interiors among them are hidden and
+  follow their corners by the patch rule).</li>
+  <li><strong>Select &gt; Select Mirror</strong> (<kbd>Shift+Ctrl+M</kbd>) with <em>Extend</em> on adds their partners
+  (60 selected).</li>
+  <li><kbd>G</kbd> <kbd>Z</kbd> <kbd>0.3</kbd> <kbd>Enter</kbd> raises both ears together. (Editing one side and running
+  Symmetrize (X) afterwards is the other way to the same result.)</li>
+</ol>
+
+<figure><img src="img/edit_mirror_before.jpg" alt="The rhino face from the front, control net hidden, the left ear's points selected in orange"><figcaption>The left ear's selectable points (control net hidden for clarity); the right ear is not selected.</figcaption></figure>
+
+<figure><img src="img/edit_mirror_after.jpg" alt="Both ears raised, both sets of points selected"><figcaption><strong>Select Mirror</strong> added the 30 partners, then <kbd>G Z 0.3</kbd> raised both ears.</figcaption></figure>
+
+<h3>Proportional editing: raise the back</h3>
+
+<p>Proportional editing (<kbd>O</kbd>, or the icon in the 3D view header) is plain Blender and works on the control
+points as on any mesh: the neighbours of the selection follow with a falloff, so one point can reshape a region
+without pinching. Select the topmost corner on the back, press <kbd>O</kbd>, then <kbd>G</kbd> <kbd>Z</kbd>
+<kbd>0.35</kbd> <kbd>Enter</kbd>; scroll the mouse wheel during the move to change the radius (1 m here). Press
+<kbd>O</kbd> again to turn it off before the next precise move.</p>
+
+<figure><img src="img/edit_back_after.jpg" alt="Right orthographic view of the whole rhino with the back raised into a smooth hump"><figcaption>One corner moved 0.35 m up with proportional editing (smooth falloff, 1 m): the whole back rises into a hump instead of one point spiking.</figcaption></figure>
+
+<h3>Relax Seam Tangents</h3>
+
+<p>Where two patches meet, the game only needs the surface to be continuous (C0); the stock files have visible
+tangent kinks across two thirds of their seams, hidden in the game by averaged normals. <strong>Tools &gt; Relax Seam
+Tangents</strong> nudges the interior tangent handles on both sides of a seam toward a shared direction (C1) without
+touching the shared boundary points, so it stays local. With nothing selected it treats every seam; select all four
+points of one seam (its two corners and the two boundary points between them) to relax just that one. Repeat the
+click to strengthen the effect; every run is one undo step.</p>
+
+<h3>Extrude Patch: growing geometry</h3>
+
+<p><strong>Modeling &gt; Extrude Patch</strong> (Edit Mode) adds one patch onto an <em>open</em> side, a side used by a
+single patch. Select the two end corners of that side (or all four corners of a patch that has exactly one open side)
+and click the button: the creature gains 12 control points and one patch that shares the side, placed one handle
+spacing out from it, with the seam oriented the way every stock seam is. A shared side is refused, because an edge
+used by three patches does not load, and the button is disabled on a closed creature with that reason as its tooltip.
+The stock rhinoceros is closed, so the demonstration uses a copy with one patch removed from each flank.</p>
+
+<p>Extrude Patch is the oldest of the geometry tools and the simplest. The <strong>Topology</strong> box next to it
+does the rest &mdash; Weld, Add Quad (Extrude Patch on every selected open side at once), Fill Hole, Subdivide, Extrude
+Region and Mirror to Whole &mdash; and Delete Patch takes patches away. They have their own chapter.</p>
+
+<figure><img src="img/edit_extrude_hole.jpg" alt="Close-up of the right flank in By Limb shading with the control points around a missing patch selected; the hole shows the dark background"><figcaption>An open creature: this copy of the rhino lacks one patch on each flank, so the Right view looks through the near hole and out of the far one (By Limb shading, rig hidden). The control points around the near hole are selected: four open sides.</figcaption></figure>
+
+<figure><img src="img/edit_extrude_after.jpg" alt="The same view after Extrude Patch: a new patch with its control net fills the hole from the selected side"><figcaption>With only the two corners of one open side selected, <strong>Extrude Patch</strong> added 12 control points and one patch (286 to 287), grown out from that side; its other three sides are still open.</figcaption></figure>
+
+<aside class="note">
+<p>Extruded geometry goes through the export's rebuilt path: patches, limbs, connection rings and bone ranges are
+remapped, the new points take the bone of the side's corner and the limb, material and UVs of the patch they grew from, and untouched points still keep their
+source bytes. Validate judges the grown creature the same way it judges a stock one.</p>
+</aside>
+
+<h3>Validate: will it load?</h3>
+
+<p><strong>Tools &gt; Validate (will it load?)</strong> builds the creature exactly as Export would, in memory, and
+checks it. The findings arrive as reports (the summary in the status bar, every line in the Info editor) in three
+tiers plus the combine checks:</p>
+
+<ul>
+  <li><strong>Blocking problems</strong> (no prefix): the Object Editor will not load this. Dangling patch edges, an
+  edge with more than two patches, a patch mesh over the engine's <strong>12,288 display vertices</strong> (the real
+  ceiling: a patch costs 16 of them where its seams weld and 25 where it has its own texture island, so it is a vertex
+  budget, not a patch count &mdash; and Validate warns below that when a combine would push the total over), a control
+  point a patch uses but no bone owns (Export refuses it), a broken control-point pool (<em>EXPORT BLOCKED</em>: a
+  native Delete, Merge or Duplicate changed the pool; Undo it).</li>
+  <li><strong>STOCK</strong>: things every base-game creature has and this one lacks (the standard clips, the 18
+  universal bones, a ring per socket, IK chains). They load, but the game or the combiner may treat the creature
+  differently.</li>
+  <li><strong>WARN</strong>: advisories, including <em>WARN export:</em> lines that repeat what Export will warn about.
+  After the edits above it says <em>10 kept clip(s) have bounds from the source geometry, whose extent changed</em>: the
+  unedited animation clips still carry the original bounding boxes, and the engine culls by clip bounds, so a much
+  bigger creature could pop out of view at the screen edge; editing or re-keying a clip re-encodes it with fresh
+  bounds.</li>
+  <li><strong>COMBINE ERROR / WARN / INFO</strong>: with the dropdown next to the button on <strong>Quick</strong>
+  (the default) Validate also runs the game's combiner rules and 13 test combines with stock donors; on
+  <strong>Off</strong> only the static precheck runs. These never block loading.</li>
+</ul>
+
+<figure><img src="img/edit_validate_search.jpg" alt="Blender's operator search popup listing 'Bz: Validate (will it load?)'"><figcaption>The operators are also reachable by name through Blender's operator search (with Developer Extras enabled); the panel button <strong>Tools &gt; Validate (will it load?)</strong> is the usual way.</figcaption></figure>
+
+<figure><img src="img/edit_validate.jpg" alt="After Validate: the Info editor lists the WARN export line and the summary 'Loads in the Object Editor; 0 stock-rulebook gap(s), 1 warning(s)', the status bar shows the same summary"><figcaption>Validate on the edited rhino (Combine Checks: Quick): <em>Loads in the Object Editor; 0 stock-rulebook gap(s), 1 warning(s)</em>, and the one warning spelled out. The Info editor is shown here in place of the Properties editor.</figcaption></figure>
+
+<h3>Export and the export summary</h3>
+
+<ol>
+  <li><strong>Export SGM (Native Patches)</strong> (bottom of the panel, or <strong>File &gt; Export &gt; Impossible
+  Creatures Patch Mesh (.sgm)</strong>), pick a path outside the stock folder, confirm.</li>
+  <li>Read the report: <em>Wrote N bytes to &lt;path&gt;: &hellip;</em> followed by the summary line. It names only what
+  changed, part by part: <em>geometry: 2357 control points re-encoded</em> after every edit of this chapter; a
+  grown creature adds <em>geometry rebuilt: +12 control points, +1 patches</em>; rest-pose, ring, texture and clip
+  edits get their own parts when they happened (for example <em>clips: 10 kept, 1 written, 1 dropped</em>). The
+  same line is stored on the object.</li>
+  <li>A creature you did not touch reports <em>no edits; byte-identical to the source</em>, and the file really is
+  identical, byte for byte. That is the guarantee behind everything else: an edit changes exactly the bytes of the
+  points you moved.</li>
+</ol>
+
+<figure><img src="img/edit_export.jpg" alt="After Export SGM on the edited rhino: the status bar and Info editor read the byte count and 'geometry: 2357 control points re-encoded'"><figcaption>Export of the edited rhino: <em>geometry: 2357 control points re-encoded</em> (the proportional move, Symmetrize and Relax touched most of them). The popup repeats the clip-bounds warning.</figcaption></figure>
+
+<figure><img src="img/edit_export_untouched.jpg" alt="A fresh import exported: 'no edits; byte-identical to the source' in the status bar and the Info editor"><figcaption>A fresh import exported without any edit: <em>no edits; byte-identical to the source</em>. (The warning about Actions belonging to an earlier rig appears because the edited rhino's clips were still in this Blender file; they are simply not written for the new one.)</figcaption></figure>
+
+<aside class="note">
+<p><strong>Putting it in the game.</strong> The exported <code>.sgm</code> is only the model; a playable creature also
+needs its <code>.ebp</code>, <code>.lua</code> and <code>.lsc</code> beside it. Loose files under the game's
+<code>Data/</code> folder load and win over the archives, which suits your own testing; to share a creature, deliver it
+inside a mod's <code>.sga</code> with lower-case paths. That packaging is outside the add-on.</p>
+</aside>
+
+<aside class="limits">
+<h4>Not possible yet</h4>
+<ul>
+  <li><strong>No handle reset</strong> (Max's <em>Turn to Patch</em>): a corner can be Corner or Coplanar, but there is
+  no button that puts its handles back on the average of its neighbours.</li>
+  <li><strong>No per-patch smoothing group or material ID editing.</strong> Both are preserved from the source and
+  copied onto grown patches, and both are part of what decides a patch's display-vertex price, but neither is exposed
+  in the UI.</li>
+  <li><strong>Blender's own Delete, Merge by Distance, Sort and Duplicate on the pool are still forbidden</strong>:
+  they break the control-point table, so Export is refused, Validate says <em>EXPORT BLOCKED</em>, the overlay turns
+  grey with the reason and Undo recovers. The Topology tools are the supported way to change topology; Blender's
+  <kbd>X</kbd> &gt; Faces is quietly routed to <strong>Delete Patch</strong>.</li>
+  <li><strong>X-Mirror needs bit-exact partners</strong> (Symmetrize provides them), and any asymmetric edit in between
+  breaks the pairing again; Select Mirror plus a move, or Symmetrize afterwards, is the dependable path.</li>
+  <li><strong>Extrude Patch has no drag or numeric entry</strong> &mdash; it grows one handle spacing out. Use
+  <strong>Add Quad</strong> (which does the same on every selected open side) and then move the new corners, or
+  <strong>Extrude Region</strong>, which has Amount and Outline.</li>
+</ul>
+</aside>
+</section>

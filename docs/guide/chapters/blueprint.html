@@ -1,0 +1,129 @@
+<section id="blueprint">
+<h2>The Blueprint panel</h2>
+
+<p>Every gatherer, character, structure and prop is a pair of files: the model (<code>.sgm</code>: its shape,
+skeleton and animations) and the blueprint (<code>.ebp</code>: what kind of thing it is, the name the game shows, how
+many path cells it blocks, where its picture sits and which sounds the game loads for it). The
+<strong>Blueprint</strong> panel shows and changes the blueprint, and writes the two files into a folder that is ready
+to copy into a copy of the game. It is in the 3D Viewport's sidebar, <strong>SGM</strong> tab, whenever a part, the
+rig or the group empty of such a model is the active object. Like the previous chapter, this one has no screenshots
+yet; the words are the panel's own.</p>
+
+<h3>Loading the blueprint</h3>
+
+<ol>
+  <li>Select the model (a project from <strong>File &gt; New &gt; Impossible Creatures Project...</strong> has its
+  blueprint beside it already). The panel shows the blueprint's file name and <strong>Load Blueprint</strong>.</li>
+  <li>Press <strong>Load Blueprint</strong>. A status box at the top says what kind of thing it is (for the Lab:
+  <em>Structure (a building)</em>), the file, and <em>Not changed since it was loaded.</em>; after an edit it lists
+  what you changed: <em>Edited: name. Written when you export.</em> <strong>Reset</strong> throws your changes away and
+  reads the file again; <strong>Load Blueprint</strong> refuses to replace changes you made.</li>
+  <li>With no <code>.ebp</code> beside the model, the panel says <em>No blueprint file beside the model.</em> and offers
+  <strong>Start a New Blueprint</strong>. A new blueprint is written when you export; it has no motion tree and no
+  events, so the game will not play the model's animations with it.</li>
+</ol>
+
+<h3>What the panel shows</h3>
+
+<div class="tablewrap">
+<table>
+<tr><th>Box</th><th>What it is</th><th>Examples from the game</th></tr>
+<tr><td><strong>Name</strong></td><td>The name the game shows for it, on its button and in messages. Text like
+<code>$41545</code> is a code the game looks up in its language files; type plain words to give your own name. At
+most 255 letters.</td><td>henchmen <code>$25008</code>, lab <code>$41508</code>, aviary <code>$41503</code></td></tr>
+<tr><td><strong>Kind of thing</strong></td><td><strong>Kind</strong> (a drop-down of the game's classes in plain words)
+and the <strong>Class number</strong> it stands for. It decides what kind of thing the game makes of the model. A
+number the game does not know is kept and marked.</td><td><em>3 - Henchman: a unit that walks, fights or gathers</em>;
+<em>5 - Structure: a building</em>; <em>9 - Aviary: a building</em></td></tr>
+<tr><td><strong>Footprint and offset</strong></td><td><strong>X</strong> and <strong>Z</strong>: how many path cells
+the building blocks (one cell is 2 game units wide; 0 and 0 lets the game measure the model). Only buildings use it,
+so for other kinds it is greyed out. <strong>Offset</strong> moves the picture of the model against its footprint
+(Y raises it).</td><td>lab 7 by 5, aviary 3 by 3, henchmen 1 by 1 (greyed)</td></tr>
+<tr><td><strong>Sounds</strong></td><td>Sound files the game loads before play starts, so they play without a pause;
+one per line, written like the aviary's first, <code>DATA:AUDIO\SPECIALFX\STRUCTURES\WOODBIND.PAT</code>. <strong>Add Sound</strong> adds a line, the
+<strong>X</strong> removes one. A file the game cannot find is skipped quietly.</td><td>the aviary loads 22, the lab
+none</td></tr>
+<tr><td><strong>Where the game finds it</strong></td><td>The folder under <code>Data/art/ebps/</code>. The sentence under
+it says how the panel knows: <em>the folder of the thing the project was started from</em>, <em>a copy of one of the
+game's own things</em>, <em>where the files lie</em>, or <em>only a guess from the kind of thing: please check
+it</em>.</td><td><code>structures</code>, <code>gatherers</code>, <code>characters</code>, <code>nature</code></td></tr>
+</table>
+</div>
+
+<p>The status box also names the game folder the panel reads from (<em>Game folder: ... (from ...)</em>: the Game folder
+in the add-on's preferences, else the <code>IC_INSTALL</code> environment variable, else the usual Steam folders), and
+warns when that folder holds no <code>.sga</code> archives. The closed sub-panel <strong>Gameplay numbers (read
+only)</strong> lists the numbers the game would give the thing
+(speed, health, cost and so on) and the stats file they come from, as <em>From ..., which builds on ...</em>. They cannot
+be changed here. The game looks for a stats file under the thing's own name, so a copy saved under a new name gets the
+default numbers of its kind; the panel then says <em>The game finds no stats file under this name, so it uses the
+default numbers of this kind of thing.</em></p>
+
+<h3>Export Entity Folder</h3>
+
+<ol>
+  <li>Press <strong>Export Entity Folder...</strong>. A folder browser opens; its side panel has <strong>File
+  name</strong> (it starts as the project's name) and <strong>Folder in the game</strong> (it starts as the folder the
+  panel shows), the path the two files will get, such as <code>Data/art/ebps/structures/mylab.sgm / .ebp</code>, and
+  <strong>Drop the damage states of edited parts</strong>, the same option as in the model's own export (an edited
+  part with damage states is refused unless it is ticked).</li>
+  <li>Choose an empty folder of your own. The game's folder (the one the panel's status box names), any folder inside
+  it and any folder inside Steam's game folders are refused: Steam can overwrite or delete anything you add to its
+  copy.</li>
+  <li>Press <strong>Export Entity Folder</strong>. It writes
+  <code>&lt;folder&gt;/Data/art/ebps/&lt;folder in the game&gt;/&lt;name&gt;.sgm</code> and
+  <code>&lt;name&gt;.ebp</code> (all in lower case) and <code>&lt;folder&gt;/README.txt</code>, and reports
+  <code>Wrote mylab.sgm and mylab.ebp under .../Data; blueprint changed: name; everything else copied unchanged from the
+  original; model: 1 part(s) rebuilt, 22 unchanged. README.txt says how to use them.</code></li>
+</ol>
+
+<p>The model is written exactly as <strong>Export Scene Object</strong> writes it (or Export Scene Geometry when there
+is no rig). In the blueprint only what you changed is written again: an untouched blueprint comes out byte for byte,
+and a changed name or kind changes only the blueprint's header, a changed footprint or offset only its footprint part,
+a changed sound list only its sound list. All 479 blueprints of the game's archives were run through the panel this
+way.</p>
+
+<p><code>README.txt</code> says, in plain words, what the two files are, how to put them into a copy of the game you
+own, how to undo it, whether they replace one of the game's own things or carry a new name, how many parts of the
+model were rebuilt, what changed in the blueprint, and what is not in the folder (textures, which the model takes from
+the game, and the stats file).</p>
+
+<h3>Trying it in the game</h3>
+
+<ol>
+  <li>Work in a copy of the game that you own, never in the Steam folder.</li>
+  <li>Copy the exported <code>Data</code> folder into the main folder of that copy (the one that already has a
+  <code>Data</code> folder) and let the two merge. The game reads loose files in its <code>Data</code> folder before the
+  files packed in its archives, so yours are used instead of a packed file with the same path.</li>
+  <li>Start the game from that copy. To undo, delete the two files again. If something does not show up, the game's
+  <code>warnings.log</code> says why.</li>
+</ol>
+
+<p><strong>A new name or a replacement?</strong> A thing under a new name (<code>structures/mylab</code>) shows up only
+where a map or a script asks for it. To change one of the game's own things everywhere, export it under exactly its own
+folder and name (<code>structures/lab</code>); 26 of the game's blueprints, the Lab, the Aviary and the henchmen among
+them, are looked up by that path, and for those the export dialog and the README say that your files replace the
+original.</p>
+
+<aside class="note">
+<p><strong>Several players.</strong> The kind, the footprint, the offset, the gameplay numbers and the size of the
+model are compared between players when a multiplayer game starts. Every player needs the same files, or the game will
+not let them play together.</p>
+</aside>
+
+<aside class="limits">
+<ul>
+  <li>Some of the game's 479 blueprints can only be looked at: 10 use the game's oldest file layout (4 AI map markers,
+  5 cut-scene props and a menu object; they are copied unchanged when you export), and 86 carry their model inside the
+  blueprint instead of naming a <code>.sgm</code>: 62 creatures (the combiner's 61 stock animals and one cut-scene
+  creature) and 24 older things (20 pieces of old scenery, 3 map markers and a projectile). Those cannot be exported
+  yet.</li>
+  <li>The blueprint's picture (its icon) is not shown or edited, and a new blueprint has no motion tree and no
+  events.</li>
+  <li>The stats file is not copied: a thing saved under a new name plays with the default numbers of its kind.</li>
+  <li>The panel's values are kept on one object of the model (the rig, else the group empty, else the first part);
+  deleting that object loses the changes you have not exported.</li>
+  <li>Nothing exported this way has been tried in the game yet.</li>
+</ul>
+</aside>
+</section>

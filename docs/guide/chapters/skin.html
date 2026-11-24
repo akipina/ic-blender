@@ -1,0 +1,305 @@
+<section id="skin">
+<h2>Skinning and re-skinning</h2>
+
+<p>Skinning decides which bone moves each control point. This chapter uses the stock rhinoceros
+(<code>Assets/engine_stock/rhinoceros.sgm</code>, 2594 control points, 288 patches, 54 bones) and the
+<strong>Boner &gt; Bones</strong> tab of the SGM sidebar panel: colour the surface by bone, pick a bone, move points
+between bones, take points off a bone, let Auto Skin fill the gaps, use Blender's own vertex-group tools, and read what
+Export says about it.</p>
+
+<h3>The model: one bone per point, no weights</h3>
+
+<p>An Impossible Creatures <code>.sgm</code> skins every control point <em>rigidly</em> to exactly one bone. There are no
+blended weights in the file: each bone owns a contiguous range of points, and the point coordinates are stored in that
+bone's bind-pose frame. The add-on keeps the same rule in Blender:</p>
+
+<ul>
+  <li>Import builds one vertex group per bone and puts each control point in its owner's group at weight 1.0. That is what
+  the Armature modifier deforms when you pose the rig.</li>
+  <li>The add-on also keeps its own owner table (the "skin table"). Boner's tools write the table and the vertex groups
+  together, in one undoable step.</li>
+  <li>Export rebuilds the file from the table: points are re-sorted into contiguous bone ranges, each point is re-expressed
+  in its new owner's bind frame (so the creature's shape is unchanged), and every bone range follows the stock layout
+  (patch corners first in each range, their count in the bone record). Untouched creatures still export byte-identical;
+  a reskinned one reports <code>skinning: N bone range(s) rebuilt</code>.</li>
+  <li>A control point that a patch uses must have a bone. The engine asserts it, so Export refuses such a point.
+  (A point no patch uses may have no bone: woolly_mammoth ships with two.)</li>
+</ul>
+
+<h3>Seeing the skin: By Bone</h3>
+
+<ol>
+  <li>Import the rhinoceros (<strong>SGM Native Patches &gt; Import SGM / EBP (Native Patches)</strong>) and open the
+  sidebar (<kbd>N</kbd>) on the <strong>SGM</strong> tab.</li>
+  <li>Scroll down to the <strong>Boner</strong> sub-panel and choose the <strong>Bones</strong> tab. Its
+  <strong>Overlay</strong> dropdown is the same shading setting as <strong>Display &gt; By Bone</strong>; with the link
+  toggle next to it on (<em>Follow Shading</em>), switching Boner tabs switches the overlay too.</li>
+  <li>Set the overlay to <strong>By Bone</strong>: the surface and every control point take the colour of the bone that
+  owns them. A point with no bone is orange. The points toggle beside the link hides the point squares.</li>
+</ol>
+
+<figure><img src="img/skin_bybone.jpg" alt="The rhinoceros in Object Mode with the By Bone overlay: the surface and control points coloured by owning bone">
+<figcaption>By Bone: every control point is coloured by the one bone that owns it. Each colour is one bone's range in the file.</figcaption></figure>
+
+<ol start="4">
+  <li>Type or pick a bone in the <strong>Bone</strong> search field (here <code>head</code>). The active bone's points turn
+  bright and every other bone dims; the read-out below says <code>head · 272 points · parent neck3</code>.</li>
+</ol>
+
+<figure><img src="img/skin_active_head.jpg" alt="Boner > Bones with head as the active bone: the head is bright, the rest of the creature dimmed">
+<figcaption>Active bone <code>head</code>: bright against the dimmed body. The Bones tab shows its point count and parent.</figcaption></figure>
+
+<h3>Selecting a bone's points, and Pick Bone</h3>
+
+<ol>
+  <li><kbd>Tab</kbd> into Edit Mode. The Bones tab now shows <strong>Assign Selected</strong>, <strong>Select Points</strong>,
+  <strong>Remove from Bone</strong> and the <strong>Select</strong> button next to the <em>Unassigned</em> count.</li>
+  <li>Press <strong>Select Points</strong>: the active bone's control points are selected (a white ring marks each selected
+  point in By Bone). The status bar reports <code>'head' owns 272 control points (selected)</code>. Hold the operator's
+  <em>Extend</em> option (in the redo panel at the bottom left) to add to the selection instead of replacing it.</li>
+</ol>
+
+<figure><img src="img/skin_select_points.jpg" alt="Edit Mode, the head's 272 control points selected by Select Points, white rings on each">
+<figcaption>Select Points selects everything the active bone owns. The Bones tab shows the full Edit Mode tool set.</figcaption></figure>
+
+<ol start="3">
+  <li>To find out which bone a point belongs to, click the eyedropper beside the Bone field: <strong>Pick Bone</strong>.
+  It runs in the 3D Viewport as a modal tool: move the cursor over a control point and every point of that point's bone
+  lights up, with the bone's segment drawn; the viewport header reads
+  <code>Pick Bone: click a control point or a bone. Esc cancels -- under the cursor: neck3</code>. You can also hover a
+  bone of the rig itself. Click to make it the active bone (the status bar says
+  <code>Active bone: neck3 (50 control points)</code>); <kbd>Esc</kbd> cancels and keeps the previous bone. An orange
+  (unassigned) point is refused with <em>control point N has no bone (orange): nothing to pick</em> and the tool keeps
+  running. Middle-mouse navigation passes through, so you can orbit while picking.</li>
+</ol>
+
+<figure><img src="img/skin_pick_bone.jpg" alt="Pick Bone running: the cursor over a neck3 point, all neck3 points highlighted white, the header naming neck3">
+<figcaption>Pick Bone: hovering one neck3 point highlights all of neck3 and names it in the header. Click to make it active.</figcaption></figure>
+
+<aside class="note">
+<p>Pick Bone is interactive only. In a script (or Blender's background mode) it refuses and tells you the scriptable way:
+set <code>scene.bz_boner.bone = "neck3"</code>. Every other Boner tool works from a script through
+<code>bpy.ops.bz.*</code> (<code>skin_select_points</code>, <code>skin_assign_active</code>, <code>skin_remove</code>,
+<code>skin_select_unassigned</code>, <code>skin_auto</code>, <code>assign_bone</code>).</p>
+</aside>
+
+<h3>Moving points to a neighbouring bone</h3>
+
+<p>First look at how the stock skin deforms. Select the rig (<strong>Select Rig</strong> in the SGM panel), enter
+<strong>Pose Mode</strong> and rotate the <code>head</code> bone (<kbd>R</kbd>). The bicubic surface follows the pose
+live, because the overlay reads the evaluated mesh.</p>
+
+<figure><img src="img/skin_pose_before.jpg" alt="Pose Mode, the head bone nodded down with the stock skin: the neck stays in place, the surface bends at the head/neck boundary">
+<figcaption>Stock skin, head nodded 40°: only <code>head</code> and its children move; the neck stays put and the surface bends at the boundary.</figcaption></figure>
+
+<ol>
+  <li>Reset the pose (<kbd>Alt</kbd>+<kbd>R</kbd>), select the creature again and <kbd>Tab</kbd> into Edit Mode.</li>
+  <li>Select the control points you want to move (here 20 points in the lower part of the neck that belong to
+  <code>neck3</code>).</li>
+  <li>Make the target the active bone (<code>head</code>, via the Bone field or Pick Bone) and press
+  <strong>Assign Selected</strong>. The status bar reports <code>Assigned 20 control points to 'head' (20 changed bone)</code>
+  and the points take the head's colour at once. The read-out now says <code>head · 292 points</code>.
+  <strong>Skin Selected to Bone</strong> (the menu at the bottom of the tab) does the same but lets you choose the bone
+  from a list instead of making it active first.</li>
+</ol>
+
+<figure><img src="img/skin_assign.jpg" alt="Edit Mode after Assign Selected: 20 lower-neck points now coloured as head, the read-out says head 292 points">
+<figcaption>Assign Selected: the 20 neck points now belong to <code>head</code> (bright, with their selection rings). Owner table and vertex groups changed together; <kbd>Ctrl</kbd>+<kbd>Z</kbd> brings both back.</figcaption></figure>
+
+<ol start="4">
+  <li>Pose the head again: the reassigned neck points now swing with the head, so the surface bends further down the
+  neck. This is the whole effect of skinning: a point follows exactly one bone, so moving it between bones moves where the
+  surface hinges.</li>
+</ol>
+
+<figure><img src="img/skin_pose_after.jpg" alt="The same head pose after the reskin: the lower-neck points bulge out with the head">
+<figcaption>Same pose after the reskin: the 20 reassigned points follow <code>head</code> and pull the lower neck with it.</figcaption></figure>
+
+<aside class="note">
+<p>Assigning to a bone whose <em>Deform</em> checkbox is off in the rig is refused ("does not deform"): the Armature
+modifier would ignore its group and the points would stay at rest.</p>
+</aside>
+
+<h3>Taking points off a bone: Remove from Bone, Select Unassigned, and the export refusal</h3>
+
+<ol>
+  <li>Make <code>ear_L</code> the active bone, select its points (Select Points) and press
+  <strong>Remove from Bone</strong>. The points now have no bone: they turn orange, the read-out drops to
+  <code>ear_L · 0 points</code>, and the <em>Unassigned</em> row turns red:
+  <code>Unassigned: 50 (50 on patches: Export refuses)</code>. The status bar says
+  <em>Removed 50 control points from 'ear_L'; 50 patch points now have no bone: Export refuses them until they are assigned
+  (Select Unassigned, Auto Skin)</em>. Selected points of other bones are left alone (the report counts them).</li>
+</ol>
+
+<figure><img src="img/skin_remove.jpg" alt="The left ear's 50 control points orange after Remove from Bone; the Bones tab shows Unassigned: 50 in red">
+<figcaption>Remove from Bone: the whole left ear is orange (no bone) and the panel warns that Export will refuse.</figcaption></figure>
+
+<ol start="2">
+  <li>Try <strong>Export SGM (Native Patches)</strong> now. It is cancelled with:
+  <blockquote>50 control points used by patches have no bone (points 0, 1, 2, 3, 4, 5, ...): the game needs every
+  patch point skinned to a bone. Boner &gt; Bones &gt; Select Unassigned selects them (orange in the By Bone overlay);
+  assign them to a bone or run Auto Skin</blockquote>
+  <strong>Validate</strong> reports the same as <code>EXPORT BLOCKED: 50 control points used by patches have no bone ...</code>.</li>
+  <li>Press <strong>Select</strong> next to the Unassigned count (operator <em>Select Unassigned</em>): exactly the orange
+  points are selected, and the status bar counts them (<code>50 control points have no bone (50 used by patches)</code>).
+  Now either make a bone active and press Assign Selected, or let Auto Skin decide.</li>
+</ol>
+
+<figure><img src="img/skin_select_unassigned.jpg" alt="Select Unassigned: the orange ear points selected, white rings on each">
+<figcaption>Select Unassigned picks every point with no bone, ready for Assign Selected or Auto Skin.</figcaption></figure>
+
+<h3>Auto Skin</h3>
+
+<p><strong>Auto Skin</strong> is a menu with four targets:</p>
+
+<ul>
+  <li><strong>Selected, else Unassigned</strong> (the default): in Edit Mode the selected points, or every unassigned
+  point when nothing is selected. In Object Mode the selection is not shown, so it always means <em>Unassigned</em>.</li>
+  <li><strong>Selected</strong>: the selected points (Edit Mode only; refused in Object Mode).</li>
+  <li><strong>Unassigned</strong>: every point with no bone.</li>
+  <li><strong>Reset All</strong>: every control point, replacing the skin the creature has (Boner's Reset).</li>
+</ul>
+
+<p>Its rule: each point goes to its nearest bone <em>segment</em>, where a bone runs from its head to its nearest child's
+head and a leaf bone is its head alone. It never uses a <strong>stub bone</strong> (the wing and arm socket bones, on
+the rhinoceros <code>SWing1_L</code>, <code>swing1_r</code>, <code>Top_Wing_L</code>, <code>top_wing_r</code>,
+<code>front_arm1_l</code>, <code>front_arm1_r</code>; no stock stub bone owns a point), never an <strong>end-site
+bone</strong> (a name token starting with <code>end</code>: <code>endjaw</code>, <code>endtail</code>,
+<code>endear_L</code>, <code>front_endleg_r</code>, ...; none of the 611 on the base game owns a point) and never a bone
+whose Deform is off. Bones you added with Add Bone count as segments and targets like any other.</p>
+
+<p>Then, with <strong>Handles Follow Corners</strong> on (the default; it is in the operator's redo panel), every
+handle and interior point takes the bone of its patch's nearest corner, as on every stock creature: in a battle the
+game skins each patch with its four corner bones only, so a handle on another bone would bend the patch in the army
+builder and the Object Editor but not in battle. <em>(Added 2026-11-17: the option exists since 2026-11-15; the counts
+below were measured before it, with the nearest-segment rule alone.)</em></p>
+
+<ol>
+  <li>With the 50 ear points still selected, run <strong>Auto Skin &gt; Selected, else Unassigned</strong>. On the
+  rhinoceros 48 of them go back to <code>ear_L</code> and 2 to <code>antler_l</code> (the nearest segment), the
+  Unassigned count returns to 0 and Export works again. The report ends with <em>Check By Bone and fix by hand</em>:
+  Auto Skin is a first pass, not Relic's hand skin.</li>
+</ol>
+
+<figure><img src="img/skin_autoskin.jpg" alt="After Auto Skin the ear points are coloured again; the read-out says ear_L 48 points and Unassigned: 0">
+<figcaption>Auto Skin on the selection: the orange points get their nearest bone segment (48 back on <code>ear_L</code>, 2 on <code>antler_l</code>).</figcaption></figure>
+
+<ol start="2">
+  <li><strong>Reset All</strong> re-derives the entire skin from the skeleton. On the rhinoceros it agrees with the stock
+  skin on 50.7% of the points (52% on average over the base game, 60% on the cheetah) and uses 34 bones, so expect to
+  fix seams by hand afterwards. Choose it by name: in Edit Mode with every point selected, the other targets are refused
+  and the message asks for Reset All, so an accidental select-all cannot wipe the skin.</li>
+</ol>
+
+<figure><img src="img/skin_reset_all.jpg" alt="The whole rhinoceros after Auto Skin > Reset All, coloured by nearest bone segment">
+<figcaption>Auto Skin &gt; Reset All: the whole skin from the nearest-segment rule. Compare with the stock colouring in the first figure.</figcaption></figure>
+
+<h3>Blender's own way: vertex groups and weight painting</h3>
+
+<p>The rig's vertex groups are the skin as Blender deforms it, and the add-on reads them live. You can therefore use
+Blender's own tools, as long as the result is still rigid:</p>
+
+<ol>
+  <li>In Edit Mode select points, choose a bone's group in the Object Data properties (or <kbd>Ctrl</kbd>+<kbd>G</kbd>
+  &gt; <em>Assign to Active Group</em>), remove them from the old group and assign them to the new one at weight
+  <strong>1.0</strong>. The Bones tab read-outs and By Bone show the new owner immediately (below, twelve nose-tip points
+  moved to <code>jaw1</code>: the read-out says <code>jaw1 · 170 points</code> although the file gave it 158).</li>
+  <li>Export adopts such a rigid reassignment (one bone group at weight 1.0) into the skin table and writes it, and says
+  so in its report. The next Boner edit (Assign Selected, Remove from Bone, Auto Skin, Extrude Patch) adopts it too, so
+  the two ways of editing do not fight.</li>
+</ol>
+
+<figure><img src="img/skin_ctrlg.jpg" alt="Twelve nose-tip points reassigned to jaw1 with Blender's vertex-group tools; By Bone shows them in jaw1's colour with jaw1 active">
+<figcaption>Ctrl+G reassignment (weight 1.0): By Bone and the Bones tab already treat the points as <code>jaw1</code>'s. Export adopts it.</figcaption></figure>
+
+<ol start="3">
+  <li>A <strong>blended</strong> point (in two groups, or a partial weight) cannot be stored. Give one point a 0.5 weight in
+  <code>jaw1</code> on top of its <code>nose</code> group and the Bones tab shows a red alert:
+  <em>1 points have blended vertex-group weights: Export refuses, and skin edits stop until they are Undone or assigned</em>.
+  Export is cancelled with:
+  <blockquote>the rig's vertex groups skin control points the .sgm can't store (it skins each point to one bone at full
+  weight): 1 with blended or partial weights (point 1372: nose 1.00, jaw1 0.50). Give each point exactly one bone group at
+  weight 1.0 (Assign Selected to Bone does), or Undo the weight edit</blockquote>
+  and a Boner edit on <em>other</em> points refuses as well, rather than silently rewriting the groups from the stale
+  table:
+  <blockquote>vertex-group edits on control points outside this edit can't be kept by the add-on's skin table (it skins
+  each point to one bone at full weight): 1 with blended or partial weights (point 1372: nose 1.00, jaw1 0.50). This edit
+  would overwrite them, so it stopped. Undo the weight edit, or include those points in the edit and assign them to one
+  bone</blockquote></li>
+  <li>To fix it, either <kbd>Ctrl</kbd>+<kbd>Z</kbd> the weight edit, or select the blended point and press
+  <strong>Assign Selected</strong>: an edit that <em>includes</em> the point makes it rigid again (one group, weight 1.0).
+  A point taken out of every bone group with Blender's tools shows as unowned (orange): Export refuses it
+  (<em>in no bone's vertex group, so Blender leaves them at rest</em>), Boner edits elsewhere stop the same way, and
+  <strong>Select Unassigned</strong> finds it so an Assign Selected or Auto Skin can give it a bone.</li>
+</ol>
+
+<figure><img src="img/skin_blended.jpg" alt="The Bones tab with the red alert about one point with blended vertex-group weights">
+<figcaption>A blended weight: the panel warns, Export and the Boner edits refuse until the point is rigid again.</figcaption></figure>
+
+<h3>Export: the summary line</h3>
+
+<p>Press <strong>Export SGM (Native Patches)</strong> once every patch point has a bone. The report line (also stored on
+the object as <code>bz_last_export</code>) names what changed; for this chapter's edits it reads
+<code>skinning: 35 bone range(s) rebuilt (2594 points re-encoded)</code>. The count is the number of bones whose
+point range moved: a reskin re-sorts the whole pool, so nearly every bone that owns points gets a new range, and every
+point is re-encoded in its owner's bind frame. Untouched creatures still say <em>byte-identical to the source</em>.
+A creature grown with Extrude Patch reports <code>geometry rebuilt: ...</code> instead, with the bone ranges rebuilt
+inside it. Undo restores both the table and the groups, so an edit undone exports the original bytes again.</p>
+
+<h3>Skinning and combining (ComboTest)</h3>
+
+<p>The combiner grafts a limb onto another creature's torso by the limb's bone list. A limb's patch points should belong
+to the limb's own bones, to one of the canonical torso bones (<code>pelvis</code>, <code>spine1</code>,
+<code>spine2</code>, <code>spine3</code>, <code>neck1</code>, <code>tail1</code>) or to its connection's host bone. If
+a reskin gives a limb's points to a Torso bone outside that list, or to a bone in no limb, <strong>Validate</strong> adds
+a STOCK line of the form <em>STOCK limb 'X': its patches use control points of B (N points, in Torso), not one of its
+bones: grafted onto another torso, ComboTest.exe puts those points on the root bone (and, for a leg, fails an assertion
+with no export)</em>. Every base-game limb obeys this (0 hits on 61 creatures); the fix is to skin the points to one of
+the limb's bones or to add the bone to the limb (<strong>Boner &gt; Limbs &gt; Add Active Bone</strong>). The Limbs
+tools also warn when a bone-list edit newly creates such stray points.</p>
+
+<p>Two related STOCK lines come from the same tab: skin points to a stub bone (<code>SWing1_L</code> on the rhinoceros)
+and Validate says <em>STOCK stub limb 'Rhinoceros_LSWing' (no patches): its bone SWing1_L (6 points) owns control
+points: no base-game stub bone owns any (Boner &gt; Bones: move those points to a bone of a limb with patches)</em>;
+empty a connection's host bone and it says <em>STOCK connection 'X': its host bone 'Y' owns no control points</em>.
+STOCK lines never block Export (Tellurian creatures break them and load), but a creature that breaks them will not
+combine like a stock one.</p>
+
+<aside class="note">
+<p>On the rhinoceros the Torso limb lists only the six canonical bones and every other bone is in some limb, so a
+reskin cannot trigger the stray-points line here; giving Head points to <code>Rear_leg1_l</code> passes Validate. It
+matters on creatures whose Torso has extra bones, or after Boner &gt; Limbs edits.</p>
+</aside>
+
+<aside class="note">
+<p><strong>Hidden interiors never cost you an edit silently.</strong> The interior points of every patch are hidden by
+default (the add-on computes them from Max's Auto Interior rule), and Blender cannot select a hidden vertex &mdash; so a
+selection made by a script or an operator can leave some of its points behind. A hidden interior whose frame corner
+<em>is</em> selected still follows it; the ones left behind are counted and named, together with <strong>Display &gt;
+Show Interior Points</strong> and the corner rule, by <strong>Select Points</strong>, <strong>Select Unassigned</strong>
+and <strong>Remove from Bone</strong>. And an Assign with nothing effectively selected is an ERROR that says so &mdash;
+<em>Select the control points to assign &mdash; nothing is selected. 1152 of this creature's control points are hidden
+interior points, which Blender cannot select: Display &gt; Show Interior Points reveals them, or select their frame
+corner instead</em> &mdash; not a bare "Select the control points to assign" and a cancel.</p>
+</aside>
+
+<aside class="note">
+<p>A native Blender <em>Delete</em>, <em>Merge</em>, <em>Sort</em> or <em>Duplicate</em> of control points breaks the
+control-point pool: every skinning operator is disabled, Export is cancelled and the overlay turns grey with the reason
+until you Undo. Use the <strong>Modeling</strong> and <strong>Topology</strong> tools to change geometry instead.</p>
+</aside>
+
+<aside class="limits">
+<h4>Not possible yet</h4>
+<ul>
+  <li>Blended or partial weights: the <code>.sgm</code> has no room for them, so they are refused, not approximated.</li>
+  <li>Boner's <em>Topology</em> transfer (copying assignments between creatures of the same topology) is not ported.</li>
+  <li>Pick Bone needs the interactive viewport; from scripts set <code>scene.bz_boner.bone</code>.</li>
+  <li>Auto Skin is the nearest-segment rule only (about half of Relic's choices); there is no smoothing, mirroring or
+  per-limb heuristic.</li>
+  <li>A point no patch uses may stay unowned, but the tools give you no way to create such a point on purpose.</li>
+  <li>A fitted creature's skin is <strong>Split into Limbs</strong>' nearest-bone guess in the template's frame, not a
+  skin: expect to fix it here, and to move the bones themselves (Boner &gt; Bones, or Retarget) first.</li>
+</ul>
+</aside>
+</section>

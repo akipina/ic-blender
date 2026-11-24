@@ -1,0 +1,98 @@
+<section id="sculpt">
+<h2>Sculpting: brushes instead of control points</h2>
+
+<p>Dragging control points is precise and slow. <strong>Sculpt Surface</strong> and <strong>Refit Patches</strong> let
+you shape a creature with Blender's Sculpt Mode brushes instead, and then solve the change back into the control points
+of the patches you actually touched. Nothing else about the creature changes: the patch layout, limbs, connection rings,
+skeleton, skinning, textures and clips are the ones you started with, and the patches no brush reached keep their
+control points <em>bit for bit</em>, so they export byte-identical.</p>
+
+<p>The chapter uses the stock cheetah (<code>Assets/engine_stock/cheetah.sgm</code>, 2594 control points in 288
+patches).</p>
+
+<figure><img src="img/sculpt_before.jpg" alt="The stock cheetah imported, the live surface drawn over its control points"><figcaption>The starting point: the stock cheetah as imported.</figcaption></figure>
+
+<h3>Sculpt Surface</h3>
+
+<ol>
+  <li>With the creature active, open the SGM panel's <strong>Sculpt</strong> box and press <strong>Sculpt
+  Surface</strong>.</li>
+  <li>Its <strong>Density</strong> (redo panel, <kbd>F9</kbd>; default 7, range 4–12) is the number of surface samples
+  per patch edge. More samples give the brushes finer vertices to push — but a bicubic patch can only hold so much
+  detail, so the refit will flatten whatever the patches cannot express, and the report says how much.</li>
+  <li>The exact bicubic surface is baked into a mesh named <code>&lt;creature&gt;_sculpt</code>, with
+  <strong>coincident seam samples merged</strong> so that it is one connected skin — Grab, Inflate and Smooth do not
+  tear it at a patch seam. On the cheetah at density 7 that is 14,112 samples merged into 10,370 vertices, textured.</li>
+  <li>The creature and its rig are hidden and Blender enters Sculpt Mode, with X symmetry on when the creature is
+  symmetric.</li>
+</ol>
+
+<figure><img src="img/sculpt_panel.jpg" alt="The SGM panel's Sculpt box with the Sculpt Surface button"><figcaption>The <strong>Sculpt</strong> box. With no sculpt in progress it holds one button; while one is in progress it holds <strong>Refit Patches</strong> and a <strong>×</strong> for Discard Sculpt.</figcaption></figure>
+
+<figure><img src="img/sculpt_sculptmode.jpg" alt="Blender in Sculpt Mode on the cheetah sculpt mesh, the brush shelf at the bottom"><figcaption><strong>Sculpt Surface</strong> at Density 7: <code>Cheetah_sculpt</code>, 10,370 vertices, in Sculpt Mode. The panel now reads <em>Sculpt of Cheetah · density 7, 10370 vertices</em>.</figcaption></figure>
+
+<h3>Sculpt it</h3>
+
+<p>From here it is ordinary Blender. Grab, Draw, Inflate, Smooth, Crease, masking, the Remesh-free brushes — anything
+that moves vertices without changing the topology. The sculpt mesh remembers which creature and which control points it
+came from, every vertex's bake position, and the sample → vertex map, and that is all the refit needs.</p>
+
+<figure><img src="img/sculpt_bump.jpg" alt="The sculpt mesh with the cheetah's back pulled up into a hump"><figcaption>A Grab bump on the back — here about 6 cm on a 1 m creature, over 5,260 vertices. Nothing has happened to the creature yet; this is an ordinary Blender mesh.</figcaption></figure>
+
+<aside class="note">
+<p>Do not change the sculpt mesh's <em>topology</em>. Dyntopo, Remesh, Voxel Remesh or deleting geometry break the
+sample map, and Refit refuses with the reason. Moving the sculpt object, or editing the creature's control points behind
+its back, also make the sculpt stale — Refit says so and asks you to press Sculpt Surface again.</p>
+</aside>
+
+<h3>Refit Patches</h3>
+
+<ol>
+  <li>Press <strong>Refit Patches</strong> (it is in the panel from either object, the sculpt or the creature).</li>
+  <li>The vertices are scattered back to the samples they came from, the samples that moved are found, and the
+  least-squares refit is solved with the one solver in the toolkit,
+  <code>ICParse.codecs.fit.refit_samples</code>.</li>
+  <li>Patches no moved sample touched keep their control points exactly; the touched patches take the closest bicubic
+  shape to what you sculpted.</li>
+  <li>The report says what happened, including the <strong>residual</strong> — what the patches could not hold. For the
+  bump above: <em>180 patches refit (1,430 control points moved); residual rms 0.08 mm, max 0.89 mm; 108 patches
+  untouched.</em></li>
+  <li>The write goes through the journaled edit, so <strong>one <kbd>Ctrl+Z</kbd></strong> gives the creature back
+  byte-identical and the sculpt mesh with it. The creature is shown again and the sculpt mesh removed
+  (<strong>Keep Sculpt Mesh</strong> in the redo panel leaves it in the file, hidden).</li>
+</ol>
+
+<figure><img src="img/sculpt_refit.jpg" alt="The cheetah back in place with the sculpted hump, the sculpt mesh gone"><figcaption><strong>Refit Patches</strong>: the creature is back, carrying the sculpted shape in its own control points, and the sculpt mesh is gone.</figcaption></figure>
+
+<figure><img src="img/sculpt_after.jpg" alt="The refitted cheetah exported, the panel showing the Sculpt box again"><figcaption>Exported. The report names only what was rewritten — <em>geometry: 1430 control points re-encoded</em> — and every other byte of the file is the original's.</figcaption></figure>
+
+<h3>Reading the residual</h3>
+
+<p>The residual is the honest measure of whether the patches could follow you. A broad shape change (a hump, a thicker
+leg, a longer snout) refits to a fraction of a millimetre. Fine detail — scales, wrinkles, a sharp crease inside one
+patch — cannot be held by a 4 × 4 bicubic patch, and the residual will say so: the surface comes back smoother than you
+sculpted it. Two ways out, both in this guide: subdivide the patches you need detail in first (see <em>Topology</em>),
+or accept that the detail belongs in the texture (see <em>Textures</em>), which is where the base game puts it.</p>
+
+<aside class="note">
+<p><strong>While a sculpt is in progress</strong>, Export and Validate warn that it is <em>not</em> in the export: the
+creature they write is the one under the sculpt. Refit first, or <strong>Discard Sculpt</strong> (the × next to Refit)
+to throw the sculpt away.</p>
+</aside>
+
+<aside class="limits">
+<h4>Not possible yet</h4>
+<ul>
+  <li><strong>Topology-changing sculpting.</strong> Dyntopo and Remesh break the sample map; the sculpt mesh must keep
+  the vertices it was baked with. Detail beyond what the existing patches can hold needs more patches
+  (<em>Topology &gt; Subdivide</em>) before the sculpt, not after it.</li>
+  <li><strong>No multires.</strong> There is one density, chosen at bake time; changing it means baking again.</li>
+  <li><strong>The refit does not move bones.</strong> A sculpt that changes the shape a lot leaves the rig where it was
+  — move it in <strong>Boner &gt; Bones</strong>, or use <strong>Retarget</strong>, which does carry the rest bones.</li>
+  <li><strong>No per-patch mask.</strong> Which patches are rewritten follows from which samples moved; you cannot pin
+  a patch against the refit other than by not sculpting it.</li>
+  <li>The sculpt mesh is textured from the creature, but its UVs are the bake's: at merged seam samples the texture can
+  read slightly differently from the live overlay. It is a preview surface, not a render.</li>
+</ul>
+</aside>
+</section>

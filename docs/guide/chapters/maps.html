@@ -1,0 +1,341 @@
+<section id="maps">
+<h2>Maps and scenarios</h2>
+
+<p>A map of the game (the game calls a map file a <em>scenario</em>, <code>.sgb</code>) can be opened in Blender: its
+terrain with the ground textures, the water, and every building, plant and unit placed on it, each in its place. Since
+version 0.5.0 it can also be changed and saved again: sculpt the ground, move the water, paint ground textures, and
+move, copy, delete, add or hand over the placed things. A map saved with no changes comes back byte for byte as it was.
+Since version 0.8.0 a cinematic can be replayed on the timeline the way the game plays it, with its script. Since version 0.7.0 most of the Mission Editor's tools are there too: a new map, map settings and look, painting, scripting, cinematics, files and lists, and a crop. Since version 0.6.0 the creatures it places show as their real models, and the water is drawn again when you change the
+ground. Version 0.8.1 draws the map by the game's own rules, read from its code: the ground picture, the decals, the
+water, the border, the sky and the sun.
+<strong>A saved map has not been loaded in the game yet</strong>; the limits are listed at the end of this chapter. Like
+the two chapters before it, this one has no screenshots; the menu entries and messages are quoted from the add-on
+itself.</p>
+
+<h3>Opening a map</h3>
+
+<ol>
+  <li><strong>File &gt; Import &gt; Impossible Creatures Map from the Game...</strong> opens a small dialog with a list
+  of the game's own maps, read straight from the game folder (the one the add-on's preferences name: see
+  <em>Getting started</em>): the maps packed in the game's archives and any map file in its
+  <code>Data/scenarios</code> folder. Each entry reads like <em>2p faceoff (multiplayer, Engine.sga)</em>: the map, what
+  kind it is (multiplayer, campaign or empty map) and where it is kept. A map that several versions of the game carry
+  (the original game, the expansion) is listed once for each, since each version reads its own copy.</li>
+  <li><strong>File &gt; Import &gt; Impossible Creatures Map (.sgb)</strong> opens a map file from disk instead.</li>
+  <li>Both have four options, all on. <strong>Placed models</strong>: every placed thing shows its model, and each model
+  is loaded only once however often the map uses it; off, every placed thing is an empty, which is quicker.
+  <strong>Water</strong>: the water surface is added where the map has water. <strong>Creatures</strong>: the creatures
+  the map places show as their real models; off, they stay empties. <strong>Game look</strong>: the map as the game draws
+  it (see below). With all four off the import is as quick as it was in 0.5.0.</li>
+</ol>
+
+<p>If the game is not found, the list holds one entry that says so: set the <strong>Game folder</strong> in the
+add-on's preferences.</p>
+
+<h3>What you get</h3>
+
+<p>Everything goes into one collection named after the map, with a collection for each kind of thing: terrain, water,
+structures, nature, units and other.</p>
+
+<ul>
+  <li><strong>The terrain</strong> is one mesh, one vertex per height point of the map, at the map's real size and
+  heights. Each block of 8 by 8 cells shows its ground texture, repeated across the block the way the game repeats it.
+  The images are packed into the <code>.blend</code> file, so nothing points at the game's folder.</li>
+  <li><strong>The water</strong> is a surface wherever the map's water lies above the ground, at the water's own
+  height. Without the game look it is plainly see-through; with it, it is drawn as the game draws it.</li>
+  <li><strong>Every placed thing</strong> is an object at its position and rotation, standing on the ground as in the
+  game. When its model can be shown it is a copy of that model; the originals sit in a hidden collection, one per
+  model. When it cannot, it is an empty named after its blueprint, and the reason is stored on it and listed in the
+  report. Sound emitters and markers that have no model are empties. Parts the game never draws (the water sparkles)
+  are see-through; in the Solid view they show faintly, so you can still select them.</li>
+  <li><strong>The creatures</strong> are real models. A stock creature is built from its own file. A creature that was
+  combined inside the map is built from the recipe the map keeps (which animal gave the head, the legs, the tail), with
+  the add-on's own combiner; the collection of each combined creature says which animal gave which limb. Each kind is
+  built once, in the pose it is modelled in (there is no animation), and every placed creature is a copy of it, standing
+  on the ground. One that cannot be built (a parent animal the game's files do not have) stays an empty and says why.</li>
+  <li><strong>The game look</strong> is the map as the game draws it; the save never reads any of it. The ground shows the
+  map's own <strong>ground picture</strong> (<code>&lt;map&gt;.tga</code>) with each block's ground texture blended over it
+  as a fine grain within 450 m of the view, darker under water and fading to one border colour at the map's edge. A
+  collection named <code>&lt;map&gt; look</code> adds the <strong>sun</strong> (its colour, shining the way the map's light
+  travels) and the map's ambient light; the <strong>sky</strong> on the game's flattened dome, which only the camera sees
+  and which follows the scene's camera; the <strong>water</strong> past the map's edge, rising and fading out, which like
+  the map's own water is the sky's reflection, brighter or darker with depth and distance, rippled; the sloped
+  <strong>border</strong> beneath it; the map's <strong>decals</strong>, laid on the ground's own points (one object per
+  picture); and the <strong>fog</strong>, on the few maps that have any (<em>ice clash</em> is the one among the game's
+  own). The view transform is set to <em>Standard</em> while the look is on. Show or remove it later with <strong>Show
+  game look</strong> / <strong>Remove game look</strong> in the panel's <em>Game look</em> part; removed, each block shows
+  its ground texture plainly, which helps when you paint blocks.</li>
+  <li>Each placed object remembers its blueprint, its owner (the player) and its groups; the save reads them back.</li>
+</ul>
+
+<p>The import also makes the 3D view draw far enough to show the whole map and the sea round it at once. What differs from
+the game: the Blender sun lights the ground (the game computes its own light and cast shadows for every ground point), the
+water does not move, colours are added in Blender's linear light so tones differ a little (mostly darker), and the sun's
+strength and the fog's thickness are the add-on's choice. The look has not been compared with the running game.</p>
+
+<aside class="note"><p><strong>Left and right.</strong> The free 3D view shows a map as the mirror image of what the game
+shows. Looking through a cut-scene, preview or replay camera shows the game's picture.</p></aside>
+
+<h3>The report</h3>
+
+<p>The status bar sums it up, for example <code>Map 2p_faceoff: 164 entities placed (155 with their model, 9 as
+empties), 27 different models, in 0.45 s. The whole report is in the text 'Map import 2p_faceoff'.</code> That text
+(open it in the Text Editor) gives the map's size in height points, cells and metres; the ground textures and how often
+each repeats; how many cells are under water; how many things were placed and how many show a model; each kind of
+empty with its reason; how many creatures were built and what the game look holds; the models that could not be imported
+(none on the game's maps tried); and the time taken.</p>
+
+<div class="tablewrap">
+<table>
+<tr><th>Map</th><th>Size</th><th>Placed things</th><th>Shown with a model</th><th>Empties</th></tr>
+<tr><td>2p faceoff (multiplayer)</td><td>65 by 65 points, 256 m</td><td>164</td><td>155 (27 models)</td><td>9 sound emitters</td></tr>
+<tr><td>mission1 (campaign)</td><td>129 by 129 points</td><td>338</td><td>278 (33 models, and 21 creatures built as models)</td><td>60 markers with no model</td></tr>
+<tr><td>6p bikini atoll (multiplayer, the largest of the archives)</td><td>257 by 257 points, 1,024 m</td><td>1,786</td><td>1,700 (47 models)</td><td>86 sound emitters</td></tr>
+</table>
+</div>
+
+<p>With everything on these took 0.6 s, 1.9 s and 1.3 s on a Linux machine (a campaign map such as mission12, with 52
+creatures to build, took 2.9 s). The game look of each took under 0.3 s.</p>
+
+<h3>The Map panel</h3>
+
+<p>While the scene holds a map, the <strong>SGM</strong> tab of the 3D view's sidebar (press <kbd>N</kbd>) shows a
+<strong>Map</strong> panel: the map's name, its size in height points and metres, how many placed things of each kind it
+holds right now (a copy or a deletion shows at once), and the file it was opened from. Under it are five parts:
+<strong>Ground and water</strong>, <strong>Game look</strong>, <strong>Ground textures</strong>,
+<strong>Placed objects</strong> and <strong>Save</strong>. The panel stays away when the scene holds no map.</p>
+
+<h3>Changing the ground and the water</h3>
+
+<ol>
+  <li><strong>The ground.</strong> Sculpt the terrain in Sculpt Mode, or move its points in Edit Mode (proportional
+  editing works). The save reads the height of every point. The terrain has to keep its grid: the map stores one height
+  for each point, so points cannot be added, removed, joined or rearranged. If they were, the save is refused with the
+  reason and nothing is written; undo the change (<kbd>Ctrl+Z</kbd>) or open the map again. A point pushed sideways
+  keeps only its height.</li>
+  <li><strong>Steps.</strong> The map stores a height in steps (0.5 m in most of the game's maps, 0.4 m in a few such as
+  <code>mission1</code> and <code>4p thin ice</code>). A sculpted height is rounded to the nearest step, and one below
+  zero or above the highest the map can hold (255 steps: 127.5 m in a map with 0.5 m steps) is cut to that end. The save
+  report counts both, so a very fine sculpt is not lost without a word.</li>
+  <li><strong>The water.</strong> Move the water surface up or down and the map's water level follows: the sea moves with
+  it, while a pond or bog that the map made at its own height stays where it was (the report says how many cells
+  stayed). The water surface is drawn again by itself after you sculpt the ground on maps up to 257 by 257 points; on a
+  bigger map, or after you move the water, press <strong>Redraw water</strong> (in <em>Ground and water</em>). A map that
+  was opened without water can be given some: <strong>Add water...</strong> asks for a level and puts a surface there, and
+  saving writes that level as the map's water level (the water shows in the game wherever the ground is lower than it).</li>
+</ol>
+
+<h3>Painting ground textures</h3>
+
+<p>Open <strong>Ground textures</strong> in the panel: one row for each ground material of the map, each with a
+<strong>Use on selected faces</strong> button. In Edit Mode select faces of the terrain and press the button of the
+material you want. <strong>Add ground texture...</strong> opens a search over the ground textures the game holds (its
+<code>detail</code> folder) and adds one to the terrain's materials. The game keeps one texture for each block of 8 by 8
+cells, so each block takes the material that most of its faces have; on a tie the block keeps its own. A texture the map
+did not list is added to the map's list, and the report says so (the add-on cannot check that the game really has the
+file: it comes from the game's own list).</p>
+
+<h3>Moving, copying, adding and deleting placed things</h3>
+
+<ul>
+  <li><strong>Move or turn</strong> an object (<kbd>G</kbd>, <kbd>R</kbd>) and that placed thing moves. A thing you did
+  not touch is written back with exactly the numbers it had.</li>
+  <li><strong>Delete</strong> an object (<kbd>X</kbd>) and the thing is removed from the map, with its place in any
+  group it was in.</li>
+  <li><strong>Copy</strong> an object (<kbd>Shift+D</kbd>, or <kbd>Alt+D</kbd> for a linked copy) and the copy is a new
+  placed thing with the same blueprint. A copy of a creature that was combined inside the map is left out, and the report
+  says so: such a creature has no blueprint file to name.</li>
+  <li><strong>Add object at the 3D cursor...</strong> searches the game's blueprints (over 200: buildings, scenery,
+  gatherers and more) and puts the chosen one on the ground under the 3D cursor, with its model when it has one.</li>
+  <li><strong>Set owner of the selected...</strong> gives the selected things to the world or to one of the map's
+  players. <strong>Drop selected to the ground</strong> puts them on the terrain as it is now.</li>
+  <li><strong>Scale is ignored</strong>: the map stores a position and a turn only, and the report says how many scaled
+  objects it met.</li>
+</ul>
+
+<h3>Checking and saving</h3>
+
+<ol>
+  <li><strong>Check my changes</strong> (in the <strong>Save</strong> part) lists what a save would change, in plain words,
+  without saving: how many height points moved, how far the water moved, how many ground blocks change, and how many
+  objects were moved, added, removed or given away.</li>
+  <li><strong>File &gt; Export &gt; Impossible Creatures Map (.sgb)</strong>, or <strong>Save Map...</strong> in the panel,
+  opens a file browser. Pick a folder: the map is written there as <code>&lt;name&gt;.sgb</code>, together with the files
+  that sit beside it in the game and carry its name (its triggers, dialogue, preview pictures and loading-screen files),
+  copied unchanged.</li>
+  <li><strong>Save ready-to-drop folder...</strong> writes <code>Data/scenarios/mp/&lt;name&gt;.sgb</code> instead
+  (<code>sp</code> for a campaign map) with the same files, and a <code>README.txt</code> that says how to put it into a
+  copy of the game that you own. The name is made of lower-case letters, digits and underscores.</li>
+  <li>The save is <strong>refused, with nothing written</strong>, for the game's own folder, for any Steam folder, and
+  for the file the map was opened from unless you tick <strong>Replace the original file</strong>.</li>
+  <li>A map saved under a new name gets new file names, but its trigger file keeps its old text: the old name appears
+  only in a comment, which changes nothing.</li>
+</ol>
+
+<p>The status bar says <code>Saved &lt;path&gt; (10 files). The whole report is in the text 'Map save
+&lt;name&gt;'.</code> The text (open it in the Text Editor) has two parts: <em>Changes read from the scene</em> (what you
+changed) and <em>Written into the map</em> (how many heights were rounded or cut to the map's steps, whether the
+pathfinding was updated, new ground textures, the ids of removed objects, and anything to be careful about).</p>
+
+<h3>The pathfinding</h3>
+
+<p>A map holds where units can walk. The game's own editor bakes it from the ground, from the cells the map's author
+painted passable or blocked, and from the scenery that blocks (the trees, rocks and walls placed on the map), and the
+computer players path over it. When you change the ground or add, move or delete something that blocks, that bake is out of
+date. Since 0.6.0 the add-on bakes it <strong>the way the game's editor does</strong> (the method was read from the game's
+program and checked against the game's own maps). The save dialog's <strong>Pathfinding</strong> choice says what to do:</p>
+
+<ul>
+  <li><strong>Update when needed</strong> (the default) changes only the cells where the ground or a blocking object
+  changed, and the rest of the grid stays as the game baked it, including what the map's author painted by hand. The
+  sector map the computer players path over is built again from the result.</li>
+  <li><strong>Rebuild like the game</strong> throws the stored pathfinding away and builds all of it again from the ground,
+  the painted cells and the blueprints that block (each blueprint's own file says whether it does).</li>
+  <li><strong>Leave as it is</strong> does not touch it: units then walk as on the old ground.</li>
+</ul>
+
+<p>How close is it? On the game's 92 maps that carry pathfinding, the rebuilt cell map is byte for byte the stored one on 91,
+and on the last (<code>mission1</code>) 52 of its 65,536 cells differ (steep shore cells); the precise map and the sector
+map built from the stored cell map match the game's on all 92. The 0.5.0 estimate matched 79 to 99.7 of every 100 cells.
+The save report quotes the figure for your map. A map with no pathfinding at all is no problem for the game (it bakes one
+when the map loads, without the painted cells), but the add-on never writes a partial one. Nothing here has been
+tried in the game: the first thing to try is a unit that has to walk across what you changed.</p>
+
+<h3>Making a new map</h3>
+
+<p>Version 0.7.0 can start a map from nothing. <strong>File &gt; New &gt; Impossible Creatures Map</strong> asks for a name,
+a ground and a size (the Mission Editor's own 15 terrain templates: Arctic, Desert, Savannah, Swamp or Tropical; small,
+medium or large), and 2 to 6 players. Leave <strong>Give each player a start</strong> on and every player gets a lab and
+three henchmen, the same start every game map has. The game's folder is needed, because the templates are the game's own
+files. Open the <strong>Map settings</strong> part of the Map panel to change the name, the kind (multiplayer or single
+player) and the players later, and press <strong>Make preview picture</strong> to write the small picture and the minimap the
+game's map list shows. <strong>Terrain look</strong> sets the sunlight, shadow colour, time of day, sky, sea colour, three
+water brightness values, fog and the repeat of the fine ground texture, and the 3D view follows at once (the sea colour is
+kept for the Mission Editor; the game does not read it). Press <strong>Check map</strong> before you save:
+<strong>Map problems</strong> lists a player with no start, a start on blocked ground, and every script that names something
+you deleted; <strong>Locate</strong> selects the thing a problem names.</p>
+
+<p>Save it with <strong>Save ready-to-drop folder...</strong>: the folder holds the map, its ground picture, preview pictures,
+dialogue, trigger and animation files, as for any other map. A map is listed in the game for 2 to 6 players only.</p>
+
+<h3>Painting the map</h3>
+
+<p>The <strong>Passability</strong>, <strong>Terrain types</strong>, <strong>Water levels</strong>, <strong>Decals</strong>,
+<strong>Blend tiles</strong> and <strong>Texture stamping</strong> parts of the Map panel do what the Mission Editor's painting
+tools do.</p>
+<ul>
+  <li><strong>Passability.</strong> Press <strong>Paint blocked</strong> or <strong>Paint open</strong> and paint on the ground
+  (Texture Paint; red is blocked, green is open), or select terrain faces in Edit Mode and press Block, Open or Clear. Saving
+  writes the layer and updates the pathfinding the way the game does. <strong>Overlays</strong> shows what units can do
+  (land, water, amphibious, placed objects, can't build, sectors, the precise map) as a picture on the ground, made from the map as it
+  would be saved now; press the same entry again to refresh it. It is never saved.</li>
+  <li><strong>Terrain types</strong> (grass, snow, dirt and sand, rock) decide which footstep sounds play. Paint them with Vertex
+  Paint or set them on selected points.</li>
+  <li><strong>Water levels.</strong> In Edit Mode select points and give them water at a height of your own (a lake on a
+  hill), or dry them. The pathfinding is updated.</li>
+  <li><strong>Decals.</strong> <strong>Edit decals</strong> shows a handle for every decal: move, turn (R), scale (S) or delete
+  it, then press <strong>Redraw decals on the ground</strong>. <strong>Add decal at the 3D cursor</strong> adds one.</li>
+  <li><strong>Blend tiles</strong> lists the game's ready-made soft edges between this map's ground textures and adds one as a
+  ground material.</li>
+  <li><strong>Texture stamping.</strong> Stamp a decal picture into the map's ground picture at the 3D cursor, with a size
+  (a stamp is as big as a decal of the same size), a turn, a strength and a tint. The game shows a stamp only at its highest
+  ground detail setting. A ground picture stamped with version 0.8.0 or earlier has its stamps mirrored north to south in
+  the game.</li>
+</ul>
+
+<h3>Scripting the map</h3>
+
+<p>The <strong>Groups and variables</strong>, <strong>Triggers</strong>, <strong>Dialog triggers</strong> and <strong>AI scripts and
+armies</strong> parts of the Map panel replace the Mission Editor's Create Group, Variable List, Trigger Wizard and Dialog
+Trigger windows. Select some objects and press <strong>+</strong> in Groups to make a group of them. In Triggers, make a trigger
+in a folder, say who runs it, and add conditions and actions with <strong>+</strong>: type a few letters to search the 75
+conditions and 206 actions by their plain names. Each argument is a field of its own kind: pick a group, a variable, a dialogue,
+a sound or a text line by name; pick an object from the 3D selection; type the plain numbers for the rest.
+<strong>Check the scripts</strong> finds anything that names a deleted object, group or text. Only what you changed is saved: the
+groups and variable names into the map, the triggers into the <code>.trg</code> file and the dialogues into the <code>.dlg</code>
+file beside it.</p>
+
+<h3>Cinematics</h3>
+
+<p>Open the <strong>Cinematics</strong> part of the Map panel and every camera, object and move animation of the map is there
+as a collection with an empty for each key frame. Move a key frame, turn its arrows, change its speed and curve values in the
+panel, add or delete key frames, aim a key at a selected object, copy the view of a camera, press <strong>Preview</strong> and drag
+the timeline, and switch on <strong>Show speed</strong>. The <strong>New Camera Animation</strong> button (and the matching ones for an object and a move) makes a new animation; its number is the next free one, which is the number a trigger uses. Saving rewrites only the
+animations you changed in the <code>.na</code> file beside the map. The preview is a plain curve through the key frames, so the
+game's own path may bend a little differently (the replay below uses the game's own timing along the path).</p>
+
+<h3>Watching a cinematic (Replay)</h3>
+
+<p>The game does not play a cinematic from the <code>.na</code> file alone: it runs the map's trigger script together with the
+simulation, so units walk, a lab flies, villagers vanish, the camera cuts from one animation to the next and the screen fades.
+Version 0.8.0 acts that out in Blender. Open <strong>Cinematics &gt; Replay</strong> (a closed part of the panel) and press
+<strong>Find the cinematics</strong>: the list holds every trigger folder of the script that plays a camera, object or move
+animation or a cut-scene, by the folder's name (mission1 has eight, among them <em>New lab intro</em> and <em>Camera Intro Rex
+Lucy</em>). Click one, press <strong>Build replay</strong>, then <strong>Look through the camera</strong>, and press
+<strong>Space</strong> in the 3D view. <strong>Event list</strong> opens a text that lists every event with its time and says
+whether it is <em>exact</em>, <em>approximate</em> or <em>skipped</em>, and why. <strong>Clear replay</strong> shows your map's
+objects again and puts back the frame rate, the frame range and the camera.</p>
+
+<p>The replay lives in its own collection, <code>&lt;map&gt; replay</code>. It holds a stand-in for every object the cinematic
+touches, a <strong>Replay camera</strong> whose markers on the timeline switch the scene camera, a black plane for the fades and
+the cut-scene objects with their own camera. Your placed objects are only hidden while it is shown, and <strong>a replay never
+changes the map</strong>: a save with a replay shown, or after clearing it, comes out byte for byte like a save without one. Open
+the map with <em>Placed models</em> on if you want labs, characters and props to play their clips; the creatures a map places are
+unposed meshes.</p>
+
+<p><strong>Exact</strong>: where something is teleported or moved with its group, despawn, respawn and delete, what is shown or
+hidden, where a unit turns to look, entity animations (the clip is the last non-idle one under the motion node the script names:
+a guess where a node has several), the fades, move animations, and the cut-scene objects' own animation and camera.
+<strong>Approximate</strong>: walking (a route found on the map's own cell grid, around what blocks that kind of unit, at the
+unit's speed; the game's real pathfinder and the spacing of units are not run), anything timed after a speech (its length is
+estimated from the text), random countdowns (the middle of the range), the first blend of the camera (where the game's camera
+was is not known) and units sent to the same spot, which overlap. <strong>Skipped</strong> (listed, not drawn): groups the game
+fills at run time from your own units, random wandering, one command whose name was never found, camera settings pushed and
+popped, and effects. The dialogue, cinematic mode, the camera's focus on an object and decals are listed with a marker and not
+drawn; there is no sound.</p>
+
+<p>Where a script has several ways to start, the replay takes the one that plays an animation, with the conditions it checks
+about the rest of the game assumed true at the start; every other such condition is assumed never true, and a script that waits
+for a key ends two seconds after the last thing that moves. The assumptions are in the event list. None of this has been
+compared with the game by eye: the numbers (positions at given frames, counts, the saved bytes) are what was checked.</p>
+
+<h3>Height maps, terrain and entity files, lists and crop</h3>
+
+<p><strong>File &gt; Import</strong> and <strong>Export</strong> have <strong>Height Map (.tga)</strong> (a grey picture: the
+brighter, the higher), <strong>Terrain (.ter)</strong> and <strong>Entities (.ent)</strong>, the Mission Editor's own files.
+Importing a terrain of the same size replaces the map's ground and its sky and sea values, and says which placed things now
+float or sit under the ground. Importing entities adds them as new placed things. The <strong>Object list</strong> part filters
+the placed things (by player, kind, name, selected) and selects, hides or deletes the ticked rows. The <strong>Blueprint
+list</strong> shows how many things and how many script arguments use each blueprint.</p>
+
+<p><strong>Terrain crop</strong> cuts a map down to half, a quarter or an eighth of its side around the 3D cursor.
+Press <strong>Validate</strong> first: it draws the square, selects the things that would be deleted, and lists the scripts,
+groups and animation key frames that would break. <strong>Crop</strong> then builds a new, smaller map next to the old one,
+which stays hidden. Tick <strong>Crop anyway</strong> to go on with problems standing.</p>
+
+<aside class="limits">
+<ul>
+  <li>A saved map has not been loaded in the game yet. Heights are stored in steps of 0.5 m (0.4 m in a few maps), and the
+  pathfinding the save updates or rebuilds is made the way the game's own editor makes it, checked against the game's maps
+  but not in the game.</li>
+  <li>The terrain keeps its grid, so points cannot be added or removed.</li>
+  <li>Scale is ignored, and a copy of a creature that was combined inside the map is left out.</li>
+  <li>The replay (0.8.0) acts a cinematic out from the script and the decompiled game code; it has been checked by numbers only, not by
+  eye and not against the game. Walking, speech lengths and the camera's first blend are approximate, and there is no sound.</li>
+  <li>Version 0.7.0's map tools (a new map, painting, scripting, cinematics, the files, the lists and the crop) have been
+  checked by numbers only: counts, bytes and files read back. None has been tried in the game or in the Mission Editor.</li>
+  <li>Still missing from the Mission Editor: its Script Editor; pickers for the engine's named choices in triggers (key codes,
+  research, commands, stances, abilities, animations: they are plain numbers here); the exact bend of a camera path; Orbit
+  Target and Third person view; regenerating the game's <code>_decaled</code> ground pictures (a texture stamp shows in the
+  game only at its highest ground detail); a combined creature inside an entity file; a crop that reaches outside the map.</li>
+  <li>Creatures are shown in the pose they are modelled in, without animation. A combined creature is built from the
+  recipe the map keeps, read the way the game's own limb list describes it; that was checked against the maps' data, not
+  by looking at the game.</li>
+  <li>The game look leaves out the game's per-point ground light and cast shadows and the moving water; its sun strength
+  and fog thickness are the add-on's choice.</li>
+  <li>A map's title in the game comes from the language files, so the add-on names a map after its file.</li>
+  <li>A very large map file costs memory: a 1025 by 1025 map with 4,798 placed things took 1.8 GB while it was
+  imported.</li>
+</ul>
+</aside>
+</section>

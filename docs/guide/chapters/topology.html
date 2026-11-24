@@ -1,0 +1,204 @@
+<section id="topology">
+<h2>Topology: making geometry, not just moving it</h2>
+
+<p>Everything in the previous chapter moves control points that already exist. This one <em>makes</em> them: delete a
+patch, grow one on an open side, close a hole, weld two seams together, split a patch in four, extrude a region, mirror
+a half into a whole, join a second creature in. The tools live in the <strong>Topology</strong> box of the SGM sidebar
+(Edit Mode) and in <strong>Modeling</strong> and <strong>Tools</strong> beside it, and all of them are used on the stock
+cheetah (<code>Assets/engine_stock/cheetah.sgm</code>, 2594 control points in 288 patches) below.</p>
+
+<p>One rule explains every refusal in this chapter. <strong>A patch mesh is watertight only when two patches share all
+four control points of a side</strong> — its two corners <em>and</em> the two boundary points between them. A side with
+one user is a dangling edge and the Object Editor refuses the whole file (measured: the cheetah minus two patches, six
+dangling edges, FATAL). So these tools work on the index table rather than on positions: two corners at the same place
+are still two corners until they are welded.</p>
+
+<h3>Patches are selectable</h3>
+
+<ol>
+  <li><kbd>Tab</kbd> into Edit Mode and press <kbd>3</kbd> for Face select. The mesh carries one quad face over each
+  patch's four corners — never shaded, because the object is displayed as Wire, so Blender draws only its edges.</li>
+  <li>Click a patch: its outline goes orange, exactly like gmax's dark-red patch outline. Box, lasso and circle select
+  take patches, and so do <strong>Select Linked</strong> and <strong>Grow</strong> / <strong>Shrink</strong>. With
+  X-ray off the box no longer grabs the far side of the body (Blender's own depth test on the faces; <kbd>Alt+Z</kbd>
+  selects through).</li>
+  <li><kbd>H</kbd>, <kbd>Shift+H</kbd> and <kbd>Alt+H</kbd> hide, hide-unselected and unhide patches; the surface
+  overlay, the control net and the handle dots all skip hidden patches. Unhide keeps the interior points hidden.</li>
+</ol>
+
+<figure><img src="img/topology_select.jpg" alt="Edit Mode in Face select with one patch of the cheetah's flank outlined in orange"><figcaption>Face select mode (<kbd>3</kbd>) is patch select: one click takes a whole patch and draws its outline orange.</figcaption></figure>
+
+<figure><img src="img/topology_box.jpg" alt="The sidebar scrolled to the Modeling, Topology and Select boxes with a patch selected"><figcaption>The patch tools: <strong>Modeling</strong> (Extrude Patch, Delete Patch, Auto Interiors, Set Corner / Set Coplanar), <strong>Topology</strong> (Weld, Weld Target, Add Quad, Fill Hole, Subdivide, Extrude Region, Mirror to Whole) and <strong>Select</strong>. Add Quad and Fill Hole are greyed out here: a stock creature is closed, so there is no open side to grow from and no hole to fill.</figcaption></figure>
+
+<h3>Delete Patch and Fill Hole</h3>
+
+<ol>
+  <li>Select two neighbouring patches on the flank (and, so the view can look straight through, their mirror partners
+  on the far side).</li>
+  <li><strong>Modeling &gt; Delete Patch</strong> (also <kbd>X</kbd> &gt; <em>Patches</em>, and Blender's own
+  <kbd>X</kbd> &gt; Faces is routed to the same operator). The patches leave the patch table; control points no other
+  patch uses are dropped and the pool is compacted, with patches, rings, limbs, UVs, materials, smoothing groups and
+  per-point data all remapped. It is one undo step.</li>
+  <li>A patch whose side is a connection ring's edge is refused <em>by name</em>: the combiner welds a ring by its
+  corner count along patch sides, so cutting one apart would break the socket.</li>
+  <li>The hole is yours to close. Validate blocks on the dangling edges until you do.</li>
+  <li><strong>Topology &gt; Fill Hole</strong> with nothing selected closes every hole it can — a loop of four sides or
+  more, an even number of them — with a strip of patches built on the <em>existing</em> sides, so the fill shares all
+  four control points of each and is watertight by construction (a 4-side hole takes one patch, a 6-side hole two, an
+  8-side hole three).</li>
+</ol>
+
+<figure><img src="img/topology_delete_before.jpg" alt="Four patches of the cheetah selected as patches, shaded By Limb"><figcaption>Two neighbouring torso patches selected as patches, with their mirror partners on the far flank. The shading is By Limb and the rig is hidden, so the hole will read as a hole.</figcaption></figure>
+
+<figure><img src="img/topology_hole.jpg" alt="The cheetah with a hole in its flank, the far half hidden"><figcaption><strong>Delete Patch</strong>: 288 → 284 patches and a hole through the belly. (The far half was hidden with <strong>Hide Patches</strong> afterwards, so the hole shows the background instead of the inside of the opposite flank, which is textured and lit exactly like the near one.) Validate lists the 8 dangling edges.</figcaption></figure>
+
+<figure><img src="img/topology_filled.jpg" alt="The same cheetah after Fill Hole: the flank is closed again"><figcaption><strong>Fill Hole</strong> with nothing selected: 284 → 287 patches, 0 open sides. The strip is built on the hole's own sides, so nothing has to be welded afterwards.</figcaption></figure>
+
+<h3>Add Quad and Weld</h3>
+
+<p><strong>Add Quad</strong> grows a patch on every selected open side at once — an outline edge in Edge select, a
+side's two corners, or a patch that has open sides — continuing the surface by that side's own step, and sharing a
+corner's new column where two grown sides meet. It <em>continues</em> a surface; it does not close one. To close, bring
+the new patch's free corners onto the corners they should meet and <strong>Weld</strong> them.</p>
+
+<ol>
+  <li>Select one open side of a hole (here in Edge select mode) and press <strong>Topology &gt; Add Quad</strong>. The
+  creature gains 12 control points and one patch that shares the side.</li>
+  <li>Move the new patch's two free corners onto the hole's opposite corners (<kbd>G</kbd>, or snapping — the tool does
+  not care how they got there).</li>
+  <li>Select all four corners and press <strong>Weld</strong>. Corners closer than the <strong>Threshold</strong>
+  (0 means 1 % of the creature's size) merge. <strong>Weld Target</strong> instead merges every selected corner into
+  the active one, which stays exactly where it is.</li>
+  <li>Because both sides were <em>open</em>, their <strong>handle pairs merge too</strong> — that is what actually
+  closes the seam. Two corners touching is not a shared side; four shared control points is.</li>
+</ol>
+
+<figure><img src="img/topology_addquad_before.jpg" alt="A one-patch hole in the cheetah's back with one of its open sides selected"><figcaption>A one-patch hole with one open side selected in Edge select mode. Selecting the side's two corners does the same job.</figcaption></figure>
+
+<figure><img src="img/topology_addquad.jpg" alt="A new patch grown out of the open side, standing proud of the surface"><figcaption><strong>Add Quad</strong>: one patch and 12 control points grown out along the side's own step. Its other three sides are open.</figcaption></figure>
+
+<figure><img src="img/topology_weld_before.jpg" alt="The new patch's free corners dragged onto the hole's far corners, all four selected"><figcaption>The new patch's two free corners dragged onto the hole's far corners, and all four corners selected: two <em>pairs</em> of points at one place, not one surface.</figcaption></figure>
+
+<figure><img src="img/topology_welded.jpg" alt="After Weld the seam is closed and the surface continuous"><figcaption><strong>Weld</strong>: <em>Welded 4 corners into 2 within 0.027 m, 4 handle pairs merged, 0 points dropped; open sides 8 → 4</em>. The other hole is still open — this weld closed the one it was given.</figcaption></figure>
+
+<aside class="note">
+<p>Weld refuses, in words, a merge that would collapse a patch (two of its corners on one point) or give a side three
+patches, and it refuses to merge two corners of one connection ring. Nothing is changed when it refuses.</p>
+</aside>
+
+<h3>Subdivide: more patches where you need them</h3>
+
+<p><strong>Subdivide</strong> splits every selected patch at <em>u</em> = <em>v</em> = ½ by de Casteljau, so
+<strong>the surface does not move</strong> (3 × 10<sup>-8</sup> m on the cheetah, which is the float32 pool's own
+precision). The format cannot express a T-junction, so the split <em>propagates</em> along the strips through the
+neighbours — Max's <em>Propagate</em>, always on. One rear-leg patch of the cheetah takes 19 neighbours with it:
+288 → 312 patches, and the mesh stays closed.</p>
+
+<p>The propagation is also why Subdivide refuses more often than you would expect: a strip that reaches a
+<strong>connection ring's side</strong> cannot be cut (the combiner welds a ring by its corner count along patch sides),
+and the refusal names the ring. On the cheetah every torso strip crosses one of its 12 sockets, so no torso patch is
+subdividable, and 16 of the 33 patches of a rear leg are.</p>
+
+<figure><img src="img/topology_subdiv_before.jpg" alt="One patch of the cheetah's rear leg selected, shaded By Limb"><figcaption>One patch of the rear leg (<code>Cheetah_RRLeg</code>) selected, the surface shaded By Limb.</figcaption></figure>
+
+<figure><img src="img/topology_subdiv_after.jpg" alt="The leg after Subdivide: the patch is four, and the split runs on through the strip"><figcaption><strong>Subdivide</strong>: <em>Subdivided 1 patch into 4 and 19 neighbours into 2 (propagation): 288 → 312 patches, +340 points</em>. The silhouette is unchanged, because the split is exact.</figcaption></figure>
+
+<h3>Extrude Region</h3>
+
+<p><strong>Extrude Region</strong> is Max's <em>Extrude &amp; Bevel</em> over a patch selection: <strong>Amount</strong>
+lifts the region along its mean normal, <strong>Outline</strong> scales the lifted patches about their centre (the bevel
+taper), and a wall patch spans every boundary side, so the result is still closed. <code>bz.extrude_drag</code> runs it
+at Amount 0 and hands over to Blender's own move, which is the interactive way.</p>
+
+<figure><img src="img/topology_region_before.jpg" alt="Two patches of the cheetah's flank selected"><figcaption>Two patches of the flank selected.</figcaption></figure>
+
+<figure><img src="img/topology_region.jpg" alt="The two patches lifted and tapered, with wall patches around them"><figcaption><strong>Extrude Region</strong>, Amount 6 % of the creature's size, Outline 0.7: <em>6 wall patches, 18 boundary points copied, +78 points</em>, 288 → 294 patches and 0 open sides.</figcaption></figure>
+
+<h3>Mirror to Whole</h3>
+
+<p>Model one side and let the tool build the other. <strong>Mirror to Whole</strong> mirrors the selected patches (all
+of them when nothing is selected) across X = 0 with their grid <em>transposed</em>: the mirror flips the surface normal
+and the transpose flips it back, so the creature still faces outward and every seam is still wound the stock way. Points
+on the plane are <strong>shared</strong> by both halves — the seam is welded, not doubled — and snapped exactly onto
+X = 0 if you ask. The mirrored points are skinned to the <code>_l</code> / <code>_r</code> partner bone and their
+patches go into the mirror limb.</p>
+
+<ol>
+  <li>Make a half: delete the sockets whose rings reach into the half that goes (Delete Patch refuses a patch on a
+  ring), then select that half's patches and delete them.</li>
+  <li>Deselect everything and press <strong>Topology &gt; Mirror to Whole</strong>.</li>
+</ol>
+
+<figure><img src="img/topology_half.jpg" alt="Half a cheetah: only the +X side of the body is present"><figcaption>A half creature: 9 sockets deleted (their rings are on patches of the half that goes), then 144 of the 288 patches deleted as patches.</figcaption></figure>
+
+<figure><img src="img/topology_mirrored.jpg" alt="The cheetah whole again after Mirror to Whole"><figcaption><strong>Mirror to Whole</strong>: <em>Mirrored 144 patches from the +X side: +1234 points, 123 points on the plane shared (seam welded, 123 snapped to X = 0), 612 points skinned to mirror bones, 66 patches in mirror limbs; 0 open sides now</em>.</figcaption></figure>
+
+<aside class="note">
+<p>Mirror to Whole is refused on a creature that straddles the plane, or whose far side is already there. It is the
+answer to the gmax half-and-mirror workflow, not a symmetry operator for a finished creature — for that, use
+<strong>Tools &gt; Symmetrize (X)</strong>, which averages existing mirror pairs.</p>
+</aside>
+
+<h3>Attach: two creatures into one</h3>
+
+<p><strong>Tools &gt; Attach</strong> (Object Mode) joins another native creature into this one. Select the other
+creature, make this one active, and pick in the dialog which <strong>Limb</strong> its patches join and which
+<strong>Bone</strong> its points are skinned to. The pools are concatenated, every per-patch table is appended, material
+slots are matched by name, and the other object and its rig are removed. Its connection rings are <em>dropped</em> with
+a warning: a socket belongs to the creature it is cut into.</p>
+
+<figure><img src="img/topology_attach_before.jpg" alt="A cheetah and a rhinoceros in one Blender file, both selected"><figcaption>Two native creatures in one file, both selected with the cheetah active. Attach reads each one's world transform, so moving the other one first is honoured.</figcaption></figure>
+
+<figure><img src="img/topology_attached.jpg" alt="The rhinoceros' geometry now part of the cheetah, 576 patches"><figcaption><strong>Attach</strong>: <em>Attached 'Rhinoceros': +2594 points, +288 patches in limb 'Cheetah_Torso', skinned to 'spine1', 288 patches' material unmatched → slot 0, 12 rings dropped; weld the seams next</em> — 288 → 576 patches in one object.</figcaption></figure>
+
+<h3>What it costs: the display-vertex ceiling</h3>
+
+<p>Every tool here adds patches, and patches are not free. The engine tessellates the <em>whole</em> patch mesh into one
+DirectX 8 vertex set, and <code>VertexSet::Create</code> refuses more than <strong>12,288</strong> vertices
+(<code>dx8VertexSet.cpp:86</code>). <code>PatchMesh::CountVertices</code> counts</p>
+
+<pre><code>V = 9·P + 3·E_owned + C_owned   ≤ 12288</code></pre>
+
+<p>A seam has <em>one</em> owner only when the two patches share a material, have overlapping smoothing-group masks and
+have both endpoint UVs within 1/16 of each other; otherwise both patches own it. So a patch costs <strong>16</strong>
+display vertices where its seams weld and <strong>25</strong> where it has its own texture island. Measured with the
+real Object Editor: with island UVs 490 patches load and 492 crash; with continuous UVs 754 load and 758 crash; and on
+one fixed 754-patch cage, V = 12,287 loads while V = 12,291 crashes — same geometry, different UVs.</p>
+
+<p><strong>The binding limit is the combined creature, not the creature.</strong> ComboTest.exe builds one patch mesh
+from both parents, so a graft hits the same ceiling: it exported a combine needing 12,258 vertices and failed the same
+combine four patches bigger at 12,310. The dearest stock limb set costs 5,704 display vertices and the dearest stock
+torso 4,409, which leaves an authored creature about <strong>6,584</strong> display vertices for its torso and
+<strong>7,879</strong> for its limbs. Base-game creatures are nowhere near: the dearest torso is 937. <em>(Corrected
+2026-11-17: this gave 5,623 / 4,762 / 6,665 / 7,526, the numbers before the combine budgets were re-derived on
+2026-11-15.)</em></p>
+
+<p>Validate measures all of it and says what your creature actually costs, and Attach refuses outright over the
+767-patch best case. The number to design against is not a patch count — it is a vertex count you can only get from
+Validate.</p>
+
+<aside class="note">
+<p>Every tool in this chapter is one undo step, refuses in words anything the game would not load, and leaves an
+untouched creature exporting byte-identical. Engine-checked: the cheetah with a hole filled, a leg patch subdivided, a
+patch deleted / re-grown / welded back, a scaffold attached, a half mirrored whole and two patches extruded as a region
+all <strong>LOADED</strong> in the Object Editor, and ComboTest.exe grafted a stock head onto the subdivided cheetah.</p>
+</aside>
+
+<aside class="limits">
+<h4>Not possible yet</h4>
+<ul>
+  <li><strong>No bevel / chamfer</strong> of an edge or a corner: Extrude Region's Outline is the only taper.</li>
+  <li><strong>No bridge</strong> between two selections, and no cap for an arbitrary loop other than Fill Hole's strip
+  (which needs an even loop of four sides or more).</li>
+  <li><strong>No primitives.</strong> Geometry starts from a stock creature, from <strong>New Creature (From
+  Scratch)</strong>, from <strong>Convert Mesh to Creature</strong> or from <strong>Fit Patches to Mesh</strong>; there
+  is no "add a patch box" to grow from.</li>
+  <li><strong>Subdivide cannot cut a ring side</strong>, which puts every torso strip of a socketed creature out of
+  reach. Delete the connection, subdivide, re-pick the ring is the workaround, and it changes the socket.</li>
+  <li><strong>Attach does not weld</strong>: it concatenates. The seams between the two creatures are yours to close
+  with Weld.</li>
+  <li>Per-patch <strong>smoothing groups</strong> and <strong>material IDs</strong> are carried over from the patch a
+  new patch grew from, and cannot be edited.</li>
+</ul>
+</aside>
+</section>

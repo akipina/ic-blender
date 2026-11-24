@@ -1,0 +1,248 @@
+<section id="scratch">
+<h2>Making an animal from scratch: a rhino</h2>
+
+<p>This chapter builds a creature that did not exist before: a crude rhino. The shape is not the point; the point is
+that every stage of a from-scratch creature is done once, in order, with the add-on's own tools: <strong>New Creature
+(From Scratch)</strong>, shaping the control net, a horn with its own bone and skinning, a look at the limbs and
+connection rings, an animation, <strong>Validate</strong>, <strong>Combine Preview</strong> against a stock creature,
+<strong>Export</strong>, and finally a load test in the real Object Editor. Every screenshot below was taken from the
+capture script <code>docs/guide/capture/chapters/ch_scratch.py</code>, which is a scripted version of the same clicks.</p>
+
+<h3>What the scaffold gives you</h3>
+
+<p><strong>New Creature (From Scratch)</strong> does not hand you an empty scene. It writes a complete, rulebook-clean
+creature to the <code>.sgm</code> you pick and imports it through the normal import path, so that file is the object's
+<em>source</em> exactly as for an imported stock creature. At Detail 1 it contains:</p>
+<ul>
+<li>the canonical <strong>48-bone skeleton</strong> (pelvis, spine1-3, neck1-3, head, jaw, nose, ears, tail1-4, the
+four leg chains, plus the wing and arm stub bones every stock creature carries);</li>
+<li>a <strong>connected body</strong>: torso, head, tail and four legs as one closed quad cage turned into 248 bicubic
+patches over 2234 control points, so it is watertight and the Object Editor loads it as it is;</li>
+<li><strong>13 limbs</strong> (Torso, Head, Tail, four legs with patches; L/R side wing, L/R top wing and L/R front arm
+as bone-only stubs) and <strong>12 connection rings</strong> in the stock layout (6 corners for head and tail on
+<code>neck1</code> / <code>pelvis</code>, 4 for the legs and the stub sockets), which is what the game's combiner
+grafts at;</li>
+<li>a <strong>labelled checker texture</strong> with cylindrical UVs per body part, so the creature is obviously yours;</li>
+<li>the <strong>9 standard clips</strong> (Idle1, walk, run, melee1, meleelow1, oattack1, crouch, stumbledie,
+stumblegetup) as procedural motions, imported as Actions on the rig, and the base-game <strong>IK chains</strong>.</li>
+</ul>
+<p>The file dialog has five options: <em>Name</em> (limbs, rings and the texture are named after it), <em>Detail</em>
+1-3 (sections per body span; 1 is the coarsest scaffold), <em>Standard Clips</em>, <em>IK Chains</em> and <em>Clips as
+Actions</em>. Leave them at their defaults for this chapter.</p>
+
+<h3>1. New Creature (From Scratch)</h3>
+<ol>
+<li>In the 3D Viewport press <kbd>N</kbd> and open the <strong>SGM</strong> tab of the sidebar.</li>
+<li>Click <strong>SGM Native Patches &gt; New Creature (From Scratch)</strong> (the same entry is in
+<strong>Add &gt; Impossible Creatures Creature (From Scratch)</strong>).</li>
+<li>In the file browser set <em>Name</em> to <code>Rhino</code>, keep <em>Detail</em> 1, pick a folder and file name
+(<code>rhino.sgm</code>) and confirm. The creature is written, imported, framed and selected; the info line reports
+<em>New creature Rhino: 2234 control points, 248 patches, 48 bones, 12 rings, 9 clips -&gt; rhino.sgm (rulebook clean)</em>.</li>
+<li>Display box: switch the shading dropdown from <em>Textured</em> to <em>By Limb</em> and tick <em>Show
+Connections</em> to see what you got.</li>
+</ol>
+<figure><img src="img/scratch_new.jpg" alt="The Rhino scaffold just created, textured with its labelled checker skin, the SGM sidebar showing New Creature (From Scratch) at the top">
+<figcaption>The scaffold as it comes: a connected torso, head, tail and four legs with the labelled checker skin. The
+panel reads 2234 control points, 248 patches, Rig: Rhino_rig (48 bones), 9 clips as Actions.</figcaption></figure>
+<figure><img src="img/scratch_new_side.jpg" alt="Side view shaded By Limb with Show Connections on: coloured body parts and green graft rings at the neck, tail root and leg roots">
+<figcaption>Side view, <em>By Limb</em> with <em>Show Connections</em>: each body part in its own colour and the green
+graft rings at the neck, the tail root and the four leg roots (the stub sockets sit on the torso flank).</figcaption></figure>
+
+<h3>2. Shape it in Edit Mode</h3>
+<p>The object's vertices <em>are</em> the file's control points, so Blender's ordinary Edit Mode tools reshape the
+creature. Every patch shares its corner and handle points with its neighbours, so whatever you drag stays watertight.
+The scaffold comes with <em>X-Mirror Editing</em> on, so a move on one side moves its mirror partner.</p>
+<ol>
+<li><kbd>Tab</kbd> into Edit Mode. Tick <em>Show Handle Dots</em> in the Display box: corners are gold, handles blue.</li>
+<li>Select a region and press <kbd>G</kbd> to grab, <kbd>S</kbd> to scale. Pick regions by body part:
+<strong>Boner &gt; Limbs &gt; Select Limb</strong> selects every point of a limb's patches (or box-select in a side
+view, <kbd>Numpad 3</kbd>). Proportional editing (<kbd>O</kbd>) helps to keep things smooth.</li>
+<li>For the rhino the capture script did, in one go: squashed everything to 78&nbsp;% height (shorter legs, lower body;
+the feet stay on the ground), widened everything by 35&nbsp;%, scaled the torso-only points into a barrel, scaled the
+head by 1.35 about the neck ring and dropped it 12&nbsp;cm, shortened the tail to 45&nbsp;% and let it droop, and
+thickened each leg by 30&nbsp;% about its own axis.</li>
+<li><kbd>Tab</kbd> back to Object Mode to judge the shape.</li>
+</ol>
+<figure><img src="img/scratch_edit_before.jpg" alt="Edit Mode side view of the untouched scaffold: gold corner points and blue handle points over the translucent surface">
+<figcaption>Edit Mode before any move: the control net over the translucent surface (corners gold, handles blue).</figcaption></figure>
+<figure><img src="img/scratch_edit_after.jpg" alt="The same side view after the moves: a squat, wide body with a big low head and a short drooping tail; the grey bones stand above the back">
+<figcaption>After the moves: squat and wide, a big low head, a stubby tail. The grey bones did not move -- they still
+stand where the scaffold put them.</figcaption></figure>
+<figure><img src="img/scratch_shape_persp.jpg" alt="Object Mode three-quarter view of the reshaped, textured rhino body">
+<figcaption>Object Mode: crude, but a rhino-shaped, closed, rigged creature.</figcaption></figure>
+<aside class="note">
+<p><strong>Moving points does not move bones.</strong> The skeleton is edited separately (select the rig, Edit Mode on
+the armature, move bones; Export rewrites only the bones you moved and keeps the shape). For a first creature it is fine
+to leave the bones where the scaffold put them: skinning is by ownership, not by bone position, and the clips still play.
+Validate will, however, warn that the <em>9 kept clips have bounds from the source geometry, whose extent changed</em>:
+the engine culls by clip bounds, so once the shape is final, edit or re-key a clip to have it re-encoded with fresh
+bounds.</p>
+</aside>
+
+<h3>3. A horn: pull it out, give it a bone, skin it</h3>
+<p>The brief said "Extrude Patch a head patch". That does not work on the scaffold: <strong>Extrude Patch</strong>
+grows a new patch from an <em>open</em> patch side, and the scaffold is closed (every side is shared by two patches), so
+the button in the <em>Modeling</em> box is greyed out with that reason. A horn is made the other way round: pull existing
+head points out, then give them a bone.</p>
+<ol>
+<li>Edit Mode, front three-quarter view. Select the top-front control points of the head cap (22 points here: the
+upper half of the cap and the first ring behind it). With <em>X-Mirror Editing</em> on, selecting one side selects both.</li>
+<li><kbd>G</kbd> and drag them forward and up (the script moved them 0.28&nbsp;m forward and 0.32&nbsp;m up). The cap
+bulges into a horn. Leave the points selected.</li>
+<li>Object Mode. In <strong>Boner &gt; Bones</strong> set the <em>Bone</em> field to <code>head</code> (type it, or
+use the eyedropper <em>Pick Bone</em> and click a head point). Click <strong>Add Bone under Active</strong>; in the
+dialog set <em>Name</em> to <code>horn</code>, an <em>Offset</em> from the head bone's tail (in the head bone's axes)
+and a <em>Length</em> (0.25&nbsp;m here), and confirm. The report says <em>Added bone 'horn' under 'head', in limb
+'Rhino_Head'</em>; <code>horn</code> becomes the active bone and the tab shows <em>pending: added horn</em> (an added
+bone Export will write) and <em>horn · 0 points · parent head</em>.</li>
+<li><kbd>Tab</kbd> back into Edit Mode with the horn points still selected and click <strong>Assign Selected</strong>.
+The line becomes <em>horn · 22 points · parent head</em> and the <em>By Bone</em> overlay (the Bones tab switches to it)
+colours the horn points bright in the horn's colour, the rest dimmed.</li>
+</ol>
+<figure><img src="img/scratch_horn_select.jpg" alt="Edit Mode close-up of the head with the top-front cap points selected; the Modeling box shows Extrude Patch greyed out">
+<figcaption>The 22 head-cap points selected. <em>Extrude Patch</em> is greyed out: the scaffold has no open side.</figcaption></figure>
+<figure><img src="img/scratch_horn_pulled.jpg" alt="The selected points grabbed forward and up so the head cap bulges into a horn">
+<figcaption>After the grab: the cap has become a horn.</figcaption></figure>
+<figure><img src="img/scratch_horn_bone.jpg" alt="Boner > Bones after Add Bone under Active: the horn bone at the horn with bone names shown, the tab reading horn, 0 points, parent head">
+<figcaption>Boner &gt; Bones after <em>Add Bone under Active</em> (rig drawn in front, bone names on): the new
+<code>horn</code> bone hangs under <code>head</code> with 0 points; <em>pending: added horn</em> means Export will write it.</figcaption></figure>
+<figure><img src="img/scratch_horn_skinned.jpg" alt="By Bone overlay in Edit Mode after Assign Selected: the horn points highlighted in the active bone's colour; the tab reads horn, 22 points, parent head">
+<figcaption>After <em>Assign Selected</em>: the horn points belong to <code>horn</code>. The By Bone overlay draws the
+active bone bright and the others dimmed.</figcaption></figure>
+<aside class="note">
+<p>The Add Bone dialog's <em>Offset</em> is measured from the parent bone's tail in the parent's own axes, so a horn
+under <code>head</code> usually needs a negative value along the bone's own axis (the scaffold's head bone points
+down, not forward). If the
+bone lands in the wrong place, select the rig, enter its Edit Mode and move the bone: it is an added bone, so it may
+also be re-parented or deleted again; the limb lists follow.</p>
+</aside>
+
+<h3>4. Limbs and connections</h3>
+<p>The scaffold already has the standard limb set and one connection ring per socket, so this stage is a check, not a
+build. Both live in the <strong>Boner</strong> sub-panel (below the SGM panel; scroll the sidebar down).</p>
+<ol>
+<li><strong>Boner &gt; Limbs</strong> lists the 13 limbs with Boner's class label, patch and bone counts and a status:
+Torso 100 patches / 5 bones, Head 32p / 11b (the horn is in it now), Tail, four legs, and six <em>stub</em> limbs
+(0 patches, 1 bone) for the wings and arms.</li>
+<li>Click a limb's name to make it active; the boxes below show its classification (<em>Side / Position / Plane /
+Type / Non-Swappable</em>) and its bones, with <em>Select Bones</em>, <em>Set Root Bone</em>, <em>Add / Remove Active
+Bone</em>.</li>
+<li>Click <strong>Rename</strong>, type <code>Rhino_HornedHead</code>, confirm. Only the name changes; the rulebook and
+the combiner key on the class (0x40 = Head), never on the name.</li>
+<li><strong>Boner &gt; Connections</strong> lists the 12 rings as <em>Parent &gt; Child · corners · host bone</em>
+(Torso &gt; Head 6/6 · neck1, Torso &gt; Tail 6/6 · pelvis, the legs 4/4 on spine3 / pelvis, the stub sockets 4/4).
+Tick <em>Show Connections</em> in the Display box and click the <code>Rhino_Head</code> row: its ring is drawn thick
+and bright at the neck, the other rings dimmed. Below the list: <em>Create for Limb</em>, <em>Rename</em>,
+<em>Delete</em>, <em>Add Stub Socket</em>, the Parent / Child boxes, the host bone with <em>Set</em> / <em>Default</em>,
+and in Edit Mode <em>Pick Ring</em> / <em>From Selection</em>.</li>
+</ol>
+<figure><img src="img/scratch_limbs.jpg" alt="Boner > Limbs: the list of 13 limbs with class labels, patch and bone counts and status, the head limb renamed Rhino_HornedHead, its classification boxes below">
+<figcaption>Boner &gt; Limbs after the rename: 13 rows (7 with patches, 6 stubs), the active limb's classification
+boxes (Type: Head) and, further down, its 11 bones including <code>horn</code>.</figcaption></figure>
+<figure><img src="img/scratch_connections.jpg" alt="Boner > Connections with Show Connections on: the Head ring drawn as a bright green hexagon at the neck, the other rings dimmed, the 12 rows listed in the sidebar">
+<figcaption>Boner &gt; Connections: the <code>Rhino_Head</code> ring (6 corners, host <code>neck1</code>) bright at the
+neck; every ring's status is checked against the stock layout (all <em>ok</em> here).</figcaption></figure>
+
+<h3>5. Skinning: is every point on a bone?</h3>
+<p>The scaffold arrives fully skinned (every control point rigidly owned by the nearest bone of its part), and the
+shaping in step 2 does not change ownership. What can go wrong later is a point with no bone: Export refuses to write
+a creature whose patch points have no bone, and the Bones tab says so (<em>Unassigned: N (N on patches: Export
+refuses)</em>).</p>
+<ol>
+<li>Set the Display shading to <em>By Bone</em> (Boner &gt; Bones does it for you): points with no bone are orange.</li>
+<li>Next to <em>Unassigned</em> click <strong>Select</strong> (Edit Mode) to select them.</li>
+<li>Either pick the bone they should follow and click <strong>Assign Selected</strong>, or use <strong>Auto Skin &gt;
+Selected, else Unassigned</strong> to give each one its nearest bone segment. <em>Auto Skin &gt; Reset All</em>
+re-derives the whole skin from the skeleton (a first pass; it agrees with Relic's hand skin on about half the points on
+stock creatures). <strong>Remove from Bone</strong> is the reverse. All of it is undoable with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+</ol>
+<p>On this rhino nothing is unassigned; the horn assignment in step 3 was the only skin edit.</p>
+
+<h3>6. Animation</h3>
+<p>The nine clips are Actions on the rig. Loading one plays it; adding an Action adds a clip.</p>
+<ol>
+<li>With the creature active: <strong>Load Animation &gt; Idle1</strong> (rig box in the SGM panel). It becomes the
+active Action, the scene range follows the clip and the panel reads <em>active: Idle1</em>. <kbd>Space</kbd> plays.</li>
+<li>To see the keys, turn the Timeline into a Dope Sheet (Editor Type menu at its left, or drag its top edge up first
+to make room) and untick <em>Only Show Selected</em> in its filter, or click <strong>Select Rig</strong> and use the
+Action Editor. Each clip frame is one key.</li>
+<li>A new clip: select the rig, create a new Action (Dope Sheet &gt; Action Editor &gt; New), name it
+<code>headbob</code>, enter Pose Mode (<kbd>Ctrl</kbd>+<kbd>Tab</kbd>), and key <code>neck2</code>, <code>neck3</code>
+and <code>head</code> at frames 1, 11 and 21 (<kbd>I</kbd> &gt; Rotation) with the head pitched down at frame 11. The
+script did exactly that: 21 frames, three keyed bones.</li>
+<li>Scrub to frame 11: the head dips. Export writes this Action as a tenth clip; the nine imported clips are kept
+byte-for-byte because they were not touched.</li>
+</ol>
+<figure><img src="img/scratch_actions.jpg" alt="Idle1 loaded: the panel reads active: Idle1 and the Dope Sheet at the bottom shows one key per clip frame from 0 to 90">
+<figcaption><em>Load Animation &gt; Idle1</em>: the panel reads <em>active: Idle1</em>, the Dope Sheet shows a key per
+clip frame (91 of them) and the viewport shows frame 6 of the idle.</figcaption></figure>
+<figure><img src="img/scratch_headbob.jpg" alt="The new headbob Action at frame 11: the head pitched down, three keys at frames 1, 11 and 21 in the Dope Sheet, the panel reading active: headbob">
+<figcaption>The new <code>headbob</code> Action scrubbed to frame 11: the head dips; the Dope Sheet shows its three keys.</figcaption></figure>
+<aside class="note">
+<p>An Action counts as a clip when it belongs to the rig: the rig's active Action, an Action on one of its NLA tracks,
+or one stamped for it at import. A new Action you keyed and then dropped (held only by its fake user, on no track) is
+<em>not</em> exported; Export's warnings say so and how to include it.</p>
+</aside>
+
+<h3>7. Validate, Combine Preview, Export</h3>
+<ol>
+<li><strong>Tools &gt; Validate (will it load?)</strong> with the dropdown next to it on <em>Quick</em> (Combine Checks).
+The verdict goes to the status bar and the Info log (Editor Type &gt; Info). For this rhino nothing blocks loading and
+nothing is missing from the stock rulebook; the log lines were:
+<ul>
+<li><code>WARN export: 9 kept clip(s) have bounds from the source geometry, whose extent changed (the engine culls by clip bounds): edit or re-key a clip to re-encode it</code></li>
+<li><code>COMBINE INFO setup: default attributes, size 3 (no .lua next to rhino)</code></li>
+<li><code>COMBINE WARN precheck: legs without a ground speed ['speed_max-front', 'speed_max-back']: a combine keeping them zeroes the ground speed</code></li>
+<li><code>COMBINE INFO rhino: 13 designs (13 combined, 0 skipped), 0 with issues, 1.7 s; its parts grafted onto: head 6, tail 6, front_legs 5, rear_legs 6 torso(s)</code></li>
+</ul>
+The two warnings are advisories: the first is the clip-bounds note from step 2, the second says a Blender-authored
+creature has no <code>.lua</code> attribute file, so a combine that keeps its legs gets a ground speed of zero. Neither stops the
+creature from loading or combining.</li>
+<li><strong>Combine Preview</strong> (the collapsed sub-panel at the bottom of the SGM panel; click its header): Role
+<em>This Creature Is the Torso</em>, other creature <em>Stock</em>, pick <code>bull</code> in the stock list, tick only
+the <em>Head</em> part button, click <strong>Preview</strong>. The game's combiner grafts the bull's head onto the rhino
+at its neck ring and draws the result as a ghost beside the creature (+X). The readout for this run:
+<em>Combo: rhino torso + bull Head | size 5 · ground · body scale ×1.292 · 338 patches</em>; the Head slot
+<em>bull · ×0.691 · Ring Size &amp; Limb Bounds</em>, every other slot <em>this</em>. <strong>Clear</strong> removes
+the ghost; <strong>Materialize…</strong> would write the combination as its own creature.</li>
+<li><strong>Export SGM (Native Patches)</strong>, file name <code>rhino_done.sgm</code>. The report line names every
+change against the scaffold file: <code>skinning: 5 bone range(s) rebuilt (2234 points re-encoded); bones: added 1
+(horn); limbs: renamed 1 (Rhino_Head -&gt; Rhino_HornedHead); bones 1 (Rhino_HornedHead); clips: 9 kept, 1
+written</code>. The moved control points are the "re-encoded" ones; the nine imported clips keep their bytes.</li>
+</ol>
+<figure><img src="img/scratch_validate.jpg" alt="The Tools box with Validate (will it load?) and the Combine Checks dropdown on Quick, the rhino in the viewport">
+<figcaption><em>Tools &gt; Validate (will it load?)</em> with Combine Checks <em>Quick</em>: the precheck plus 13 real
+combines with stock donors run on the in-memory export model (about 2&nbsp;s).</figcaption></figure>
+<figure><img src="img/scratch_combine.jpg" alt="Combine Preview ghost: the rhino at left and, beside it, a larger copy of its checkered body wearing the stock bull's head">
+<figcaption>Combine Preview, rhino torso + bull head: the ghost beside the creature is the game combiner's exact result
+(bind pose, no animations).</figcaption></figure>
+<figure><img src="img/scratch_export.jpg" alt="The Bones tab reading horn, 22 points, parent head, with the Export SGM (Native Patches) button above it">
+<figcaption>Ready to export: <code>horn</code> owns its 22 points, nothing is unassigned, and <em>Export SGM (Native
+Patches)</em> writes <code>rhino_done.sgm</code> with the report line quoted above.</figcaption></figure>
+
+<h3>8. Prove it loads</h3>
+<p>The repo's headless Object Editor harness loads an <code>.sgm</code> in the real editor under Proton and reports a
+verdict. From the repo root (with <code>IC_INSTALL</code> set):</p>
+<pre><code>.venv/bin/rdn-oe /tmp/bz_guide/scratch/rhino_done.sgm</code></pre>
+<p>For the file this chapter exported it printed:</p>
+<pre><code>LOADED  rhino_done.sgm                       7.1s  OBJECTEDITOR started at 2026-09-15 17:01; OS NT 6.2, 0MB Physical Memory
+SUMMARY 1/1 loaded in the Object Editor</code></pre>
+<p>That is the whole workflow: a creature that never existed now loads in the game's own editor, with its skeleton,
+its 10 clips, its limbs and its graft rings, and combines with the stock creatures.</p>
+
+<aside class="limits">
+<p><strong>Not possible yet</strong> (checked against <code>GMAX_PARITY.md</code> and <code>STATUS.md</code>):</p>
+<ul>
+<li><strong>Building from a primitive.</strong> There is still no "add a patch box": geometry has to start from the
+scaffold, from a stock creature, from <strong>Convert Mesh to Creature</strong> or from <strong>Fit Patches to
+Mesh</strong>. Everything <em>after</em> that start now exists &mdash; Delete Patch, Add Quad, Fill Hole, Weld,
+Subdivide, Extrude Region, Mirror to Whole and Attach &mdash; so the gmax "extrude the body plan, mirror, weld" half of
+the flow does work; see the <em>Topology</em> chapter.</li>
+<li><strong>Material IDs.</strong> The per-patch material slot is stored and round-tripped but not editable, and there is
+no select-by-ID; the scaffold uses one material with its labelled texture.</li>
+<li><strong>Template choice.</strong> No wolf / lion reference template; the scaffold body is the only from-scratch start.</li>
+<li><strong>Animation helpers.</strong> No BoneMirror half-cycle offset, no loop-closure check, no importing rotations from
+another creature; keys are set with Blender's own tools.</li>
+</ul>
+</aside>
+</section>

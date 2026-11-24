@@ -1,0 +1,229 @@
+<section id="anim">
+<h2>Playing, editing and creating animations</h2>
+
+<p>An Impossible Creatures creature carries its animation clips inside the <code>.sgm</code>: <em>Idle1</em>,
+<em>walk</em>, <em>Melee1</em>, <em>StumbleDie</em> and so on, each a set of per-bone tracks. The add-on turns every
+clip into an ordinary Blender <strong>Action</strong> on the creature's rig, so you play, scrub, edit and author
+clips with Blender's own animation editors, and <strong>Export SGM (Native Patches)</strong> writes the Actions back
+as clips. This chapter uses the stock rhinoceros (<code>Assets/engine_stock/rhinoceros.sgm</code>: 54 bones, 10
+clips) and never writes into <code>Assets/</code>; exports go to a folder of your own.</p>
+
+<h3>What import gives you: one Action per clip</h3>
+
+<p>Import SGM / EBP (Native Patches) has a <strong>Clips as Actions</strong> option, on by default. With it, every
+clip of the file is baked into a named Action on the rig (<code>Rhinoceros_rig</code>): one key per clip frame on
+every bone (location, quaternion rotation, scale), linear interpolation like the engine, and each Action is parked on
+its own <strong>muted NLA track</strong>. Muted means nothing plays until you choose a clip; the tracks just keep the
+Actions visible in the Action Editor, the Dope Sheet and the NLA editor, and mark them as belonging to this rig.</p>
+
+<figure><img src="img/anim_import.jpg" alt="The rhinoceros just imported, at rest, with its control net and rig"><figcaption>The stock rhinoceros imported. The rig rests: no clip is active yet.</figcaption></figure>
+
+<figure><img src="img/anim_panel.jpg" alt="The SGM sidebar panel with the Rig box: 10 clips as Actions, Load Animation, active: none (rest pose), Select Rig"><figcaption>The SGM panel's rig box reports <em>10 clips as Actions</em>, offers <strong>Load Animation</strong> and <strong>Select Rig</strong>, and shows which Action is active (<em>active: none (rest pose)</em>).</figcaption></figure>
+
+<figure><img src="img/anim_nla.jpg" alt="The NLA editor listing one muted track per clip: Charge, walk, StumbleGetup, StumbleDie, Run, OAttack1, MeleeLow1, Melee1 ..."><figcaption>The NLA editor (any area, editor type Nonlinear Animation) shows the stash: one muted track per clip, each holding that clip's Action as a strip.</figcaption></figure>
+
+<aside class="note">
+<p><strong>Frames.</strong> A clip's <code>frame_count</code> is a number of <em>intervals</em>: a 24-frame clip has 25
+keys and occupies Blender frames 1 to 25, so every file key lands exactly on a Blender frame. Melee1 (24) runs 1-25,
+walk (50) runs 1-51. The clip's frame rate (30 fps for every rhinoceros clip) is stored on the Action.</p>
+<p>If you imported with <em>Clips as Actions</em> off, the rig box shows a <strong>Clips to Actions</strong> button
+that bakes them later. It refuses to run twice (you would get two Actions per clip).</p>
+</aside>
+
+<h3>Playing and scrubbing a clip</h3>
+
+<ol>
+<li>With the creature (<code>Rhinoceros</code>) active, open the SGM sidebar tab (N) and pick a clip from
+<strong>Load Animation</strong>. It makes that clip's Action the rig's active Action, sets the scene frame range to the
+clip (Start 1, End 25 for Melee1), sets the scene frame rate to the clip's, and jumps to frame 1. The rig box now says
+<em>active: Melee1</em>.</li>
+<li>Press <kbd>Space</kbd> to play, or drag the playhead in the Timeline to scrub. The bicubic surface follows the
+rig, so the live overlay and the control points move with the pose.</li>
+<li>Pick another clip from <strong>Load Animation</strong> at any time; or, with the rig active, choose it in the
+Action Editor's action selector. Loading a clip never re-bakes anything: it only activates the Action that already
+exists.</li>
+</ol>
+
+<figure><img src="img/anim_melee_pose.jpg" alt="Melee1 at frame 12: the rhinoceros lowers its head to gore; the Timeline shows a key on every frame from 1 to 25"><figcaption>Load Animation &gt; Melee1, frame 12 of 25: the rhino lowers its head to gore. The Timeline below shows one key per frame.</figcaption></figure>
+
+<figure><img src="img/anim_walk_pose.jpg" alt="walk at frame 26: mid-stride, one foreleg lifted"><figcaption>Load Animation &gt; walk, frame 26 of 51, mid-stride.</figcaption></figure>
+
+<h3>Editing a clip in the Dope Sheet or Graph Editor</h3>
+
+<p>Blender's animation editors show the keys of the <em>selected</em> object, and the Actions live on the rig, not on
+the creature mesh. So:</p>
+
+<ol>
+<li>Click <strong>Select Rig</strong> in the SGM panel (it makes <code>Rhinoceros_rig</code> the active object). To edit
+the creature's geometry again later, select the <code>Rhinoceros</code> object again.</li>
+<li>Turn the Timeline area (or any area) into a <strong>Dope Sheet</strong>, mode <strong>Action Editor</strong>: the
+active Action (<em>Melee1</em>) and its keys appear, grouped per bone. The <strong>Graph Editor</strong> shows the same
+keys as curves.</li>
+<li>Switch the rig to <strong>Pose Mode</strong> (<kbd>Ctrl</kbd>+<kbd>Tab</kbd> with the rig active), go to a frame,
+select a bone (click it, or pick it in the Outliner), transform it (<kbd>R</kbd> <kbd>X</kbd> <kbd>40</kbd> rotates it
+40 degrees about its local X) and press <kbd>I</kbd> &gt; <em>Rotation</em> to key it. Auto Keying (the record button
+in the Timeline header) works too. Moving, scaling or deleting keys in the Dope Sheet / Graph Editor is an edit just
+the same.</li>
+</ol>
+
+<figure><img src="img/anim_dopesheet.jpg" alt="The Action Editor with Melee1 selected: dense keys on every bone channel, playhead at frame 12"><figcaption>Select Rig, then the Action Editor: Melee1's keys, one per clip frame on every bone channel.</figcaption></figure>
+
+<p>The example below is what a script did for the screenshots: in Pose Mode at frames 9, 12 and 15 the <code>head</code>
+bone was rotated a further 20, 40 and 20 degrees about its local X axis and keyed with <kbd>I</kbd>. The equivalent by
+hand is the same three rotate-and-key operations.</p>
+
+<figure><img src="img/anim_head_edit.jpg" alt="Pose Mode, head bone selected, frame 12: the head dips further than the stock pose; the Graph Editor shows the head's rotation curves with spikes at frames 9, 12 and 15"><figcaption>Pose Mode, head bone: frames 9, 12 and 15 rotated further and keyed. The Graph Editor (Only Show Selected) shows the head's quaternion curves with the three edited keys.</figcaption></figure>
+
+<h3>Export: untouched clips keep their bytes, edited ones are re-encoded</h3>
+
+<ol>
+<li>Select the creature object (<code>Rhinoceros</code>) again and click <strong>Export SGM (Native Patches)</strong> in
+the SGM panel. Pick a file of your own in the file browser (never the stock file you imported) and confirm.</li>
+<li>Read the report in the status bar or the Info editor. It ends with the clip summary, here
+<em>clips: 9 kept, 1 written</em>: nine Actions still hash exactly like at import, so their source clips are copied
+byte for byte; the edited Melee1 Action was re-encoded from what Blender plays.</li>
+</ol>
+
+<figure><img src="img/anim_export_dialog.jpg" alt="Blender's file browser opened by Export SGM (Native Patches), file name rhinoceros_headedit.sgm"><figcaption>Export SGM (Native Patches) opens the file browser: pick the .sgm to write.</figcaption></figure>
+
+<figure><img src="img/anim_export_info.jpg" alt="The Info editor and status bar: Wrote 360051 bytes to /tmp/bz_guide/anim/rhinoceros_headedit.sgm: clips: 9 kept, 1 written"><figcaption>The export report: <em>clips: 9 kept, 1 written</em>. Geometry and skeleton were not touched, so nothing else is listed.</figcaption></figure>
+
+<p>Checked with ICParse on the file above: the nine kept clips' <code>ANIM</code> forms are byte-identical to the stock
+file, the control points and bone rest transforms are identical, and decoding the re-encoded Melee1 gives the head
+rotated exactly 20.0 / 40.0 / 20.0 degrees from the stock pose at frames 9 / 12 / 15 and 0.0 degrees at the
+untouched frames.</p>
+
+<aside class="note">
+<p><strong>What counts as an edit.</strong> Any change to an Action's keys, however made (Dope Sheet, Graph Editor,
+keying in Pose Mode), changes its content hash and re-encodes that clip. Renaming an Action also re-encodes it under
+the new name (see below). Loading, playing and scrubbing clips, posing a bone without keying it, or selecting keys
+are not edits: an untouched creature exports byte-identical to its source.</p>
+<p><strong>Re-encoded as Blender plays it.</strong> A re-encoded clip is sampled from Blender's own evaluation of the
+Action, on the Action's frame range, with the Action playing alone (NLA muted, full influence). If an Action has
+unmuted F-curve modifiers (Cycles, Noise, ...) or muted F-curves, Export warns
+<em>Action X: ... -- re-encoded as Blender plays it</em>; if the rig has enabled bone constraints or drivers, it
+warns <em>the rig poses differently from the Action keys (...): every Action is re-encoded as Blender plays it</em>,
+so even clips you never touched are rewritten. Remove the constraint or driver first if you want them kept.</p>
+</aside>
+
+<h3>Creating a new clip</h3>
+
+<ol>
+<li>Make the rig active (<strong>Select Rig</strong>) and enter Pose Mode. In the Action Editor header click
+<strong>New</strong>: a fresh Action is created and assigned to the rig (it becomes the rig's active Action). Name it in
+the same field.</li>
+<li>Set the scene range to the clip you want (Start 1, End 21 for a 20-interval clip), and set Output &gt; Frame Rate
+to 30 (the stock clips' rate; Load Animation sets it when you play a stock clip). A new Action has no rate of its own,
+so Export uses the scene's.</li>
+<li>Key the bones: at frame 1 select the bones you will animate and key their rest (<kbd>I</kbd>), go to a middle
+frame, pose them, key again, and key the rest pose again at the last frame so the clip loops cleanly. The screenshot
+Action keys <code>head</code>, <code>neck1</code>, <code>jaw1</code> and <code>tail1</code> at frames 1, 11 and 21.</li>
+<li>Leave the new Action as the rig's active Action (or push it down onto the NLA and mute the track, see the
+warning below), select the creature object and <strong>Export SGM (Native Patches)</strong>. The clip is appended
+under the Action's name, sampled on the Action's own frame range: keys from 1 to 21 give a clip of 20 intervals.</li>
+</ol>
+
+<figure><img src="img/anim_new_clip.jpg" alt="Pose Mode at frame 11 of a new Action named Taunt: head up, jaw open, tail swung; the Action Editor lists keys for head, neck1, tail1 and jaw1 at frames 1, 11 and 21"><figcaption>A new Action <em>Taunt</em> on the rig: head, neck1, jaw1 and tail1 keyed at frames 1, 11 and 21 (rest, pose, rest).</figcaption></figure>
+
+<aside class="note">
+<p><strong>Names are how the game finds clips.</strong> The engine and the creature's <code>.ebp</code> motion tree
+look clips up by name, so a new Action only plays in-game if something refers to that name. To replace a stock
+clip, name your Action exactly like the clip (delete or rename the original first; two Actions writing one clip name
+make Export refuse with <em>two Actions write the same clip ... Rename one of them</em>). Validate's stock rulebook
+(<code>ICParse.validate</code>) compares names ignoring case: every base-game creature has <code>idle1</code>,
+<code>melee1</code>, <code>stumbledie</code>, <code>stumblegetup</code> and <code>walk</code> (missing one is a
+<em>STOCK</em> gap), and most have <code>run</code>, <code>oattack1</code>, <code>crouch</code> and
+<code>meleelow1</code> (missing one is a warning). Validate also warns about a clip rate outside 20-60 fps.</p>
+<p><strong>The fake-user-only Action warning.</strong> Export writes an Action as a clip when it is the rig's active
+Action, sits on one of the rig's NLA tracks, or was made by the import (stamped for the rig). A new Action you keyed
+and then replaced or unlinked keeps existing thanks to its fake user, but belongs to nothing, so it is <em>not</em>
+written, and Export says so: <em>Action X keys bones of rig 'Rhinoceros_rig' but is not exported ... To write one,
+make it the rig's active Action, or push it down onto the rig's NLA (and mute the track)</em>. Push Down (the button
+next to the action selector) is the way to keep several new clips at once; mute each new track afterwards.</p>
+</aside>
+
+<h3>Renaming and deleting clips</h3>
+
+<ul>
+<li><strong>Rename</strong> the Action (double-click its name in the Action Editor header, or in the Outliner in
+<em>Blender File</em> display mode under Actions; renaming an NLA track or strip does not rename the Action) and the
+clip is written under the new name, re-encoded; the
+old clip name is dropped. A rename means the name differs from the one the Action was created with, so an Action
+Blender had to call <code>fly.001</code> on import still writes clip <code>fly</code>. Renaming it back restores the
+kept clip.</li>
+<li><strong>Delete</strong> the Action datablock (Outliner &gt; display mode Blender File &gt; Actions &gt;
+right-click &gt; Delete) and its clip is dropped from the export. Unlinking it with the X next to the action selector
+is <em>not</em> deleting: an imported clip's Action still exists (fake user), still sits on its NLA track and is
+stamped for the rig, so it is still exported. Deleting its NLA track alone does not drop it either.</li>
+</ul>
+
+<p>For the second export below, <em>OAttack1</em> was renamed to <em>Gore</em>, <em>Crouch</em> was deleted, the new
+<em>Taunt</em> stayed active, a copy <em>Taunt_sketch</em> was left held only by its fake user, and the <em>walk</em>
+NLA track was unmuted on purpose. <strong>Tools &gt; Validate</strong> (with the creature active) already tells the
+story before writing anything:</p>
+
+<figure><img src="img/anim_validate_info.jpg" alt="The Info editor after Validate: WARN clip 'oattack1' missing, WARN clip 'crouch' missing, WARN export: NLA track(s) walk are not muted, WARN export: Action Taunt_sketch keys bones of rig but is not exported, Loads in the Object Editor; 0 stock-rulebook gaps, 4 warnings"><figcaption>Validate after the rename and delete: the rulebook lists the two missing common clips, and the two export warnings (unmuted track, fake-user-only Action) appear as <em>WARN export</em> lines.</figcaption></figure>
+
+<figure><img src="img/anim_export2_info.jpg" alt="The Info editor after the second export: the two warnings, then Wrote 372013 bytes ...: clips: 7 kept, 3 written, 2 dropped; the same warnings pop up over the viewport"><figcaption>Export again: the warnings for the unmuted track and the fake-user-only Action, then <em>clips: 7 kept, 3 written, 2 dropped</em> (Melee1, Gore and Taunt written; Crouch and OAttack1 dropped).</figcaption></figure>
+
+<figure><img src="img/anim_reimport.jpg" alt="The exported file imported again: Load Animation lists Taunt, played at frame 11"><figcaption>The exported file imported again (the first creature hidden): its clips include <em>Taunt</em> and <em>Gore</em>, and Load Animation &gt; Taunt at frame 11 shows the new pose.</figcaption></figure>
+
+<p>ICParse reads the second file back as Idle1, Melee1, MeleeLow1, Run, StumbleDie, StumbleGetup, walk, Charge,
+Taunt (20 intervals, 30 fps) and Gore; the seven kept clips are byte-identical to the stock file.</p>
+
+<h3>Rules the engine imposes (and the add-on follows)</h3>
+
+<ul>
+<li><strong>A bone with no keys stays at rest under its parent.</strong> The game holds a bone a clip has no track for
+at its bind-local transform (measured in the Object Editor), which is also what Blender shows for an unkeyed bone.
+When a clip is re-encoded, every transform channel its Action does not key is sampled <em>at rest</em>, whatever pose
+an earlier playback or a hand pose left on the bone; the rig's pose is put back afterwards. So a new clip that keys
+only the head keeps every other bone at its rest, no matter what was playing before you exported. In the Taunt clip
+above, an unkeyed bone (<code>rear_foot_r</code>) decodes to exactly its bind pose at the middle frame.</li>
+<li><strong>A clip is one Action, not an NLA blend.</strong> Export samples each Action alone with the NLA muted. An
+unmuted NLA track triggers <em>NLA track(s) walk are not muted: Export writes each Action alone (a clip is one
+Action, not an NLA blend)</em>; mute it in the NLA editor (the checkbox on the track) to silence the warning.</li>
+<li><strong>Keys on a bone the rig does not have</strong> (a bone deleted, or renamed with Blender's own rename after
+the Action was last in use) are a warning: the clip is written without those keys. Rename bones with
+<strong>Boner &gt; Bones &gt; Rename Bone</strong>, which rewrites every Action's F-curves; a rename alone never
+re-encodes a clip.</li>
+<li><strong>One clip name per Action.</strong> Two Actions that would write the same clip name make Export refuse
+until you rename one.</li>
+<li><strong>Actions belong to their rig by identity</strong>, so importing the same creature twice, or re-importing
+after deleting one, still exports each byte-identical; an Action tagged for another (earlier) rig is ignored with a
+warning.</li>
+</ul>
+
+<aside class="note">
+<p><strong>Precision.</strong> Between two keys the engine blends the key quaternions linearly <em>without
+renormalising</em>, so a bone matrix between sparse keys carries a slight scale and shear (up to about 0.2 percent
+between keys 25 degrees apart) that a Blender bone cannot hold: a pose bone stores a clean location, rotation and
+scale. The import samples each clip frame through the engine-exact decode and keeps the clean-rotation reading, so
+the preview is exact on frames that carry a file key (the parity tests measure 6e-7 against the decode) and differs
+from the engine only by that shear on frames between sparse keys. A re-encoded clip writes
+one rigid key per frame, so where the source clip had sparse keys it can differ from the original by up to ~0.3 mm
+on a 1 m creature between those keys (on the 4.9 m rhinoceros above, the untouched frames of the re-encoded Melee1
+decode within 0.6 mm of the stock clip). Untouched clips are never re-encoded, so this only concerns clips you
+edit.</p>
+</aside>
+
+<aside class="limits">
+<p><strong>Not possible yet</strong></p>
+<ul>
+<li>No clip-level metadata editor: a clip's frame rate is whatever its Action carries (stock rate on import, the scene
+rate for new Actions); there is no per-clip fps field in the panel.</li>
+<li>The <code>.ebp</code> motion tree (which clip plays when) is not edited here; a new clip name only plays in-game once
+a blueprint refers to it.</li>
+<li>NLA blending, F-curve modifiers, constraints and drivers are never written as such: they are baked into the clip
+as Blender plays it (with a warning), or, for constraints and drivers, force every clip to be re-encoded.</li>
+<li>The engine's between-key shear cannot be reproduced by a Blender bone, so a re-encoded clip is rigid per frame
+(see the precision note).</li>
+<li>Clips are not <em>retargeted</em>. Retarget, Landmark Retarget and a rest-pose edit all move the bones the Actions
+key, so the existing clips play on the new proportions as best they can; a clip authored for the old ones may need
+re-keying.</li>
+<li>Scene objects (gatherers, characters, structures and props) get their clips as Actions too and export them with
+<strong>Export Scene Object (.sgm)</strong>, together with any mesh edits (see their chapter); bone edits on a scene
+object are not written back. <em>(Corrected 2026-11-17: this said the scene export never wrote geometry.)</em></li>
+</ul>
+</aside>
+</section>
