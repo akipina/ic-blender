@@ -1,4 +1,4 @@
-"""sceneobj.panels_map_settings -- the Map settings, Terrain look and Map problems panels (3D View sidebar, SGM tab, under Map)."""
+"""sceneobj.panels_map_settings -- the Map settings, Terrain look and Map problems panels (3D View sidebar, IC tab, under Map)."""
 from __future__ import annotations
 
 import bpy
@@ -20,7 +20,7 @@ def _hint(layout, text: str, icon: str = "NONE", width: int = 44) -> None:
 class _Sub:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = H.MAP_PANEL_ID
 
     @classmethod
@@ -38,9 +38,9 @@ def draw_settings(layout, context, top) -> None:
     col.prop(g, "kind")
     col.prop(g, "players")
     if int(g.kind) == 2:
-        _hint(layout, "A multiplayer map is saved in Data/scenarios/mp and listed by the game for 2 to 6 players, under the name above.", width=44)
+        _hint(layout, "Saved in Data/scenarios/mp and listed by the game for 2 to 6 players.", width=44)
     else:
-        _hint(layout, "A single-player map belongs in Data/scenarios/sp. The Save panel writes the multiplayer folder: move the files by hand.",
+        _hint(layout, "Single-player maps go in Data/scenarios/sp: move the saved files there.",
               "INFO", width=44)
     box = layout.box()
     box.label(text="Players and where they start", icon="USER")
@@ -57,14 +57,13 @@ def draw_settings(layout, context, top) -> None:
             row.label(text=f"Player {slot + 1}: no start", icon="ERROR")
         op = row.operator("bz.map_add_start", text="", icon="ADD")
         op.slot = slot
-    _hint(layout, "The plus gives that player a laboratory and three henchmen at the 3D cursor. A player's start is what the player owns: "
-                  "move the objects to move the start.", width=44)
+    _hint(layout, "The plus adds a player's start (lab and henchmen) at the 3D cursor.", width=44)
     col = layout.column(align=True)
     col.operator("bz.map_make_preview", text="Make preview picture", icon="IMAGE_DATA").method = "GAME"
     col.operator("bz.map_make_preview", text="Make preview picture from a Blender render", icon="RENDER_STILL").method = "BLENDER"
     has = bool(top.get(S.KEY_ICON_TEXT))
-    _hint(layout, "The picture beside the game's map list (the icon, 128 x 128) and the minimap, drawn from the ground picture with the "
-                  "water on it. " + ("Made: saved with the map." if has else "A new map has its template's until you make this."), width=44)
+    _hint(layout, "The map list icon and minimap. " + ("Made: saved with the map." if has else
+                                                        "A new map has its template's until you make this."), width=44)
 
 
 def draw_look(layout, context, top) -> None:
@@ -101,15 +100,14 @@ def draw_look(layout, context, top) -> None:
         _hint(layout, "This map is saved in an older terrain format that has no fog.", "INFO", width=44)
     layout.prop(g, "detail_tiling")
     layout.operator("bz.map_look_reset", text="Back to the map's values", icon="LOOP_BACK")
-    _hint(layout, "Colours, the sun, fog and sea show at once when the game look is on. Saving writes only what you changed.", width=44)
+    _hint(layout, "The game look shows changes at once; saving writes only what you changed.", width=44)
 
 
 def draw_problems(layout, context, top) -> None:
     layout.operator("bz.map_check_problems", text="Check map", icon="VIEWZOOM")
     found = S.PROBLEMS.get(top.name)
     if found is None:
-        _hint(layout, "Check map lists what is wrong before you save: a player without a start, objects outside the map, blueprints the game does "
-                      "not have, ground out of range, a map the game would not list.", width=44)
+        _hint(layout, "Check map lists problems to fix before saving, such as players without a start.", width=44)
         return
     if not found:
         layout.label(text="No problems found.", icon="CHECKMARK")

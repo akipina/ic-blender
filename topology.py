@@ -1,28 +1,8 @@
-"""Bone topology edits of the SOURCE skeleton, bpy-free (Boner increment C8): a source bone deleted or re-parented on
-the rig, applied to the export model with the added bones, the clips and the IK chains following.
+"""Bpy-free: delete or re-parent SOURCE skeleton bones in the export model (:func:`apply_skeleton`); added bones, clips
+(:func:`retrack_clips`) and IK chains (:func:`fix_ik_chains`) follow.
 
-The export stays "source + edits" (``core.build_export``): :func:`apply_skeleton` takes the export model with its bones
-still the source's (rest edits applied), re-parents the source bones a :class:`BoneTopology` names (a source bone under a
-source bone, or under an added bone), inserts the added bones (``structure.insert_added_bones``, unchanged), drops the
-deleted bones' records, and -- only when a bone now sits before its parent -- re-sorts the records with the least
-movement that satisfies parents-before-children (an added bone with a source bone under it goes right before that bone;
-stub bones stay last). Every source bone that stays keeps its record bytes (parent index and rest apart). Stock fact
-(61/61 base-game creatures): a bone's vertex range is NOT tied to its record position (0 of 61 have the ranges in bone
-order), so a record re-sort needs no reskin.
-
-Clips: a kept clip's track for a deleted bone is dropped, and its track for a re-parented bone is re-expressed under the
-new parent (:func:`retrack_clips`): Blender plays an Action's keys as the bone's pose relative to its rest under its
-current parent, so the file's absolute-local key becomes ``B_new @ inv(B_old) @ L_old`` (``B``: the bind-local before and
-after; a neck4 inserted under neck3 with the head under it leaves the head's world motion exactly as it was). Clips are
-rebuilt from their decoded keys (``ICParse.codecs.anim.rebuild``: 1,384 / 1,384 stock clips byte-exact), so every other
-track keeps its bytes. IK chains (:func:`fix_ik_chains`): a deleted bone comes off its chains; a chain whose bones are no
-longer one path of the hierarchy is completed along the path (neck4 joins the Neck chain) or dropped with a warning.
-Stock: all 905 chains of the 119 stock creatures are hierarchy paths (7 have 0 or 1 bone).
-
-Refusals (:func:`topology_refusals`): the root bone, a bone the game looks up by name (``boner.hard_coded_uses``: ProcAnim,
-the combiner, tail clearance, scaling, seam skinning), a stub bone (its limb's socket needs it), a connection host, the
-only bone of a limb; a bone re-parented under a stub bone, or so that a limb other than the Torso is no longer one bone
-and its children.
+Kept bones keep their record bytes; records are re-sorted only to keep parents first (stub bones stay last).
+:func:`topology_refusals` protects the root, looked-up names, stub bones, connection hosts and limb integrity.
 """
 from __future__ import annotations
 
@@ -34,7 +14,7 @@ import numpy as np
 
 try:
     from . import structure
-except ImportError:                      # imported top-level (pure tests put blender_native/ on sys.path)
+except ImportError:                      # imported top-level (pure tests put ic_blender/ on sys.path)
     import structure  # type: ignore[no-redef]
 
 
@@ -167,11 +147,10 @@ def _branch_problems(src, topo, rules, deleted_set) -> List[str]:
             continue
         who = sorted(b for b in inside if b in moved) or now
         pretty = {str(b).lower(): str(b) for b in bl}
-        out.append(f"re-parenting {', '.join(repr(pretty.get(b, b)) for b in who)} splits limb "
-                   f"'{rules.limb_names[j]}' into {len(now)} branches (roots {', '.join(pretty.get(b, b) for b in now[:4])}"
-                   f"{', ...' if len(now) > 4 else ''}): a limb other than the Torso is one bone and its children (the "
-                   "combiner grafts it from one root). Re-parent under a bone of that limb, or move the bone into its new "
-                   "parent's limb (Boner > Limbs > Add Active Bone), or Undo")
+        out.append(f"re-parenting {', '.join(repr(pretty.get(b, b)) for b in who)} splits limb '{rules.limb_names[j]}' into "
+                   f"{len(now)} branches (roots "
+                   f"{', '.join(pretty.get(b, b) for b in now[:4])}{', ...' if len(now) > 4 else ''}): re-parent within the "
+                   "limb, move the bone into its new parent's limb, or Undo")
     return out
 
 
@@ -207,14 +186,12 @@ def topology_refusals(src, topo: BoneTopology, rules: Optional[Rules] = None) ->
         hosts = [cn for cn, hb in rules.hosts if str(hb).lower() == name.lower()]
         if hosts:
             out.append(f"bone '{name}' was deleted, but connection{'s' if len(hosts) != 1 else ''} "
-                       f"{', '.join(repr(h) for h in hosts)} attach{'es' if len(hosts) == 1 else ''} to it (the host bone "
-                       "matters for combining): Undo the delete, or set the connection bone to another bone first (Boner > "
-                       "Connections > Set Connection Bone)")
+                       f"{', '.join(repr(h) for h in hosts)} attach{'es' if len(hosts) == 1 else ''} to it: Undo the "
+                       "delete, or first move the connection (Boner > Connections: Set, by the host bone)")
         only = [rules.limb_names[j] for j, bl in enumerate(low_lists) if bl == [name.lower()]]
         if only:
-            out.append(f"bone '{name}' was deleted, but it is the only bone of limb '{only[0]}' (the engine reports 'limbs "
-                       "are boneless!' and ComboTest.exe won't take the creature): Undo the delete, or give the limb another "
-                       "bone first (Boner > Limbs > Add Active Bone) or delete the limb")
+            out.append(f"bone '{name}' was deleted, but it is the only bone of limb '{only[0]}' ('limbs are boneless!' in "
+                       "game): Undo, give the limb another bone first, or delete the limb")
     added_keys = {int(k) for k, _pk in rules.added.values()}
     name_of_key = {int(k): nm for nm, (k, _pk) in rules.added.items()}
     for i, p in topo.parents:

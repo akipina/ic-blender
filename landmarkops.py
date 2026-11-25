@@ -1,44 +1,9 @@
-"""Landmark-guided retarget (roadmap A3b): named Empties on the target mesh, matched to the donor creature's limb
-tips / roots / head / tail / torso, drive a thin-plate-spline pre-warp of the donor's control net AND its rest bones
-before the closest-point retarget of A3 (``retargetops``).
+"""Landmark retarget: ``LM_*`` empties on the target drive a thin-plate-spline pre-warp of the control net and rest bones,
+then the closest-point retarget (``retargetops``) settles the skin.
 
-Why: a closest-point fit only sees displacement along the surface normal, so it cannot carry a donor limb across the
-body -- the pillbug scan (3DInputs/Pillbug_ic/REPORT.md) left the beetle's legs bunched under the shell and its head
-wedged into the scan's head although the scan-to-surface residual was 0.36 %. A handful of correspondences the user
-places by hand (the foot tips, the head, the tail) fix that: the TPS moves whole limbs to where they belong, and the
-closest-point fit then only has to settle the skin.
-
-**Landmark names.** Donor landmarks are derived from the creature and named ``LM_<name>``:
-
-* ``LM_<limb>`` -- the limb's TIP: the head of the last bone of its chain (the leaf of the limb's bone list farthest
-  from its root: ``LM_LFLeg`` is the beetle's ``Front_endLeg_L``), except for the Head and Tail limbs, whose tip is
-  the limb's surface point farthest along (Head) / against (Tail) the creature's heading (a feeler tip, the tail end);
-* ``LM_<limb>_root`` -- the limb's ROOT: the head of its root bone (the bone of the limb's list whose parent is not in
-  the list: ``Front_leg1_l``; skipped for a one-bone limb, whose tip is that bone);
-* ``LM_Torso`` -- the centroid of the Torso limb's surface;
-* ``LM_<bone>`` -- any rig bone by its current name (its head), for a correspondence the limb names don't offer.
-
-``<limb>`` is the limb's standard suffix (``boner.STANDARD_LIMBS`` by class: Torso, Head, Tail, LFLeg, RFLeg, LRLeg,
-RRLeg, LMLeg, RMLeg, LFArm, RFArm, LSWing, ...), else the last ``_`` token of its name. The heading is the XY direction
-from the Torso's surface centroid to the Head's (the Tail's, reversed, without a Head). ``bz.landmarks_create`` adds a
-collection of Empties with these names AT THE DONOR'S POSITIONS (so the user drags each onto the target); a Blender
-``.001`` suffix on a name is ignored; a stub limb (no patches) gets its bone landmarks too (a landmark there moves the
-bone only). The retarget reads every ``LM_*`` Empty of the chosen collection (or of the scene) back by name and refuses
-fewer than 4, an unknown name, a name repeated, or a bone landmark whose bone is not on the rig.
-
-**Pre-warp.** A 3-D thin-plate spline (kernel ``|r|``, affine part, a small regularisation ``reg`` x the landmarks'
-bounding diagonal on the kernel diagonal) from the donor landmark positions to the user's (the target and its
-landmarks first aligned into the creature's frame like A3's Scale to Target) is applied to every control point and to
-every rest bone's head and tail (bones stay inside the warped skin), then the A3 closest-point retarget runs from that
-start: rings pinned at their WARPED positions (default, ``warp_rings``: the combiner scales the changed rings) or at
-their stock positions; symmetry as in A3 (the TOTAL displacement mirrored when the creature's net and the target are
-X-symmetric); the fitted displacement of the points a bone owns is then added to the bone's warp (A3's Move Bones).
-The report gives the landmarks used, the TPS residual at the landmarks (0 with no regularisation and non-degenerate
-landmarks), the fit numbers as before and the per-limb coverage: the fraction of each limb's surface samples farther
-than 2 % of the size from any target point -- the honest number that says which limbs still miss the target.
-
-The bpy-free part (``tps_fit`` / ``TPS``, ``donor_landmarks``, ``coverage_by_limb``, ``landmark_retarget_pool``) is
-what a pure test or script can run; the operators need ``bpy``.
+Names: ``LM_<limb>`` (limb tip), ``LM_<limb>_root``, ``LM_Torso``, ``LM_<bone>``; a ``.001`` suffix is ignored; fewer
+than 4, unknown or repeated names are refused. ``tps_fit``, ``donor_landmarks``, ``coverage_by_limb`` and
+``landmark_retarget_pool`` must stay bpy-free.
 """
 from __future__ import annotations
 
@@ -53,7 +18,7 @@ from ICParse.codecs import fit
 
 try:
     from . import boner, core, fitops, retargetops
-except ImportError:                      # imported top-level (a pure test puts blender_native/ on sys.path)
+except ImportError:                      # imported top-level (a pure test puts ic_blender/ on sys.path)
     import boner  # type: ignore[no-redef]
     import core  # type: ignore[no-redef]
     import fitops  # type: ignore[no-redef]
@@ -571,16 +536,14 @@ def scene_landmarks(context, obj, collection: str = "") -> Dict[str, np.ndarray]
 
 
 class BZ_OT_landmarks_create(_Operator):
-    """Add a collection of Empties named after this creature's landmarks (LM_<limb> tips, LM_<limb>_root, LM_Head,
-    LM_Tail, LM_Torso) at the creature's own positions: drag each onto the target mesh, then Landmark Retarget"""
+    """Add named empties at the creature's landmarks to drag onto the target mesh"""
     bl_idname = "bz.landmarks_create"
     bl_label = "Create Landmarks"
     bl_options = {"REGISTER", "UNDO"}
 
     if bpy is not None:
         roots: BoolProperty(name="Limb Roots", default=True,
-                            description="Also add the LM_<limb>_root Empties (the head of each limb's root bone). Off: "
-                                        "tips, head, tail and torso only (the roots are then interpolated by the warp)")
+                            description="Also add an empty at each limb's root bone (LM_<limb>_root)")
         size: FloatProperty(name="Display Size", default=0.0, min=0.0, soft_max=1.0, precision=3,
                             description="Empty display size in Blender units (0: 2 % of the creature's size)")
 
@@ -591,7 +554,7 @@ class BZ_OT_landmarks_create(_Operator):
     def execute(self, context):
         obj = ops._active_native(context)
         if obj is None:
-            self.report({"ERROR"}, "Select a native patch creature")
+            self.report({"ERROR"}, "Select a patch creature")
             return {"CANCELLED"}
         err = store.pool_error(obj)
         if err:
@@ -646,9 +609,7 @@ class BZ_OT_landmarks_create(_Operator):
 
 
 class BZ_OT_landmark_retarget(_Operator):
-    """Retarget this creature to a mesh guided by landmarks: the LM_* Empties (placed on the target) matched to the
-    creature's limb tips / roots / head / tail / torso drive a thin-plate-spline pre-warp of the control net and the
-    rest bones, then the closest-point retarget settles the skin (rings warped or pinned; undoable)"""
+    """Fit this creature to a mesh, guided by the landmark empties placed on it"""
     bl_idname = "bz.landmark_retarget"
     bl_label = "Landmark Retarget"
     bl_options = {"REGISTER", "UNDO"}
@@ -664,25 +625,16 @@ class BZ_OT_landmark_retarget(_Operator):
         smooth: FloatProperty(name="Seam Smoothness", default=0.0, min=0.0, soft_max=1.0, precision=3,
                               description="Weight of the soft C1 term across patch seams (0 keeps stock seams)")
         regularisation: FloatProperty(name="Warp Smoothing", default=TPS_REG, min=0.0, soft_max=0.1, precision=4,
-                                      description="Thin-plate-spline regularisation as a fraction of the landmarks' "
-                                                  "extent: 0 passes exactly through every landmark, a small value "
-                                                  "smooths a rough placement (the residual at the landmarks is "
-                                                  "reported)")
+                                      description="Smooths a rough landmark placement; 0 passes exactly through every "
+                                                  "landmark")
         warp_rings: BoolProperty(name="Warp Rings", default=True,
-                                 description="The connection rings follow the warp and are pinned there (the combiner "
-                                             "scales the changed rings and may warn about them). Off: every ring stays "
-                                             "exactly at the stock geometry, so the sockets don't move with the limbs")
+                                 description="Let connection rings follow the landmarks; off keeps the stock ring shapes")
         symmetry: BoolProperty(name="Keep Symmetry", default=True,
-                               description="When the creature's control net and the target are both X-symmetric, "
-                                           "mirror the total displacement exactly")
+                               description="Keep the result symmetric when the creature and target are symmetric in X")
         scale_to_target: BoolProperty(name="Scale to Target", default=True,
-                                      description="First align the target (and the landmarks on it) into the "
-                                                  "creature's frame: centred on the creature's surface box, scaled "
-                                                  "uniformly by the bounding-diagonal ratio")
+                                      description="First centre and scale the target to fit the creature")
         move_bones: BoolProperty(name="Move Bones", default=True,
-                                 description="Warp each rest bone's head and tail with the landmarks, then add the "
-                                             "mean fitted displacement of the points it owns (Export writes the moved "
-                                             "bones as overrides). Off: bones keep their bind pose")
+                                 description="Move the rest bones along with the landmarks")
 
     @classmethod
     def poll(cls, context):
@@ -691,7 +643,7 @@ class BZ_OT_landmark_retarget(_Operator):
     def execute(self, context):
         obj = ops._active_native(context)
         if obj is None:
-            self.report({"ERROR"}, "Select a native patch creature to retarget")
+            self.report({"ERROR"}, "Select a patch creature to retarget")
             return {"CANCELLED"}
         if obj.mode == "EDIT":
             obj.update_from_editmode()
@@ -799,13 +751,11 @@ class BZ_OT_landmark_retarget(_Operator):
             self.report({"WARNING"}, f"{obj.name} has an object transform: the fit is in its local space, and Export "
                                      "refuses a creature with a transform (apply or clear it)")
         if self.warp_rings and len(rings):
-            self.report({"WARNING"}, f"the {len(rings)} connection-ring control points moved with the warp: the combiner "
-                                     "will scale the changed rings and may warn about them (Validate's combine tier "
-                                     "shows it); Warp Rings off keeps the stock ring geometry")
+            self.report({"WARNING"}, f"the {len(rings)} connection-ring control points moved with the warp, so combining "
+                                     "may scale them and warn; turn Warp Rings off to keep stock rings")
         far = [c for c in r.limb_coverage if c.samples and c.fraction > 0.1]
         if far:
-            self.report({"WARNING"}, "limbs still off the target (more than 10 % of their surface samples > "
-                                     f"{COVERAGE_PCT:g} % of the size from any target point): "
+            self.report({"WARNING"}, "limbs still off the target: "
                                      + ", ".join(f"{c.name} {100 * c.fraction:.0f} %" for c in far)
                                      + " -- add or move landmarks there")
         if not self.move_bones and arm is not None:

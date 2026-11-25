@@ -100,9 +100,8 @@ def rename_refusal(arm, old, new) -> str | None:
     for idn, how in taken:
         if idn.lower() == new.lower() and (mine is None or idn.lower() != mine.lower()):
             holder = next((c for (n, _p), c in zip(sk.snapshot, sk.resolution.current) if n == idn), None) or idn
-            return (f"another bone ('{holder}') {how} '{idn}': limb bone lists, connection hosts and Actions name bones "
-                    "by that name, so it would mean two bones. Give this bone a name no bone had (or export, re-import, "
-                    "then rename)")
+            return (f"another bone ('{holder}') {how} '{idn}', so the name would mean two bones: pick a name no bone had "
+                    "(or export, re-import, then rename)")
     return None
 
 
@@ -170,10 +169,7 @@ def rename_bone(context, obj, arm, old, new) -> list:
 
 
 class BZ_OT_rename_bone(bpy.types.Operator):
-    """Rename a bone of the creature's rig (at most 63 ASCII characters, unique ignoring case). Its vertex group and every
-    Action follow, and Export writes the new name into the skeleton, the limb bone lists, connection hosts, IK chains
-    and clip tracks (unedited clips keep their bytes). Renaming a bone the game looks up by name (pelvis, spine1-3,
-    neck1-3, head, tail1-4, the combiner's leg bones) is allowed, with a warning saying what it loses"""
+    """Rename a bone of the rig; its vertex group, Actions and the export follow"""
     bl_idname = "bz.rename_bone"
     bl_label = "Rename Bone"
     bl_options = {"REGISTER", "UNDO"}
@@ -452,10 +448,7 @@ def _active_parent(context, obj, arm) -> str:
 
 
 class BZ_OT_add_bone(bpy.types.Operator):
-    """Add a bone under the active bone (a horn under the head, a tail tip, an extra ear segment): head at the active
-    bone's tail plus the offset, its orientation, deforming. It goes into its parent's limb; skin control points to it
-    with Assign Selected, and Export writes it into the skeleton (kept clips hold it at its rest relative to its parent,
-    as the game does). One undo step for the rig and the creature (the rig leaves its Edit Mode)"""
+    """Add a bone under the active bone, in its limb"""
     bl_idname = "bz.add_bone"
     bl_label = "Add Bone under Active"
     bl_options = {"REGISTER", "UNDO"}
@@ -559,8 +552,7 @@ def limbops_forget(obj):
 
 
 class BZ_OT_adopt_bones(bpy.types.Operator):
-    """Take the bones Blender's own Add / Extrude / Duplicate added to the rig into the creature: each is stamped and put
-    into its parent's limb (a chain too), so control points can be skinned to it and Export writes it"""
+    """Take bones made with Blender's Add, Extrude or Duplicate into the creature"""
     bl_idname = "bz.adopt_bones"
     bl_label = "Adopt Added Bones"
     bl_options = {"REGISTER", "UNDO"}

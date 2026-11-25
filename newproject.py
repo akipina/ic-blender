@@ -31,10 +31,8 @@ from . import core, rig, store
 
 KINDS = (
     ("CREATURE", "Creature", "A creature: the default skeleton with a simple connected starting body made of patches", "OUTLINER_OB_ARMATURE", 0),
-    ("CHARACTER", "Gatherer / character", "A model with a skin over its skeleton, like the henchmen and the story characters, started from a copy "
-                                          "of one of the game's own", "ARMATURE_DATA", 1),
-    ("STRUCTURE", "Structure / prop", "A building, prop or piece of scenery made of rigid parts on bones, started from a copy of one of the "
-                                      "game's own", "HOME", 2),
+    ("CHARACTER", "Gatherer / character", "A skinned model on a skeleton, like the henchmen and story characters", "ARMATURE_DATA", 1),
+    ("STRUCTURE", "Structure / prop", "A building, prop or scenery made of rigid parts on bones", "HOME", 2),
 )
 _NAMES = {"CREATURE": "NewCreature", "CHARACTER": "NewGatherer", "STRUCTURE": "NewStructure"}
 # where the game keeps each kind of scene object, in its archives
@@ -155,12 +153,10 @@ def _donor_items(self, context):
     else:
         for i, (ap, member) in enumerate(scene_donors(self.project_type, context)):
             items.append((member, _label(member), f"{os.path.basename(ap)}: {member}", "", i + 1))
-        items.append(("FILE", "Another .sgm file...", "Start from a gatherer, character, structure or prop .sgm file on disk (the kind must "
-                                                      "match the Type above)", "FILEBROWSER", 0))
+        items.append(("FILE", "Another .sgm file...", "Start from a .sgm file on disk whose kind matches the Type above", "FILEBROWSER", 0))
         if len(items) == 1:
             items[0] = ("FILE", "Another .sgm file... (no game folder found: see the add-on's preferences)",
-                        "No game folder was found, so the game's own models cannot be listed. Set the Game folder in the add-on's preferences "
-                        "(Edit > Preferences > Add-ons), or the IC_INSTALL environment variable", "FILEBROWSER", 0)
+                        "No game folder found: set it in the add-on's preferences or IC_INSTALL", "FILEBROWSER", 0)
     _ITEMS[:] = items
     return _ITEMS
 
@@ -288,8 +284,7 @@ def _type_changed(self, context):
 
 
 class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
-    """Start a new project: a creature on the default skeleton, or a gatherer, character, structure or prop copied from one of the game's
-    own, with its own animations, none, or animations borrowed from existing creatures. The .sgm file named here holds the project"""
+    """Start a new creature, gatherer, character, structure or prop project"""
     bl_idname = "bz.new_project"
     bl_label = "New Impossible Creatures Project"
     bl_options = {"REGISTER", "UNDO"}
@@ -300,9 +295,9 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
                                description="What kind of .sgm this is: the add-on writes, checks and exports it as that kind")
     project_name: StringProperty(name="Name", default="NewCreature", description="The creature's name: its parts and its texture are named after it")
     donor: EnumProperty(name="Start from", items=_donor_items,
-                        description="What the project starts from: the default skeleton for a creature, or a copy of one of the game's own models")
+                        description="Start from the default creature skeleton or a copy of a game model")
     donor_file: StringProperty(name="File to start from", subtype="FILE_PATH",
-                               description="A gatherer, character, structure or prop .sgm file; the .ebp of the same name beside it is copied too")
+                               description="A model .sgm to start from; its .ebp is copied too")
     anim_source: EnumProperty(name="Animations", default="OWN", items=(
         ("OWN", "Keep its own", "The animations the default skeleton or the game's model already has"),
         ("NONE", "None", "No animations: add your own in the Action Editor"),

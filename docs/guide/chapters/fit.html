@@ -1,175 +1,109 @@
 <section id="fit">
 <h2>Fitting a mesh: an outside model becomes a creature</h2>
 
-<p><strong>Fit Patches to Mesh</strong> turns any ordinary mesh — a sculpt, a scan, an imported <code>.glb</code> or
-<code>.obj</code> — into a bicubic-patch creature at a patch budget you choose. It lays out quads over the mesh, makes
-each quad a patch, solves the control points against the mesh's own vertices, borrows a template creature's skeleton and
-materials, writes a <code>.sgm</code> and imports it through the normal path, so everything else in this guide then
-applies to it.</p>
+<p><strong>Fit Patches to Mesh</strong> turns an ordinary mesh (sculpt, scan, <code>.glb</code>, <code>.obj</code>) into
+a patch creature. It borrows a template creature's skeleton and materials, writes a <code>.sgm</code> and imports it. The
+example is Suzanne, without eyes and subdivided twice.</p>
 
-<p>This chapter fits Blender's own Suzanne, because it is in everyone's Blender: her two eye shells removed (they sit
-<em>inside</em> their sockets, and a fit wants one skin) and two Catmull-Clark levels applied, which gives one closed,
-X-symmetric surface of about 7,000 vertices.</p>
-
-<figure><img src="img/fit_target.jpg" alt="Suzanne with her eye shells removed and subdivided twice, in Blender's viewport"><figcaption>The target: one closed, X-symmetric skin of 6,964 vertices. Any mesh in this shape does.</figcaption></figure>
+<figure><img src="img/fit_target.jpg" alt="Subdivided Suzanne without eyes"><figcaption>The target mesh.</figcaption></figure>
 
 <h3>What the fit will accept</h3>
 
-<p>The one hard requirement is <strong>one closed skin</strong> — and the add-on judges that fairly. Before anything
-else it welds a <em>throwaway copy</em> of your mesh by position (Merge by Distance at 10<sup>-5</sup> of its diagonal),
-because an index buffer is not a surface:</p>
-
 <ul>
-  <li><strong>glTF splits vertices at every UV chart boundary.</strong> Every image-to-3D pipeline runs a UV atlaser
-  (<code>xatlas</code>), and our own Bake Surface does the same at every patch seam. Measured on one such
-  <code>.glb</code>: <strong>472 parts and 14,524 boundary edges as shipped, one part and zero boundary edges after a
-  positional weld</strong> — the same solid all along.</li>
-  <li><strong>Boundary edges (one face) are not non-manifold edges (more than two faces).</strong> Blender's
-  <em>Select Non-Manifold</em> counts both by default, which is how 14,524 boundary edges once became a "non-manifold"
-  diagnosis and a voxel remesh that destroyed the model's UVs.</li>
-  <li>What is refused is a mesh that is <em>still</em> several shells after the weld — eyes inside sockets, a detached
-  limb — because the fit would pull the skin inwards to reach them. The message gives the part count, the boundary edges
-  and the true non-manifold edges as three separate numbers, and names Merge by Distance.</li>
-  <li>Your mesh is never modified. The weld is on a throwaway bmesh, and the layout is built from it only when the mesh
-  actually has duplicates, so a clean mesh gives bit-for-bit the layout it always did.</li>
+  <li>The mesh must be <strong>one closed skin</strong>.</li>
+  <li>Vertices split at seams (usual in glTF) are fine; the fit welds a copy first.</li>
+  <li>Separate shells, such as eyes or a detached limb, are refused. Delete or hide them.</li>
+  <li>Your mesh is not changed.</li>
 </ul>
 
 <h3>Running the fit</h3>
 
 <ol>
-  <li>Select the mesh. With an ordinary mesh active, the SGM panel offers <strong>Convert Mesh to Creature</strong> and
-  <strong>Fit Patches to Mesh</strong> above the Display box.</li>
-  <li>Press <strong>Fit Patches to Mesh</strong> and set its options in the redo panel (<kbd>F9</kbd>):
+  <li>Select the mesh.</li>
+  <li>Press <strong>Fit Patches to Mesh</strong> and set the redo panel (<kbd>F9</kbd>):
     <ul>
-      <li><strong>Patch Budget</strong> (default 300): how many quads the layout aims for. See the budget section
-      below — this is the number that decides whether your creature can be combined.</li>
-      <li><strong>Layout</strong>: <em>QuadriFlow</em> remeshes a copy of the mesh to about the budget of quads
-      (mirrored when the mesh is X-symmetric; 8 seeds are tried and the closed all-quad layout that starts nearest the
-      mesh is kept, because QuadriFlow leaves small holes at random). <em>Own Quads</em> uses the mesh's own faces after
-      tris-to-quads, as Convert Mesh does — use it when you modelled the quads yourself.</li>
-      <li><strong>Seam Smoothness</strong> (0.02): the weight of a soft C1 term across patch seams. Stock seams are C0
-      by design, so this stays small.</li>
-      <li><strong>Iterations</strong> (10): project-and-solve rounds.</li>
-      <li><strong>Skeleton Template (.sgm)</strong>: the creature whose skeleton, materials and body plan the result
-      borrows.</li>
-      <li><strong>Output .sgm</strong>: where the creature is written. That file becomes its source, exactly as if you
-      had imported it.</li>
-      <li><strong>Error Heat Map</strong> and <strong>Split into Limbs</strong>, both on by default (below).</li>
+      <li><strong>Patch Budget</strong> (300): target number of patches.</li>
+      <li><strong>Layout</strong>: <em>QuadriFlow</em> remeshes a copy; <em>Own Quads</em> uses your faces.</li>
+      <li><strong>Seam Smoothness</strong> (0.02): keep it small.</li>
+      <li><strong>Iterations</strong> (10): fitting rounds.</li>
+      <li><strong>Skeleton Template (.sgm)</strong>: the creature to borrow from.</li>
+      <li><strong>Output .sgm</strong>: where to save.</li>
+      <li><strong>Error Heat Map</strong> and <strong>Split into Limbs</strong>: on by default.</li>
     </ul>
   </li>
-  <li>Wait. About 35 s for 300 patches, 70 s for 600, 2–3 minutes for 2,000, in Blender's numpy.</li>
+  <li>Wait, about half a minute for 300 patches and longer for more.</li>
 </ol>
 
-<figure><img src="img/fit_panel.jpg" alt="The SGM panel with Convert Mesh to Creature and Fit Patches to Mesh shown for an ordinary mesh"><figcaption>With an ordinary mesh active the panel offers the two conversions. Everything else is greyed out until there is a creature.</figcaption></figure>
+<aside class="note">
+<p>Left empty, <strong>Skeleton Template (.sgm)</strong> uses the game's wolf, taken from your game folder.</p>
+</aside>
 
-<figure><img src="img/fit_fitted.jpg" alt="The fitted creature: Suzanne's shape as a patch net with the template's texture"><figcaption>The result of <em>Fit 286 patches to Suzanne: rms 9.7 mm (p95 21.1 mm, max 67.9 mm; 0.27 / 0.58 / 1.86 % of size) in 47 s (QuadriFlow seed 5, the best start of 3 closed layouts from 8 seeds); symmetry kept (2486 control points paired, 89 on the plane)</em>. It wears the template's skin until you give it one of its own.</figcaption></figure>
+<figure><img src="img/fit_panel.jpg" alt="Panel with the two conversion buttons"><figcaption>A selected mesh offers the two conversions.</figcaption></figure>
 
-<p>The report — kept on the creature as <code>bz_last_fit</code> — is the thing to read. It gives rms, p95 and max error
-in millimetres <em>and</em> as a percentage of the mesh's size, which seeds QuadriFlow tried, how far off the layout was
-before the fit (so you can see what the solve bought), and whether symmetry was kept. A symmetric mesh gives an
-<em>exactly</em> symmetric creature: control points are paired through the layout's mirror faces.</p>
+<figure><img src="img/fit_fitted.jpg" alt="Suzanne as a patch creature"><figcaption>The fitted creature with the template's skin.</figcaption></figure>
 
-<figure><img src="img/fit_heat.jpg" alt="Suzanne painted blue to red by the fit error"><figcaption><strong>Error Heat Map</strong>: the per-vertex error painted on the target as the <code>fit_error</code> colour attribute (blue 0 to red 1 % of the mesh's size), read with Viewport Shading &gt; Color: Attribute. It is the only thing the fit adds to your mesh. (The surface overlay was turned off for this shot — the add-on draws a creature's surface even when its mesh is hidden.)</figcaption></figure>
+<p>The report gives the fit error (rms, p95, max) and whether symmetry was kept.</p>
+
+<figure><img src="img/fit_heat.jpg" alt="Suzanne coloured by fit error"><figcaption><strong>Error Heat Map</strong>: blue is exact, red is 1&nbsp;% of size or worse.</figcaption></figure>
+
+<p>To see the heat map, set Viewport Shading &gt; Color to Attribute.</p>
 
 <h3>The budget, and the ceiling it is measured against</h3>
 
-<p>More patches follow the mesh more closely (Suzanne: 0.27 % of size at 286 patches, 0.09 % at 628) and cost more time
-— and more of the one resource the engine actually rations. The engine tessellates the whole patch mesh into
-<strong>one</strong> DirectX 8 vertex set of at most <strong>12,288 display vertices</strong>, counted as</p>
-
-<pre><code>V = 9·P + 3·E_owned + C_owned   ≤ 12288</code></pre>
-
-<p>and a seam has one owner only when the two patches share a material, have overlapping smoothing groups and have both
-endpoint UVs within 1/16. So a patch costs <strong>16</strong> display vertices where its seams weld and
-<strong>25</strong> where it has its own texture island — which is exactly what <strong>Transfer Texture</strong>'s
-per-patch atlas produces. The budget field says all this in its tooltip and the operator acts on it:</p>
+<p>More patches follow the mesh better but take longer. The game limits a creature to <strong>12,288 display
+vertices</strong>, at <strong>16</strong> per patch where seams weld and <strong>25</strong> with its own texture island
+(as <strong>Transfer Texture</strong> makes).</p>
 
 <div class="tablewrap">
 <table>
-<tr><th>Budget</th><th>What the fit does</th><th>Why</th></tr>
-<tr><td>≤ 263</td><td>runs quietly</td><td>the creature still survives being combined with a stock creature</td></tr>
-<tr><td>264 – 491</td><td>runs, <strong>warns</strong></td><td>it will load, but the combiner adds a donor's limbs to the same patch mesh</td></tr>
-<tr><td>492 – 767</td><td>runs, <strong>warns harder</strong></td><td>at 25 vertices a patch it would not load; it only loads if its seams weld</td></tr>
-<tr><td>&gt; 767</td><td><strong>refused</strong></td><td>even a perfectly welded mesh cannot fit in 12,288 vertices</td></tr>
+<tr><th>Budget</th><th>Result</th></tr>
+<tr><td>≤ 263</td><td>safe to combine with stock creatures</td></tr>
+<tr><td>264 – 491</td><td>warning: loads, but combining may fail</td></tr>
+<tr><td>492 – 767</td><td>strong warning: loads only if seams weld</td></tr>
+<tr><td>&gt; 767</td><td>refused</td></tr>
 </table>
 </div>
 
-<p>The budget that actually binds an authored creature is the <strong>combine</strong> one. ComboTest.exe builds one
-patch mesh from both parents: it exported a combine needing 12,258 display vertices and failed the same combine four
-patches bigger at 12,310. The dearest stock limb set costs 5,704 and the dearest stock torso 4,409, which leaves about
-<strong>6,584</strong> display vertices for your torso and <strong>7,879</strong> for your limbs — and where those
-vertices sit matters as much as how many there are. <em>(Corrected 2026-11-17: the table and this paragraph gave 266
-patches and 5,623 / 4,762 / 6,665 / 7,526, the numbers before the combine budgets were re-derived on
-2026-11-15.)</em> One fitted creature put 11,931 of its 12,135 vertices in the
-<em>Torso</em> limb, and a stock head then had nowhere to graft.</p>
-
 <aside class="note">
-<p>Measured with the real Object Editor: with per-patch island UVs <strong>490 patches load and 492 crash</strong>; with
-continuous UVs <strong>754 load and 758 crash</strong>; and on one fixed 754-patch cage, V = 12,287 loads and V = 12,291
-crashes — identical geometry, only the UVs differ. <strong>Validate</strong> is what tells you where your own creature
-sits. The full ladder is in <code>ICParse/PATCH_CEILING.md</code>.</p>
+<ul>
+  <li>For combining, keep the torso within <strong>6,584</strong> vertices and the limbs within
+  <strong>7,879</strong>. A heavy torso leaves no room for another head.</li>
+  <li><strong>Validate</strong> shows your real count.</li>
+</ul>
 </aside>
 
 <h3>Fit to rig: the creature is riggable at once</h3>
 
-<p>A fitted net has no idea which part of it is a head. Two options do that work for you.</p>
-
 <ul>
-  <li><strong>Split into Limbs</strong> (on by default) gives the result the <em>template's</em> body plan instead of
-  putting every patch in the Torso: the net is mapped into the template's frame, box onto box per axis, every control
-  point takes its nearest eligible bone there (the Auto Skin rule — no stub bone, no end site) and every patch takes the
-  limb of its points' bones. The report names the split, for example <em>115 Torso, 114 Head, 34 Tail, 21 LRLeg, 2
-  RRLeg on 20 bones</em>, and which limbs got no patches.</li>
-  <li>Without it, every other limb has no patches and its bones own no points — which is what the file calls a
-  <strong>stub bone</strong>, 43 of a 48-bone scaffold, and then every bone operator refuses them
-  (<em>'head' is a stub bone</em>).</li>
+  <li><strong>Split into Limbs</strong> shares patches and points among the template's limbs and bones.</li>
+  <li>Without it everything goes in the Torso, other bones become stubs, and bone tools refuse them.</li>
+  <li><strong>Bones are not moved.</strong> Move them before animating, in <strong>Boner &gt; Bones</strong> or by
+  retargeting.</li>
 </ul>
 
-<figure><img src="img/fit_limbs.jpg" alt="The fitted creature shaded By Limb: head, torso and tail in different colours"><figcaption>The same creature shaded <strong>By Limb</strong>. <strong>Split into Limbs</strong> gave it the template's body plan, so Boner's tools, Validate and the combiner all have something to work with from the first second.</figcaption></figure>
-
-<p><strong>The bones themselves are not moved</strong>: the skeleton is still the template's, sitting wherever the
-template's bones sat. The report says so. Move it into the new body before you animate — by hand in
-<strong>Boner &gt; Bones</strong>, or with <strong>Retarget</strong> / <strong>Landmark Retarget</strong>, which carry
-the rest bones with the surface (next chapter).</p>
+<figure><img src="img/fit_limbs.jpg" alt="Fitted creature coloured by limb"><figcaption><strong>By Limb</strong> shading shows the split.</figcaption></figure>
 
 <h3>A mesh at creature scale</h3>
 
-<p>Blender's QuadriFlow cancels on a mesh that is merely <em>small</em>. Measured on one mesh at several scales: a 3.6 m
-Suzanne remeshes, and the same mesh at 0.11 m — what a real creature measures — cancels on all 8 seeds with <em>it needs
-a closed, manifold mesh</em>, on a mesh that is closed and manifold. The fit therefore retries on a copy scaled up by a
-<strong>power of two</strong> (so scaling the layout back is exact), keeps the factor for the other seeds, and says so in
-the fit line. QuadriFlow's layout is scale-invariant once it runs, so you get the layout you would have got at full size.
-If even the top of the ladder cancels, the refusal says size has been ruled out.</p>
+<p>Small meshes are fine: the fit scales a copy up for QuadriFlow when needed.</p>
 
 <h3>After the fit</h3>
 
 <ol>
-  <li><strong>Validate (will it load?)</strong> — it judges the fitted creature exactly as it judges a stock one, and its
-  display-vertex reading is the real answer to "is my budget all right".</li>
-  <li><strong>Boner &gt; Bones</strong> to move the skeleton into the body, and to fix the skin where the nearest-bone
-  rule guessed wrong.</li>
-  <li><strong>Boner &gt; Connections</strong> to place the sockets: the rings are the template's idea of where limbs
-  attach, not yours.</li>
-  <li><strong>Transfer Texture</strong> to carry a textured source's own skin onto the creature (see
-  <em>Textures</em>).</li>
-  <li><strong>Trim Stray Surface</strong> if the template brought surface your target does not have (see
-  <em>Retargeting</em>).</li>
+  <li>Run <strong>Validate (will it load?)</strong>.</li>
+  <li>Move bones and fix skinning in <strong>Boner &gt; Bones</strong>.</li>
+  <li>Place the sockets in <strong>Boner &gt; Connections</strong>.</li>
+  <li>Copy a textured source's skin with <strong>Transfer Texture</strong> (see <em>Textures</em>).</li>
+  <li>If the template left extra surface, use <strong>Trim Stray Surface</strong> (see <em>Retargeting</em>).</li>
 </ol>
 
 <aside class="limits">
-<h4>Not possible yet</h4>
 <ul>
-  <li><strong>The fit does not make a skeleton.</strong> It borrows the template's, unmoved. There is no automatic rig
-  from the mesh's shape.</li>
-  <li><strong>The layout is QuadriFlow's or your own quads</strong> — you cannot draw the patch layout by hand, or tell
-  the remesher to put a seam somewhere.</li>
-  <li><strong>Connection rings are not derived from the fitted shape.</strong> They come from the template, so a socket
-  can end up in the wrong place for the new body; re-pick it in Boner &gt; Connections.</li>
-  <li><strong>A mesh with real floaters is refused, not repaired.</strong> Separate the parts yourself and fit the skin
-  alone — and never voxel-remesh to "fix" a seam-split mesh: that destroys its UVs, and the weld the fit already does
-  makes it unnecessary.</li>
-  <li><strong>Genus is not fixed.</strong> A target with handles (four leg/body loops, say) is fitted as it is; no
-  remesh parameter changes that, and the layout will show it.</li>
+  <li>No automatic skeleton.</li>
+  <li>You cannot draw the layout or place seams, except by making your own quads.</li>
+  <li>Connection rings come from the template and may need re-picking.</li>
+  <li>Floating parts are not repaired. Fit the skin alone, and do not voxel-remesh: it destroys UVs.</li>
+  <li>Holes through the shape stay in the layout.</li>
 </ul>
 </aside>
 </section>

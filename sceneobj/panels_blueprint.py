@@ -1,33 +1,8 @@
-"""blueprint -- the blueprint (.ebp) of a gatherer, character, structure or prop, edited in Blender.  PROOF OF CONCEPT (slice POC-blueprint-panel).
+"""Blueprint (.ebp) panel for gatherers, characters, structures and props (proof of concept): load, edit, export folder.
 
-In plain words. Every gatherer, character, structure and prop of Impossible Creatures is a PAIR of files: the model (``.sgm``: shape, skeleton,
-animations) and the blueprint (``.ebp``: what kind of thing it is, the name the game shows, how many path cells it blocks, where its picture sits,
-which sounds the game loads for it). The add-on already edits the model. This module adds the blueprint:
-
-* a **Blueprint panel** (3D view, SGM tab) for any scene object: name, kind (class), footprint, offset and sounds, each with a plain explanation,
-  editable; the gameplay numbers the game would give the thing are listed read-only;
-* **Load / Reset / Add Sound / Remove Sound** operators (``bz.blueprint_load``, ``bz.blueprint_reset``, ``bz.blueprint_sound_add``,
-  ``bz.blueprint_sound_remove``);
-* **Export Entity Folder** (``bz.export_entity_folder``): writes ``<folder>/Data/art/ebps/<game folder>/<name>.sgm`` and ``<name>.ebp`` (all lower case) and a
-  ``README.txt`` that says how to put them into a copy of the game that the user owns. The model goes through the add-on's existing scene export, exactly as
-  ``bz.export_scene`` writes it; the blueprint goes through ICParse's ``SceneBlueprint``, which re-encodes only the chunks that were edited, so an untouched
-  blueprint comes out byte for byte as it went in.
-
-Where the values live. The edited values are a property group on ONE object of the entity (the rig when there is one, else the group empty the parts hang
-under, else the first part), so every part of the entity shows and exports the same values. The file the values were read from is remembered with its
-SHA-1: the export reads the file again, writes only what differs from it, and refuses when the file changed on disk since it was loaded.
-
-What it needs from ICParse (contract C2, C4, C5 of the plan). ``ICParse.ebp.controllers`` (the class table) is used directly. ``ICParse.ebp.scene``
-(``SceneBlueprint``) and ``ICParse.ebp.stats`` are looked up when needed: while one of them is missing the panel says so in plain words, and the export
-copies the blueprint file unchanged (it cannot edit what it cannot read).
-
-The game folder (the add-on's Game folder preference, else ``$IC_INSTALL``, else the usual Steam folders: ``sceneobj.prefs.resolve_game_dir``) is where
-the gameplay numbers are read from and which stock model a project is a copy of is looked up; the panel says which folder that is, and no export writes
-into it. The Game build preference decides which class numbers count as known to the game.
-
-The module sits in ``sceneobj/`` and is registered by the sceneobj registry. It looks its sibling modules up through the add-on's package name and
-declares ``CLASSES``, ``register()`` and ``unregister()`` (``register()`` registers whatever of its classes is not registered yet, then points
-``Object.bz_blueprint`` at the property group).
+Values live on one object of the entity (rig, else group empty, else first part). Export re-reads the source file,
+writes only changed chunks (untouched = byte-identical), refuses if it changed on disk (SHA-1) and never writes into
+the game folder. Missing ICParse parts are reported and the blueprint is copied unchanged.
 """
 from __future__ import annotations
 
@@ -62,18 +37,13 @@ FIELDS = ("name", "class", "footprint", "offset", "sounds")
 FIELD_WORDS = {"name": "name", "class": "kind (class)", "footprint": "footprint", "offset": "offset", "sounds": "sounds"}
 
 HINT = {
-    "name": "The name the game shows for it, on its button and in messages. Text like $41545 is a code the game looks up in its language files; "
-            "type plain words to give your own name. At most 255 letters.",
-    "class": "Decides what kind of thing the game makes of it: a worker, a building, a plain prop. Changing it changes multiplayer, so every player "
-             "needs the same files.",
-    "footprint": "How many path cells the building blocks (one cell is 2 game units wide). 0 and 0 means: let the game measure the model. "
-                 "Changing it changes multiplayer, so every player needs the same files.",
-    "footprint_unused": "The game only reads the footprint of buildings (things with a building site). For this kind of thing it stays in the file "
-                        "but is not used.",
-    "offset": "Moves the picture of the model against its footprint (Y raises it). Changing it changes multiplayer, so every player needs the "
-              "same files.",
-    "sounds": "Sound files the game loads before play starts, so they play without a pause. A file the game cannot find is skipped quietly.",
-    "folder": "Where the game looks for the files: Data/art/ebps/<this folder>/. Use the folder of the thing you started from.",
+    "name": "Name shown in the game (or a language code like $41545), up to 255 letters.",
+    "class": "What the game makes of it; changing this changes multiplayer.",
+    "footprint": "Blocked path cells; 0 and 0 lets the game measure the model. Changing this changes multiplayer.",
+    "footprint_unused": "Only buildings use a footprint; it is kept here but is not used.",
+    "offset": "Moves the model over its footprint (Y raises it); changes multiplayer.",
+    "sounds": "Sounds loaded before play starts; missing files are skipped.",
+    "folder": "The game looks in Data/art/ebps/<folder>/; keep the original thing's folder.",
 }
 FOLDER_SOURCE_WORDS = {              # how the folder was found, as a sentence that follows HINT["folder"]
     "STAMP": "This is the folder of the thing the project was started from.",
@@ -105,7 +75,7 @@ class Refused(Exception):
 
 
 # ---------------------------------------------------------------------------------------------------------------- reaching the add-on and ICParse
-_PKG = __package__ or "blender_native"
+_PKG = __package__ or "ic_blender"
 if _PKG.endswith(".sceneobj"):
     _PKG = _PKG[:-len(".sceneobj")]
 
@@ -422,7 +392,7 @@ def _refresh_after_edit(self, context):
 class BZ_PG_blueprint_sound(bpy.types.PropertyGroup):
     """One sound the blueprint asks the game to load."""
     path: StringProperty(name="Sound file", default="",
-                         description="A sound file of the game, written like DATA:AUDIO\\SFX\\NAME.PAT. At most 259 letters")
+                         description="A game sound path such as DATA:AUDIO\\SFX\\NAME.PAT (up to 259 letters)")
 
 
 class BZ_PG_blueprint_stat(bpy.types.PropertyGroup):
@@ -622,10 +592,8 @@ def _sha1(data: bytes) -> str:
 
 # the counts: every art/ebps blueprint of the five game archives read with ICParse on 2026-11-18 (measured; STATUS.md): 479 blueprints,
 # 34 in the old layout (10 map markers, cut-scene props and a menu object, and the 24 below), 86 with the model inside (62 creatures, 24 older things)
-LEGACY_NOTE = ("This blueprint uses the game's oldest file layout (old scenery, map markers and cut-scene props; 34 of the game's 479 blueprints "
-               "do). You can look at it here, but not change it yet.")
-EMBEDDED_NOTE = ("This blueprint carries its model inside itself instead of naming a separate .sgm file (the creatures and 24 older things, such "
-                 "as old scenery and map markers, do). You can look at it here, but not change it yet.")
+LEGACY_NOTE = ("This blueprint uses the game's oldest file layout: you can view it, not change it.")
+EMBEDDED_NOTE = ("This blueprint holds its model inside itself, not in a separate .sgm file: view only.")
 
 
 def classify(sb):
@@ -1020,13 +988,13 @@ def _editable_poll(context):
 
 
 class BZ_OT_blueprint_load(bpy.types.Operator):
-    """Read the blueprint (.ebp) beside the model into the panel, so its name, kind, footprint, offset and sounds can be seen and changed"""
+    """Load the blueprint (.ebp) beside the model into this panel"""
     bl_idname = "bz.blueprint_load"
     bl_label = "Load Blueprint"
     bl_options = {"REGISTER", "UNDO"}
 
     create_default: BoolProperty(name="Start a new one", default=False,
-                                 description="When there is no blueprint file beside the model, start a new one (it is written when you export)")
+                                 description="Start a new blueprint if there is none; it is written on export")
 
     @classmethod
     def poll(cls, context):
@@ -1048,7 +1016,7 @@ class BZ_OT_blueprint_load(bpy.types.Operator):
 
 
 class BZ_OT_blueprint_reset(bpy.types.Operator):
-    """Throw away the changes in the panel and read the blueprint again from its file (a new blueprint goes back to its starting values)"""
+    """Discard changes and reload the blueprint from its file"""
     bl_idname = "bz.blueprint_reset"
     bl_label = "Reset Blueprint"
     bl_options = {"REGISTER", "UNDO"}
@@ -1109,8 +1077,7 @@ class BZ_OT_blueprint_sound_remove(bpy.types.Operator):
 
 
 class BZ_OT_export_entity_folder(bpy.types.Operator):
-    """Write the model (.sgm) and the blueprint (.ebp) into a folder you choose, as Data/art/ebps/<folder>/<name>.sgm and .ebp, with a README that says
-    how to put them into a copy of the game that you own"""
+    """Export the model and blueprint into a folder, ready to copy into the game"""
     bl_idname = "bz.export_entity_folder"
     bl_label = "Export Entity Folder"
     bl_options = {"REGISTER"}
@@ -1118,13 +1085,11 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
     directory: StringProperty(name="Folder", subtype="DIR_PATH", description="The folder to write into (not the game's own folder)")
     filter_folder: BoolProperty(default=True, options={"HIDDEN"})
     entity_name: StringProperty(name="File name", default="", options={"SKIP_SAVE"},
-                                description="The name of the two files, without an ending. Empty: the project's name")
+                                description="File name without extension; empty = the project's name")
     folder: StringProperty(name="Folder in the game", default="", options={"SKIP_SAVE"}, description=HINT["folder"])
     drop_damage_states: BoolProperty(
         name="Drop the damage states of edited parts",
-        description="A part with damage states (stored shapes the game blends in: a building's damage, a character's face) cannot be "
-                    "edited yet without breaking them, so exporting an edited one is refused. ON: write such an edited part without its "
-                    "damage states (the export says how many it dropped). Parts you did not edit keep theirs byte for byte",
+        description="Export edited parts that have damage states, dropping those states",
         default=False)
 
     @classmethod
@@ -1211,11 +1176,11 @@ def draw_blueprint(layout, obj) -> None:
         box = layout.box()
         if path:
             box.label(text=f"Blueprint file: {os.path.basename(path)}", icon="FILE")
-            _hint(box, "The blueprint says what kind of thing this is, its name, footprint, offset and sounds. Load it to see and change them.")
+            _hint(box, "Load the blueprint to see and change the kind, name, footprint and sounds.")
             box.operator("bz.blueprint_load", text="Load Blueprint", icon="FILE_REFRESH")
         else:
             box.label(text="No blueprint file beside the model.", icon="INFO")
-            _hint(box, "The game needs a blueprint next to every model. You can start a new one here; it is written when you export.")
+            _hint(box, "Every model needs a blueprint; a new one is written when you export.")
             box.operator("bz.blueprint_load", text="Start a New Blueprint", icon="ADD").create_default = True
         return
     _draw_status(layout, ent, bp, path)
@@ -1276,15 +1241,14 @@ def draw_blueprint(layout, obj) -> None:
     out_name = default_name(ent)
     try:
         if controllers().is_hard_bound(clean_folder(bp.folder), out_name):
-            _hint(box, "The game looks this one up by name, so a changed copy has to keep this folder and name to replace the original.")
+            _hint(box, "The game looks this one up by name: keep this folder and name to replace the original.")
     except Exception:                                                     # noqa: BLE001
         pass
 
     box = layout.box()
     box.label(text="Export", icon="EXPORT")
     box.operator("bz.export_entity_folder", text="Export Entity Folder...", icon="EXPORT")
-    _hint(box, "Writes the model (.sgm) and the blueprint (.ebp) into a folder you choose, ready to copy into a copy of the game that you own. "
-               "A README comes with them.")
+    _hint(box, "Writes the model and blueprint into a folder, ready to copy into your game.")
 
 
 def _draw_status(layout, ent, bp, path) -> None:
@@ -1297,8 +1261,7 @@ def _draw_status(layout, ent, bp, path) -> None:
     if bp.state in ("LEGACY", "EMBEDDED", "PROBLEM", "NO_LIBRARY"):
         _alert(box, bp.note or "This blueprint cannot be edited.", icon="LOCKED" if bp.state in ("LEGACY", "EMBEDDED") else "ERROR")
     elif bp.state == "NEW":
-        _hint(box, "New blueprint: it is written when you export. It has no motion tree and no events, so the game will not play the model's "
-                   "animations with it.")
+        _hint(box, "New blueprint: it is written when you export. It cannot play the model's animations.")
     else:
         edited = changed_fields(Values.from_json(bp.baseline), values_from_pg(bp))
         if edited:
@@ -1314,7 +1277,7 @@ class BZ_PT_blueprint(bpy.types.Panel):
     bl_idname = "BZ_PT_blueprint"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
 
     @classmethod
     def poll(cls, context):
@@ -1329,7 +1292,7 @@ class BZ_PT_blueprint_stats(bpy.types.Panel):
     bl_idname = "BZ_PT_blueprint_stats"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = "BZ_PT_blueprint"
     bl_options = {"DEFAULT_CLOSED"}
 
@@ -1348,12 +1311,10 @@ def draw_stats(layout, obj) -> None:
     bp = getattr(ent.holder, "bz_blueprint", None) if ent is not None else None
     if bp is None or not bp.loaded:
         return
-    _hint(layout, "The numbers the game would give this thing: speed, health, cost and so on. They are listed from the game's stats files and "
-                  "cannot be changed here. Changing them changes multiplayer.")
+    _hint(layout, "Read-only numbers from the game's stats files; changing them changes multiplayer.")
     if bp.stats_game and bp.stats_game != game_dir_words():      # the Blueprint panel above says which game folder is in use now
         then = bp.stats_game if bp.stats_game.endswith((".", "?", "!")) else bp.stats_game + "."
-        _hint(layout, f"These numbers were read from another game folder than the one in use now. {then} They are read again when the "
-                      f"kind or the folder is changed, or the blueprint is loaded again.")
+        _hint(layout, f"Read from another game folder. {then} Change the kind or reload to read them again.")
     if bp.stats_source:
         _hint(layout, bp.stats_source)
     if bp.stats_note:

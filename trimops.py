@@ -1,37 +1,8 @@
-"""Trim Stray Surface (roadmap A5): the patches of a fitted / retargeted creature that are surface the TARGET
-DOES NOT HAVE.
+"""Trim Stray Surface: patches of a fitted or retargeted creature far from the target mesh ("webbing", which the fit
+never measures) can be selected (default), deleted (holes filled) or collapsed onto the target (patch table untouched).
 
-The user's observation that this answers, on the pillbug (``3DInputs/Pillbug_ic/REPORT.md``): *"the legs of the
-pillbug almost seem webbed in areas, filling in space that was not filled in the input model"*. The reason is in
-the solver: a closest-point fit (``ICParse.codecs.fit``, A1 / A3 / A3b) only minimises TARGET -> SURFACE distance.
-Donor surface with no target under it -- a beetle leg tube where the scan has no leg -- is pulled towards whatever
-target is nearest (the belly, the neighbouring leg), and the fairness + C1 seam terms stop it collapsing to a
-point, so it spreads into sheets: webbing. Nothing in the fit measures it, because SURFACE -> TARGET is the other
-direction (``fit_points`` reports it as ``coverage``, and A3b's per-limb coverage names the limbs, but neither
-removes anything).
-
-This module measures that direction per patch and offers the three honest answers:
-
-* **Select** (the default): the stray patches' faces are selected and nothing is changed -- the modder decides.
-* **Delete**: the stray patches are deleted through the one delete path (``patchsel.delete_plan`` /
-  ``bz.delete_patch``: tables, rings, pool compaction) and every hole left behind that ``bz.fill_hole`` (B7) can
-  take -- a loop of an even number of sides, at least 4 -- is closed, so the creature stays watertight and the game
-  still loads it. A patch carrying a connection ring is refused by name, as Delete Patch does. It is one undo step
-  per edit (the delete, then one per hole) and the report says how many.
-* **Collapse**: the stray patches' control points are moved onto their nearest target point, so the sheet folds
-  flat against the body instead of webbing. The patch table is untouched, so the mesh stays exactly as watertight
-  as it was -- this is what you want for a limb the target does not have (a beetle leg on a pillbug): the geometry
-  stays, skinned and combinable, lying on the body rather than hanging in the air. ``keep_shared`` (the operator's
-  **Keep the Shared Edge**, default on) pins the points a patch that IS on the target also uses, so nothing that
-  fits the target moves; off, those fold too and the patches sharing them follow.
-
-Stray-ness is measured, per patch, as the fraction of its surface samples (``SURFACE_N`` x ``SURFACE_N``, the grid
-``fit.fit_points`` computes its own coverage on) that are farther than ``distance`` % of the creature's size from
-the nearest target point. The nearest-point search is ``fit._nearest`` and the surface sampling is ``fit.evaluate``
-on ``fit.sample_grid`` -- the same helpers the fit uses, not a second implementation.
-
-The bpy-free part (``stray_patches``, ``collapse_pool`` and their helpers) is what a pure test can run; the
-operator below needs ``bpy``.
+Sampling and nearest-point search are the fit's own (``fit.evaluate``, ``fit._nearest``): do not add a second one.
+``stray_patches``, ``collapse_pool`` and their helpers must stay bpy-free.
 """
 from __future__ import annotations
 
@@ -45,7 +16,7 @@ from ICParse.codecs import fit
 
 try:
     from . import core, fitops, retargetops
-except ImportError:                      # imported top-level (a pure test puts blender_native/ on sys.path)
+except ImportError:                      # imported top-level (a pure test puts ic_blender/ on sys.path)
     import core  # type: ignore[no-redef]
     import fitops  # type: ignore[no-redef]
     import retargetops  # type: ignore[no-redef]
@@ -270,9 +241,8 @@ def collapse_pool(pool, patches, points, rows, threshold: float, fixed: Optional
 # ------------------------------------------------------------------------------------------------ Blender
 
 def _validate_line(n_stray: int, n_patches: int, target: str) -> str:
-    return (f"WARN trim: {n_stray} patch(es) of {n_patches} are surface the target ({target}) does not have "
-            f"(more than {STRAY_PCT:g} % of the size from it over more than {100 * STRAY_FRACTION:g} % of their "
-            f"surface): Tools > Trim Stray Surface selects, deletes or collapses them")
+    return (f"WARN trim: {n_stray} patch(es) of {n_patches} are surface the target ({target}) does not have: see Tools > "
+            "Trim Stray Surface")
 
 
 def frame_mismatch(creature_diag: float, target_diag: float, target: str, tol: float = SIZE_MISMATCH):
@@ -284,9 +254,8 @@ def frame_mismatch(creature_diag: float, target_diag: float, target: str, tol: f
         return None
     if abs(target_diag - creature_diag) / creature_diag <= tol:
         return None
-    return (f"'{target}' is {target_diag / creature_diag:.2f} x the creature's size in the creature's frame: the "
-            "stray-surface check measures distances between the two, so it is not run (place and scale the target "
-            "as the fit or retarget left it, or pick another target in Tools > Trim Stray Surface)")
+    return (f"'{target}' is {target_diag / creature_diag:.2f} x the creature's size, so the stray-surface check is not run: "
+            "place and scale it as the fit did, or pick another target")
 
 
 if bpy is not None:
@@ -296,19 +265,11 @@ if bpy is not None:
 
     _ACTIONS = (
         ("SELECT", "Select",
-         "Select the stray patches' faces and change nothing: look at what the fit put where the target has "
-         "nothing, then decide (this is the default -- the trim is yours to make)"),
+         "Select the stray patches and change nothing (default)"),
         ("DELETE", "Delete",
-         "Delete the stray patches (the Delete Patch path: tables, rings, pool compaction) and close every hole "
-         "they leave that Fill Hole can take (an even loop of 4 sides or more), so the creature stays watertight "
-         "-- the game refuses an open mesh. A patch carrying a connection ring is refused by name; Undo takes one "
-         "step per edit and the report says how many"),
+         "Delete the stray patches and fill the holes left"),
         ("COLLAPSE", "Collapse onto Target",
-         "Move the stray patches' own control points onto the nearest target surface, so the sheet folds flat "
-         "against the body instead of webbing across it. The patch table is untouched, so the mesh stays exactly "
-         "as watertight, skinned and combinable as it was -- this is what you want for a LIMB THE TARGET DOES "
-         "NOT HAVE (a beetle leg on a pillbug): its geometry stays, lying on the body instead of hanging in "
-         "the air"))
+         "Fold the stray patches onto the target (for limbs the target does not have)"))
 
     def default_target(obj):
         """(name, why there is none): the mesh this creature was fitted or retargeted from (``bz_fit_source`` /
@@ -355,45 +316,27 @@ if bpy is not None:
         return [_validate_line(len(st.rows), len(st.far), tgt.name)]
 
     class BZ_OT_trim_stray(_Operator):
-        """Find the patches that are surface the target mesh does not have -- what a closest-point fit leaves
-        webbed across empty space when the donor has a limb the target has not -- and select, delete or collapse
-        them. The target defaults to the mesh this creature was fitted or retargeted to"""
+        """Select, delete or collapse patches that lie off the target mesh"""
         bl_idname = "bz.trim_stray"
         bl_label = "Trim Stray Surface"
         bl_options = {"REGISTER", "UNDO"}
 
         target: StringProperty(name="Target Mesh", default="", search=retargetops._mesh_search,
-                               description="The mesh the creature should be surface of (empty = the mesh it was "
-                                           "fitted or retargeted to, which Fit / Retarget record). It must be in "
-                                           "the creature's frame, as the fit left it")
+                               description="Target mesh; empty = the mesh it was fitted or retargeted to")
         action: EnumProperty(name="Action", items=_ACTIONS, default="SELECT")
         distance: FloatProperty(name="Stray Distance", default=STRAY_PCT, min=0.01, max=50.0, precision=2,
                                 subtype="PERCENTAGE",
-                                description="How far from the target a surface sample must be to count as missing "
-                                            "it, in per cent of the creature's size (2 % is the threshold the "
-                                            "retarget's coverage report uses)")
+                                description="Distance from the target, in % of creature size, that counts as missing it")
         fraction: FloatProperty(name="Stray Fraction", default=STRAY_FRACTION, min=0.0, max=1.0, precision=2,
-                                description="How much of a patch's surface must miss the target for the patch to "
-                                            "count as stray (0.5 = more than half of it)")
+                                description="Share of a patch that must miss the target for it to count as stray")
         fill_holes: BoolProperty(name="Fill Holes", default=True,
-                                 description="Delete only: close each hole the deleted patches leave with Fill Hole "
-                                             "(a loop of an even number of sides, at least 4: one patch for 4, a "
-                                             "strip of two for 6, ...), so the creature stays watertight -- the game "
-                                             "refuses an open mesh. A hole Fill Hole cannot take is named, not "
-                                             "guessed at")
+                                 description="When deleting, fill the holes left so the mesh stays closed")
         pin_rings: BoolProperty(name="Pin Rings", default=True,
-                                description="Collapse only: leave every connection ring's control points exactly "
-                                            "where they are, so each socket keeps the stock ring geometry the "
-                                            "combiner welds and scales at")
+                                description="When collapsing, keep connection ring points in place")
         keep_shared: BoolProperty(name="Keep the Shared Edge", default=True,
-                                  description="Collapse only: leave a control point a patch that IS on the target "
-                                              "also uses exactly where it is, so nothing that fits the target moves "
-                                              "and the stray sheet folds down from its base. Off: those points fold "
-                                              "too and the patches sharing them follow -- more of the webbing goes, "
-                                              "at the price of pulling the good surface at the seam")
+                                  description="When collapsing, keep points shared with good patches in place")
         symmetry: BoolProperty(name="Keep Symmetry", default=True,
-                               description="Collapse only: on an X-symmetric control net, mirror the collapse "
-                                           "exactly (the A3 rule), so a symmetric creature stays symmetric")
+                               description="When collapsing, keep a symmetric creature symmetric")
 
         @classmethod
         def poll(cls, context):
@@ -414,7 +357,7 @@ if bpy is not None:
         def execute(self, context):
             obj = ops._active_native(context)
             if obj is None:
-                self.report({"ERROR"}, "Select a native patch creature to trim")
+                self.report({"ERROR"}, "Select a patch creature to trim")
                 return {"CANCELLED"}
             if obj.mode == "EDIT":
                 obj.update_from_editmode()
@@ -446,10 +389,9 @@ if bpy is not None:
                 return {"CANCELLED"}
             t_diag = fitops.bounding_diagonal(pts)
             if frame_mismatch(st.diag, t_diag, tgt.name) is not None:
-                self.report({"WARNING"}, f"{tgt.name} is {t_diag / st.diag:.2f} x the creature's size in the "
-                                         "creature's frame -- either it is not in the creature's frame (place and "
-                                         "scale it as the retarget did: the distances mean nothing otherwise), or "
-                                         "the creature really does have that much surface the target has not")
+                self.report({"WARNING"}, f"{tgt.name} is {t_diag / st.diag:.2f} x the creature's size in the creature's "
+                                         "frame: place and scale it as the retarget did, unless the creature really has "
+                                         "that much extra surface")
             limbs = limb_text(st.rows, store.patch_limb(obj), store.limb_names(obj))
             head = f"Trim Stray Surface ({obj.name} vs {tgt.name}): {st.text()}"
             obj["bz_last_trim_stats"] = {"patches": len(st.far), "stray": len(st.rows), "samples": st.total,
@@ -585,9 +527,9 @@ if bpy is not None:
                 return {"CANCELLED"}
             open_before = core.open_side_count(patches)
             if not c.moved.any():
-                line = (f"{head}; {limbs}; nothing to collapse: every control point of the stray patches is either "
-                        f"shared with a patch that is on the target ({c.pinned_shared}: Keep the Shared Edge), on a "
-                        f"connection ring ({c.pinned_rings}) or already within the threshold ({c.near_already})")
+                line = (f"{head}; {limbs}; nothing to collapse: every stray point is shared with a good patch "
+                        f"({c.pinned_shared}: Keep the Shared Edge), on a ring ({c.pinned_rings}) or already close "
+                        f"({c.near_already})")
                 obj["bz_last_trim"] = line
                 self.report({"INFO"}, line)
                 return {"FINISHED"}
@@ -611,10 +553,9 @@ if bpy is not None:
                        f"is off), ")
                     + f"{c.pinned_rings} on connection rings, {c.near_already} already close)"
                     + ("; symmetry mirrored" if c.symmetrized else "")
-                    + f"; stray patches {len(st.rows)} -> {len(after.rows)}, surface off the target "
-                      f"{st.far_pct:.1f} % -> {after.far_pct:.1f} % (worst {st.max_pct:.1f} -> "
-                      f"{after.max_pct:.1f} %); {open_after} open side(s) (was {open_before}): the patch table is "
-                      "untouched, so the mesh is as watertight as it was")
+                    + f"; stray patches {len(st.rows)} -> {len(after.rows)}, surface off the target {st.far_pct:.1f} % -> "
+                      f"{after.far_pct:.1f} % (worst {st.max_pct:.1f} -> {after.max_pct:.1f} %); {open_after} open side(s) "
+                      f"(was {open_before}), as watertight as before")
             obj["bz_last_trim"] = line
             if open_after != open_before:
                 self.report({"ERROR"}, "Trim Stray Surface: the open-side count changed, which a collapse cannot do "

@@ -20,8 +20,7 @@ def _hint(layout, text: str, icon: str = "NONE", width: int = 44) -> None:
 
 
 def draw_replay(layout, context, top) -> None:
-    _hint(layout, "Pick a cinematic and press Build replay: Blender acts it out on the timeline, with a camera. Press Space in the 3D view to "
-                  "watch it. The map itself is never changed.", "INFO")
+    _hint(layout, "Pick a cinematic, Build replay, then press Space to watch; the map is unchanged.", "INFO")
     cines = R.cached_cinematics(top)
     if cines is None:
         layout.operator("bz.replay_find", text="Find the cinematics", icon="VIEWZOOM")
@@ -68,7 +67,7 @@ class BZ_PT_map_replay(bpy.types.Panel):
     bl_idname = "BZ_PT_map_replay"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = "BZ_PT_map_cinematics"
     bl_options = {"DEFAULT_CLOSED"}
 

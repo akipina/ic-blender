@@ -22,7 +22,7 @@ def _top(op, context):
 
 
 class BZ_OT_map_add_start(bpy.types.Operator):
-    """Give a player a start at the 3D cursor: a laboratory and three henchmen round it, all owned by that player"""
+    """Give a player a start (lab and three henchmen) at the 3D cursor"""
     bl_idname = "bz.map_add_start"
     bl_label = "Add Player Start"
     bl_options = {"REGISTER", "UNDO"}
@@ -99,7 +99,7 @@ def _select(context, obj) -> None:
 
 
 class BZ_OT_map_make_preview(bpy.types.Operator):
-    """Make the map's icon (the picture beside the map list, 128 x 128) and its minimap (256 x 256) from its ground picture and water, the way the Mission Editor does"""
+    """Make the map's list icon and minimap from its ground picture and water"""
     bl_idname = "bz.map_make_preview"
     bl_label = "Make Preview Picture"
     bl_options = {"REGISTER", "UNDO"}
@@ -127,7 +127,7 @@ class BZ_OT_map_make_preview(bpy.types.Operator):
 
 
 class BZ_OT_map_check_problems(bpy.types.Operator):
-    """List what is wrong with the map before saving: players without a start, objects outside the map, blueprints the game does not have, heights out of range"""
+    """List problems to fix before saving the map"""
     bl_idname = "bz.map_check_problems"
     bl_label = "Check Map"
     bl_options = {"REGISTER"}

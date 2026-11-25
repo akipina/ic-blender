@@ -39,7 +39,7 @@ class BZ_PG_map_row(bpy.types.PropertyGroup):
     blueprint: StringProperty()
     owner_text: StringProperty()
     obj_name: StringProperty()
-    pick: BoolProperty(name="Pick", default=False, description="Tick this row: Hide and Select work on the ticked rows (on every row listed when none is ticked); Delete only on ticked rows")
+    pick: BoolProperty(name="Pick", default=False, description="Tick rows for Hide, Select and Delete")
 
 
 class BZ_PG_map_bp(bpy.types.PropertyGroup):
@@ -67,8 +67,8 @@ class BZ_PG_map_tools(bpy.types.PropertyGroup):
     f_lab: BoolProperty(name="Labs", description="Labs")
     f_sound: BoolProperty(name="Sound emitters", description="Sound emitters")
     f_marker: BoolProperty(name="Markers", description="Points and AI hints")
-    specific: StringProperty(name="Specific", description="A stock creature or any blueprint by name (a part of the name is enough; several names with commas), "
-                                                          "for example: wolf, zebra")
+    specific: StringProperty(name="Specific", description="Creature or blueprint names (or parts), comma separated, e.g. "
+                                                          "wolf, zebra")
     rows: CollectionProperty(type=BZ_PG_map_row)
     row_index: IntProperty()
     rows_total: IntProperty(description="How many objects matched the filters (the list shows the first few)")
@@ -126,7 +126,7 @@ def _errors():
 
 # ---------------------------------------------------------------------------------------------------- height map
 class BZ_OT_map_import_heightmap(bpy.types.Operator, ImportHelper):
-    """Set the ground's points from a grey TGA picture (a height map): each pixel's grey value is a point's height. The map file changes when you save"""
+    """Set ground heights from a grey TGA height map picture"""
     bl_idname = "bz.map_import_heightmap"
     bl_label = "Import Height Map"
     bl_options = {"REGISTER", "UNDO"}
@@ -135,8 +135,9 @@ class BZ_OT_map_import_heightmap(bpy.types.Operator, ImportHelper):
     resample: EnumProperty(name="Other sizes", default="smooth", items=(
         ("smooth", "Smooth, corner to corner", "A picture of another size is stretched over the ground, the pixels between blended"),
         ("nearest", "Like the Mission Editor", "Each point takes the nearest pixel (the editor's own way: pixels repeat)")),
-        description="What to do with a picture that is not as large as the map's ground (the map has 65, 129 or 257 points across)")
-    flip: BoolProperty(name="Flip rows", default=False, description="Turn the picture upside down (the Mission Editor does not: the first row of the file is the first row of the ground)")
+        description="What to do if the picture's size differs from the ground grid")
+    flip: BoolProperty(name="Flip rows", default=False, description="Flip the picture upside down (the Mission Editor does "
+                                                                    "not)")
 
     @classmethod
     def poll(cls, context):
@@ -172,7 +173,7 @@ class BZ_OT_map_import_heightmap(bpy.types.Operator, ImportHelper):
 
 
 class BZ_OT_map_export_heightmap(bpy.types.Operator, ExportHelper):
-    """Write the ground of the map as a grey TGA picture (a height map): one pixel for each ground point, the grey value is the point's height"""
+    """Save the ground as a grey TGA height map picture"""
     bl_idname = "bz.map_export_heightmap"
     bl_label = "Export Height Map"
     filename_ext = ".tga"
@@ -214,7 +215,7 @@ class BZ_OT_map_export_heightmap(bpy.types.Operator, ExportHelper):
 
 # ---------------------------------------------------------------------------------------------------- terrain files
 class BZ_OT_map_export_terrain(bpy.types.Operator, ExportHelper):
-    """Write the map's terrain (ground, water, ground textures, sky, light, decals) as a terrain file (.ter), as the Mission Editor's Export Terrain does"""
+    """Save the map's terrain as a terrain file (.ter)"""
     bl_idname = "bz.map_export_terrain"
     bl_label = "Export Terrain"
     filename_ext = ".ter"
@@ -247,7 +248,7 @@ class BZ_OT_map_export_terrain(bpy.types.Operator, ExportHelper):
 
 
 class BZ_OT_map_import_terrain(bpy.types.Operator, ImportHelper):
-    """Replace the map's terrain (ground, water, ground textures, sky, light, decals) with a terrain file (.ter) of a map of the same size. The scene is built again; the old map stays, hidden"""
+    """Replace the map's terrain with a terrain file (.ter) of the same size"""
     bl_idname = "bz.map_import_terrain"
     bl_label = "Import Terrain"
     bl_options = {"REGISTER", "UNDO"}
@@ -285,7 +286,7 @@ class BZ_OT_map_import_terrain(bpy.types.Operator, ImportHelper):
 
 # ---------------------------------------------------------------------------------------------------- entity files
 class BZ_OT_map_export_entities(bpy.types.Operator, ExportHelper):
-    """Write the selected placed objects as an entities file (.ent), as the Mission Editor's Export Selected Entities does, to copy them into another map"""
+    """Save the selected placed objects as an entities file (.ent)"""
     bl_idname = "bz.map_export_entities"
     bl_label = "Export Selected Entities"
     filename_ext = ".ent"
@@ -322,7 +323,7 @@ class BZ_OT_map_export_entities(bpy.types.Operator, ExportHelper):
 
 
 class BZ_OT_map_import_entities(bpy.types.Operator, ImportHelper):
-    """Add the objects of an entities file (.ent) to the map, as the Mission Editor's Import Entities does. They are written into the map when you save"""
+    """Add the objects from an entities file (.ent) to the map"""
     bl_idname = "bz.map_import_entities"
     bl_label = "Import Entities"
     bl_options = {"REGISTER", "UNDO"}
@@ -405,7 +406,7 @@ class BZ_OT_map_objlist_refresh(bpy.types.Operator):
 
 
 class BZ_OT_map_objlist_do(bpy.types.Operator):
-    """Hide or select the ticked objects of the list (every object listed when none is ticked), delete the ticked ones, or show all hidden ones again"""
+    """Hide, select, delete or show again the listed objects"""
     bl_idname = "bz.map_objlist_do"
     bl_label = "Object List Action"
     bl_options = {"REGISTER", "UNDO"}
@@ -448,7 +449,7 @@ class BZ_OT_map_objlist_do(bpy.types.Operator):
 
 # ---------------------------------------------------------------------------------------------------- the Blueprint List
 class BZ_OT_map_bplist_refresh(bpy.types.Operator):
-    """List the map's blueprints with how many objects use each and how many triggers name it (the Mission Editor's Blueprint List)"""
+    """List the map's blueprints and how many objects and triggers use each"""
     bl_idname = "bz.map_bplist_refresh"
     bl_label = "Refresh the Blueprint List"
 
@@ -514,7 +515,7 @@ def _crop_args(context):
 
 
 class BZ_OT_map_crop_validate(bpy.types.Operator):
-    """Check what a crop would cost, without changing the map: the objects it deletes and the triggers, dialogue, NISlet animations and players that depend on them. Shows the square that stays"""
+    """Show what a crop would delete or break, without changing the map"""
     bl_idname = "bz.map_crop_validate"
     bl_label = "Validate the Crop"
 
@@ -537,7 +538,7 @@ class BZ_OT_map_crop_validate(bpy.types.Operator):
 
 
 class BZ_OT_map_crop_apply(bpy.types.Operator):
-    """Crop the map to the chosen size: a new, smaller map is built in the scene (the old one stays, hidden). Validates first and refuses while something would break, unless 'Crop anyway' is on"""
+    """Build a cropped copy of the map; the old one is kept, hidden"""
     bl_idname = "bz.map_crop_apply"
     bl_label = "Crop the Map"
     bl_options = {"REGISTER", "UNDO"}

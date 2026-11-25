@@ -1,20 +1,8 @@
 """Vectorised, dirty-patch-aware bicubic tessellator for the live viewport.
 
-The ICParse evaluator (`core.tessellate`) is the correctness reference, but it rebuilds
-constant triangle topology in Python every call (17-56 ms on big creatures) -- too slow to
-re-run on every mouse-move during a grab. This module:
-
-  * precomputes the topology ONCE (TopoCache; the per-cell diagonal follows the game's rule
-    from the rest-pose grid and is re-derived only when the split changes),
-  * evaluates all patches with a single einsum (no per-patch Python loop),
-  * and, crucially, re-evaluates ONLY the patches whose control points moved
-    (``eval_dirty``), so dragging one handle touches a few patches, not all of them.
-
-Surface vertices are laid out per patch (block ``p`` = rows ``p*n*n : (p+1)*n*n``). Normals are
-the ENGINE's: the analytic surface normal, welded across patches exactly as the Object Editor
-does it (``ICParse.codecs.bezier.SurfaceTopology`` -- edges averaged, corners averaged per
-smoothing group), so the overlay shades like the game. Validated against ICParse in
-``tests/fastsurf_parity.py``.
+``core.tessellate`` is the correctness reference (``tests/fastsurf_parity.py``). Topology is built once (the cell
+diagonal follows the game's rest-pose rule) and only moved patches are re-evaluated. Vertices are laid out per patch
+(block ``p`` = rows ``p*n*n : (p+1)*n*n``); normals are the engine's (``ICParse.codecs.bezier.SurfaceTopology``).
 """
 from __future__ import annotations
 

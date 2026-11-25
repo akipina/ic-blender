@@ -60,7 +60,7 @@ class BZ_OT_replay_select(_ReplayOp, bpy.types.Operator):
 
 
 class BZ_OT_replay_build(_ReplayOp, bpy.types.Operator):
-    """Act the chosen cinematic out on the timeline: stand-ins for the objects it moves, a camera, markers. The map itself is not changed"""
+    """Play the chosen cinematic on the timeline without changing the map"""
     bl_idname = "bz.replay_build"
     bl_label = "Build Replay"
 
@@ -103,7 +103,7 @@ class BZ_OT_replay_clear(_ReplayOp, bpy.types.Operator):
 
 
 class BZ_OT_replay_look(_ReplayOp, bpy.types.Operator):
-    """Make the 3D view look through the scene camera (the replay camera, which switches to the cinematic's other cameras by itself)"""
+    """Look through the replay camera in the 3D view"""
     bl_idname = "bz.replay_look"
     bl_label = "Look Through the Camera"
 
@@ -134,7 +134,7 @@ class BZ_OT_replay_look(_ReplayOp, bpy.types.Operator):
 
 
 class BZ_OT_replay_events(_ReplayOp, bpy.types.Operator):
-    """Open the list of the replay's events (time, what happens, exact / approximate / skipped, why)"""
+    """List the replay's events and how accurately each is shown"""
     bl_idname = "bz.replay_events"
     bl_label = "Open the Event List"
     bl_options = {"REGISTER"}

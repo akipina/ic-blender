@@ -1,25 +1,8 @@
-"""sceneobj.map_paint -- paint a map's passability, terrain types, water levels and decals in Blender and save them (the Mission Editor's
-Edit Impass Map, Terrain Type Mode, water painting and Decal Placement Mode).
+"""Paint passability (a picture, one pixel per path cell), terrain types (point colours), per-point water
+(``ic_water_paint``, -1 = unchanged) and decals (empties); the format side is in ``ICParse.sgb``.
 
-Where each thing is kept in the scene, and what it saves into (the format side is in ``ICParse.sgb``: ``impass_edit``,
-``terrain_types``, ``water_paint``, ``decals_edit``):
-
-* **Passability**: a picture ``<map> passability`` with one pixel per path cell (2 per terrain cell, the layer the game's builder reads),
-  laid over the terrain as the paint object ``<map> passability paint`` (it shares the terrain's mesh and follows every sculpt; its own
-  UV map ``Passability`` spans the whole map). Red = blocked for everyone, green = open (counts as flat), clear = the terrain decides.
-  Paint it in Texture Paint mode, or select terrain faces in Edit Mode and use "Block / Open / Clear selected faces" (each face is
-  2 x 2 cells). A save writes the pixels that changed into the map's passability layer (TFAC ``end_grid``) and updates the pathfinding
-  records the way the game's builder would.
-* **Terrain types**: a colour attribute ``IC terrain type`` on the terrain's points (one per point, colours of the game's
-  ``defterraintypes.lua``), shown by the paint object ``<map> terrain type paint``. Paint it in Vertex Paint mode or set selected points.
-  A save writes the type of every point whose colour changed into TFAC's per-point terrain type plane (``index_plane``).
-* **Water at its own level**: an integer attribute ``ic_water_paint`` on the terrain's points (-1 = as the map has it, 0..255 = the
-  water surface height in the map's steps). A save writes the painted points into the map's water plane and updates the pathfinding.
-* **Decals**: one handle (an empty) per decal in ``<map> decals``; move, turn, scale or delete it, or add one. A save writes them into
-  the map's decal block.
-
-None of the paint objects is read as a part of the map by the core save (they carry no ``ic_map``, ``ic_blueprint`` or
-``ic_water_level`` mark and live in ``<map> paint (not saved)``); only the save steps below read what was painted.
+A save writes only what changed and updates pathfinding. Paint objects carry no ``ic_map`` / ``ic_blueprint`` /
+``ic_water_level`` mark, so the core save never reads them.
 """
 from __future__ import annotations
 
@@ -97,12 +80,6 @@ def classify_types(rgb: np.ndarray) -> np.ndarray:
     table = np.array([pal[k] for k in keys])
     d = ((rgb[:, None, :] - table[None, :, :]) ** 2).sum(axis=2)
     return np.array(keys, np.uint8)[d.argmin(axis=1)]
-
-
-def merge_types(original: np.ndarray, painted: np.ndarray) -> np.ndarray:
-    """As :func:`merge_plane` for the terrain types: a point whose colour still means what the original type means keeps it."""
-    shown = np.where(original <= 6, original, 0).astype(np.uint8)
-    return np.where(painted != shown, painted, original).astype(np.uint8)
 
 
 def merge_water(original: np.ndarray, painted: np.ndarray) -> np.ndarray:
@@ -282,20 +259,6 @@ def ensure_passability(context, top, *, reset: bool = False):
     return obj
 
 
-def current_plane(context, top):
-    """``(original layer, the layer the picture now makes of it)`` or ``(None, None)`` when the map has no painted picture. The second
-    is what a save would write."""
-    from ICParse.sgb import impass_edit
-    img = paint_image(top)
-    if img is None:
-        return None, None
-    raw, _mv, _gm = _x().read_source(context, top)
-    orig = impass_edit.read_plane(raw)
-    if orig is None or int(img.size[0]) != orig.shape[1] or int(img.size[1]) != orig.shape[0]:
-        return orig, None
-    return orig, merge_plane(orig, classify_rgba(image_pixels(img)))
-
-
 # ---------------------------------------------------------------------------------------------------- terrain types
 def terrain_types_of(terrain) -> np.ndarray | None:
     """The terrain-type numbers the colour attribute holds now (nearest type per point), or None when there is no such attribute."""
@@ -451,9 +414,8 @@ def save_ground(sctx) -> None:
     pic.pixels = now
     sctx.files[name] = G.encode(pic, G.trailer_of(original))
     sctx.add_change(f"Ground picture: {changed} pixels stamped, written as {name}.")
-    sctx.add_warning(f"{name} is what the game draws at its highest ground detail setting only: at the other settings it draws "
-                     f"{sctx.name}_decaled.jpg / _decaled_small.jpg, which were not changed (the step that makes them from the ground picture "
-                     "is not known yet).")
+    sctx.add_warning(f"{name} is what the game draws at its highest ground detail setting only: the {sctx.name}_decaled.jpg "
+                     "/ _decaled_small.jpg pictures were not changed.")
 
 
 # ---------------------------------------------------------------------------------------------------- decals
@@ -467,11 +429,6 @@ def decal_collection(top, create: bool = False):
 def decal_handles(top) -> list:
     own = decal_collection(top)
     return [o for o in own.objects if KEY_DECAL in o] if own is not None else []
-
-
-# ---------------------------------------------------------------------------------------------------- the save steps
-def _grid_ok(terrain, view_) -> bool:
-    return terrain is not None and int(terrain.get("ic_map_width", -1)) == view_.width and int(terrain.get("ic_map_height", -1)) == view_.height
 
 
 def save_passability(sctx) -> None:

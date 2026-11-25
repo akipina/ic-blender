@@ -1,31 +1,8 @@
-"""sceneobj.ops_map_import -- open an Impossible Creatures map (.sgb) in Blender and see it as the game's editor shows it.
+"""Open a map (.sgb) from a file or the game: terrain, water, entities, creatures and game look (``ICParse.sgb.view``).
 
-File > Import > "Impossible Creatures Map (.sgb)" opens a map file; File > Import > "Impossible Creatures Map from the Game..."
-picks one of the game's own maps from a list (the loose ``Data/scenarios`` folder and every archive of the install). The map can
-be edited in Blender and saved with File > Export > Impossible Creatures Map (ops_map_export.py, panels_map.py). What the save needs is kept on
-the objects: the map's source on its collection and its terrain, and each placed entity's id, blueprint, owner and groups on its object.
-
-What is built (the meanings come from ``ICParse.sgb.view``, which says where each one was read from):
-
-* one collection per map, ``Map <name>``, with a collection per kind: terrain, water, structures, nature, units, other;
-* the terrain: one mesh, one vertex per height point (``width x height``), one face per cell, at the map's real size and
-  heights, in the axes the add-on gives every scene model (the game's (x, y up, z) becomes Blender's (x, -z, y), so placed
-  models sit on the ground they sit on in the game); one material per ground texture, each repeated across its 8 x 8 cell
-  blocks the way the game repeats it, assigned block by block;
-* the water: a see-through surface over the cells where the map's water plane is above the ground, at the water plane's
-  height, more see-through where it is shallow (the map's own shore and deep-water settings);
-* every placed entity (``ENTT``) as an object at its stored position and rotation: an instance of its model when the model
-  could be loaded (each distinct model is loaded once, into a hidden collection), else an empty named after its blueprint,
-  with the reason, in the report. Creatures (stock or combined in the map) are built from their parts (``map_creatures``): each
-  kind once, in the bind pose, as a model of its own, and the placed creatures are instances of it;
-* the game look (``map_look``): the map's sun, sky, fog, the open sea round it, its decals and its water colours, in a collection of
-  their own that a save does not read;
-* a report: map size, how many entities were placed, how many distinct models, which could not be shown and why, the time.
-
-Left and right: in the 3D view the map (like every model the add-on imports) is the mirror image of what the game shows, so
-writing on a model reads backwards. The game's coordinates are left-handed and (x, -z, y) only turns them. Positions and the
-save are not affected. The cameras that stand for the game's camera are flipped (:func:`show_game_picture`), so what is seen
-through them is the game's picture.
+The save needs what is kept on the objects: the source on the collection and terrain; id, blueprint, owner and groups
+on each entity. Game (x, y up, z) becomes Blender (x, -z, y), which mirrors the view, so cameras standing for the
+game's camera are flipped (:func:`show_game_picture`).
 """
 from __future__ import annotations
 
@@ -58,7 +35,7 @@ KIND_TITLES = {"terrain": "terrain", "water": "water", "structures": "structures
                "other": "other"}
 GROUP_WORDS = {"mp": "multiplayer", "sp": "campaign", "mt": "empty map"}
 
-_PKG = __package__ or "blender_native"
+_PKG = __package__ or "ic_blender"
 if _PKG.endswith(".sceneobj"):
     _PKG = _PKG[:-len(".sceneobj")]
 
@@ -660,20 +637,16 @@ def _finish(op, report: dict) -> None:
 # ---------------------------------------------------------------------------------------------------- operators
 class _Options:
     load_models: BoolProperty(name="Placed models", default=True,
-                              description="Load the model of every placed building, plant and unit (each model once). Off: every "
-                                          "placed entity is an empty, which is quicker")
+                              description="Load building, plant and unit models; off shows empties (faster)")
     show_water: BoolProperty(name="Water", default=True, description="Add the water surface where the map has water")
     show_creatures: BoolProperty(name="Creatures", default=True,
-                                 description="Show the creatures the map places as their real models (each kind built once, in the "
-                                             "bind pose). Off: they stay empties, which is quicker")
+                                 description="Show creatures as real models; off shows empties (faster)")
     game_look: BoolProperty(name="Game look", default=True,
-                            description="Show the map as the game draws it: the sun, sky, fog, open sea, the water's own colours "
-                                        "and the decals")
+                            description="Show the map with the game's sky, light, fog, water and decals")
 
 
 class BZ_OT_import_map(bpy.types.Operator, ImportHelper, _Options):
-    """Open an Impossible Creatures map (.sgb) to look at: its terrain with the ground textures, the water and every placed
-    entity. Edit it in Blender and save it with File > Export > Impossible Creatures Map"""
+    """Open a map (.sgb) file with its terrain, water and placed objects"""
     bl_idname = "bz.import_map"
     bl_label = "Import Impossible Creatures Map"
     bl_options = {"REGISTER", "UNDO"}
@@ -708,14 +681,13 @@ class BZ_OT_import_map(bpy.types.Operator, ImportHelper, _Options):
 
 
 class BZ_OT_import_game_map(bpy.types.Operator, _Options):
-    """Open one of the game's own maps to look at, read straight from the game's files: its terrain with the ground textures,
-    the water and every placed entity"""
+    """Open one of the game's own maps, read from the game's files"""
     bl_idname = "bz.import_game_map"
     bl_label = "Import a Map from the Game"
     bl_options = {"REGISTER", "UNDO"}
 
     game_map: EnumProperty(name="Map", items=_map_items,
-                           description="The map to open. A map that several game versions carry is listed once for each")
+                           description="The map to open, listed once for each game version that has it")
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self, width=520)

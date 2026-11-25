@@ -5,15 +5,15 @@
 # The DISTRIBUTABLE manifest is generated -- with a `wheels = [...]` list carrying ICParse, combotest, construct and
 # lupa, so a modder needs none of this repo -- by
 #
-#     .venv/bin/python3 blender_native/tools/build_extension.py
+#     .venv/bin/python3 ic_blender/tools/build_extension.py
 #
 # Edit that tool's MANIFEST template, not this file, for anything that must reach a released .zip.
 schema_version = "1.0.0"
 
-id = "sgm_native_patches"
-version = "0.8.1"
-name = "SGM Native Patches"
-tagline = "Make and edit Impossible Creatures models in Blender"
+id = "ic_blender"
+version = "0.9.0"
+name = "IC Blender"
+tagline = "Make and edit Impossible Creatures models and maps"
 maintainer = "akipina (github.com/akipina)"
 type = "add-on"
 

@@ -1,19 +1,7 @@
-"""sceneobj.prefs -- the add-on's preferences (Edit > Preferences > Add-ons > SGM Native Patches; PLAN_FINAL contract C21).
+"""Add-on preferences. Slices read them through these functions, never ``bpy.context`` directly, so the defaults apply
+when the add-on is not enabled (headless tests).
 
-Where the game is, where finished work goes, which game build the work is for, and four safe defaults that the in-game checks may
-change later (each one names the check that decides it). Slices read them through the functions below, never through ``bpy.context``
-directly: they also work when the add-on is not enabled in the preferences (headless tests), where the defaults apply.
-
-* ``get(context)`` -- the live preferences, or an object with the same names holding the defaults;
-* ``resolve_game_dir(context)`` -- ``(folder, source)``: the "Game folder" setting, else ``$IC_INSTALL``, else ICParse's usual Steam places;
-  ``game_dir_line(context)`` says the same in one plain line for a panel or a dialog;
-* ``resolve_test_game_dir`` / ``resolve_build_dir`` / ``resolve_mods_dir`` -- the other folders, ``None`` when unset (the build folder
-  falls back to ``<project>/build``).
-
-What reads them (2026-11-18): the Game folder -- New Project's list of the game's own models, the Blueprint panel (its gameplay
-numbers, which stock model a project is a copy of, and the folders an export refuses to write into) and the map import (the game's
-list of maps and the models they show); Game build -- the Blueprint panel's check of the kind (class) number. Nothing reads the other seven yet: their labels say "(not used yet)" (``NOT_USED``), so
-the page does not promise what the add-on does not do.
+Only the Game folder and Game build are read so far; the rest are listed in ``NOT_USED`` and labelled "(not used yet)".
 """
 from __future__ import annotations
 
@@ -26,7 +14,7 @@ from bpy.props import EnumProperty, StringProperty
 from . import model, ui_kit
 
 ORDER = 6
-ADDON_ID = __package__.rpartition(".")[0]        # the add-on's own module name: "blender_native" here, bl_ext.<repo>.<id> as an extension
+ADDON_ID = __package__.rpartition(".")[0]        # the add-on's own module name: "ic_blender" here, bl_ext.<repo>.<id> as an extension
 
 # Every preference and its default: the class below takes its defaults from here, and get() falls back to it.
 DEFAULTS = {
@@ -44,18 +32,16 @@ DEFAULTS = {
 # the settings nothing reads yet: their labels and descriptions say so (the module docstring says what reads the others)
 NOT_USED = ("test_game_dir", "build_dir", "mods_dir", "morph_export", "txr_type_default", "delivery_mode", "bounds_mode")
 _NOT_USED_LABEL = " (not used yet)"
-_NOT_USED_WORDS = "Not used yet: nothing in this version of the add-on reads this setting. "
+_NOT_USED_WORDS = "Not used yet. "
 
 TARGET_MOD_ITEMS = (
     ("icmod", "Original game (icmod)", "Made for the original game's rules"),
-    ("tellurian", "Tellurian build (tellurian)", "Made for the Tellurian expansion build, which knows more kinds of things (class numbers) "
-                                                 "than the original game"),
-    ("insectmod", "Insect build (insectmod)", "Made for the Insect expansion build, which knows more kinds of things (class numbers) "
-                                              "than the original game"),
+    ("tellurian", "Tellurian build (tellurian)", "For the Tellurian expansion build, which has more kinds (class numbers)"),
+    ("insectmod", "Insect build (insectmod)", "For the Insect expansion build, which has more kinds (class numbers)"),
 )
 MORPH_EXPORT_ITEMS = (
-    ("V2_SINGLE_LOD", "Rebuilt mesh, one detail level", "A part with damage states is written in the newer mesh layout with a single detail "
-                                                       "level. Not yet shown to load in the game"),
+    ("V2_SINGLE_LOD", "Rebuilt mesh, one detail level", "Write the newer single-detail mesh layout; not yet shown to load "
+                                                        "in the game"),
     ("DROP", "Leave the damage states out", "A part with damage states is written without them. Safe, but the states are lost"),
 )
 TXR_TYPE_ITEMS = (
@@ -63,7 +49,7 @@ TXR_TYPE_ITEMS = (
     ("stock0", "Type 0", "Textures are written as type 0, which most of the game's own textures use"),
 )
 DELIVERY_ITEMS = (
-    ("AUTO", "Automatic", "Replace the game's file only for the blueprints the game looks up by path; save everything else under a new name"),
+    ("AUTO", "Automatic", "Replace game files only for blueprints looked up by path; otherwise use a new name"),
     ("NEW_NAME", "Always a new name", "Never replace a game file"),
     ("REPLACE_STOCK", "Always replace the game's file", "The item takes the place of the game's own file of that name"),
 )
@@ -78,40 +64,31 @@ class BZ_AP_prefs(bpy.types.AddonPreferences):
 
     game_dir: StringProperty(
         name="Game folder", subtype="DIR_PATH", default=DEFAULTS["game_dir"],
-        description="The Impossible Creatures folder (the one with IC.exe). New Project lists the game's own models from here, "
-                    "File > Import > Impossible Creatures Map from the Game lists the game's maps from here, the Blueprint panel reads "
-                    "the game's stats files from here, and Export Entity Folder will not write into it. "
-                    "Empty: use the IC_INSTALL environment variable, then the usual Steam folders")
+        description="The game folder (with IC.exe); empty uses IC_INSTALL or the usual Steam folders")
     test_game_dir: StringProperty(
         name="Test game folder" + _NOT_USED_LABEL, subtype="DIR_PATH", default=DEFAULTS["test_game_dir"],
-        description=_NOT_USED_WORDS + "Meant for: a copy of the game that is yours to change, where finished items are installed to "
-                                      "be tried; the add-on never installs into the game folder above unless you confirm it")
+        description=_NOT_USED_WORDS + "Planned: a copy of the game where finished items are installed for testing")
     build_dir: StringProperty(
         name="Build folder" + _NOT_USED_LABEL, subtype="DIR_PATH", default=DEFAULTS["build_dir"],
-        description=_NOT_USED_WORDS + "Meant for: where an export is written. Empty: a 'build' folder next to your project")
+        description=_NOT_USED_WORDS + "Planned: where exports are written")
     mods_dir: StringProperty(
         name="Mods folder" + _NOT_USED_LABEL, subtype="DIR_PATH", default=DEFAULTS["mods_dir"],
-        description=_NOT_USED_WORDS + "Meant for: where your finished mod items are collected, one folder per item. Empty: they stay "
-                                      "in the build folder")
+        description=_NOT_USED_WORDS + "Planned: where finished mod items are collected")
     target_mod: EnumProperty(
         name="Game build", items=TARGET_MOD_ITEMS, default=DEFAULTS["target_mod"],
-        description="Which game build your work is made for. The Blueprint panel checks the kind (class) number against the kinds "
-                    "this build knows")
+        description="The game build you work for; it sets which kind (class) numbers are known")
     morph_export: EnumProperty(
         name="Damage states" + _NOT_USED_LABEL, items=MORPH_EXPORT_ITEMS, default=DEFAULTS["morph_export"],
-        description=_NOT_USED_WORDS + "Meant for: how a part with damage states is exported. The in-game check of the rebuilt mesh "
-                                      "decides the default")
+        description=_NOT_USED_WORDS + "Planned: how parts with damage states are exported")
     txr_type_default: EnumProperty(
         name="Texture type" + _NOT_USED_LABEL, items=TXR_TYPE_ITEMS, default=DEFAULTS["txr_type_default"],
-        description=_NOT_USED_WORDS + "Meant for: which texture type new textures are written as. The in-game comparison of the two "
-                                      "types decides the default")
+        description=_NOT_USED_WORDS + "Planned: which texture type new textures use")
     delivery_mode: EnumProperty(
         name="Replace game files" + _NOT_USED_LABEL, items=DELIVERY_ITEMS, default=DEFAULTS["delivery_mode"],
-        description=_NOT_USED_WORDS + "Meant for: whether a new item replaces the game's file of the same name or takes a new name")
+        description=_NOT_USED_WORDS + "Planned: whether new items replace game files or get new names")
     bounds_mode: EnumProperty(
         name="Selection box" + _NOT_USED_LABEL, items=BOUNDS_ITEMS, default=DEFAULTS["bounds_mode"],
-        description=_NOT_USED_WORDS + "Meant for: whether the selection and blocking box is recomputed when parts change. The in-game "
-                                      "check of a changed box decides the default")
+        description=_NOT_USED_WORDS + "Planned: whether the selection box is recomputed when parts change")
 
     def draw(self, context):
         layout = self.layout
@@ -156,7 +133,7 @@ SOURCE_WORDS = {"preferences": "from the setting above", "IC_INSTALL": "from the
                 "steam default": "the usual Steam folder"}
 # the same, said outside the preferences page (in a panel or a dialog)
 SOURCE_WORDS_ELSEWHERE = {**SOURCE_WORDS, "preferences": "from the Game folder in the add-on's preferences"}
-NO_GAME = ("No game folder found: set the Game folder in the add-on's preferences (Edit > Preferences > Add-ons, SGM Native Patches), "
+NO_GAME = ("No game folder found: set the Game folder in the add-on's preferences (Edit > Preferences > Add-ons, IC Blender), "
            "or set the IC_INSTALL environment variable.")
 
 

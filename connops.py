@@ -182,8 +182,7 @@ def default_host_for(obj, t, child_class, parent_class, child_bones=None):
 
 # ------------------------------------------------------------------------------------------------ operators
 class BZ_OT_conn_set_active(bpy.types.Operator):
-    """Make this the active connection (Rename, Delete, the classification boxes, the host bone and the ring work on
-    it)"""
+    """Make this the active connection"""
     bl_idname = "bz.conn_set_active"
     bl_label = "Set Active Connection"
     bl_options = {"INTERNAL"}
@@ -227,17 +226,14 @@ def _limb_items(self, context):
 
 
 class BZ_OT_create_connection(bpy.types.Operator):
-    """Create the connection a limb grafts at: Parent class Torso (Head for a head-mounted ring such as an antler, picked
-    by itself when only a Head bone can host it), Child class the limb's class, host bone the parent of the limb's root
-    bone (else the stock host), no ring yet -- then pick its ring (Pick Ring starts by itself in Edit Mode)"""
+    """Create a limb's connection and start picking its ring"""
     bl_idname = "bz.create_connection"
     bl_label = "Create Connection"
     bl_options = {"REGISTER", "UNDO"}
 
     limb: bpy.props.EnumProperty(name="Limb", items=_limb_items)
     parent: bpy.props.EnumProperty(name="Cut Into", items=[
-        ("AUTO", "Auto", "Torso when a Torso bone can host the ring, else Head when a Head bone can (the horse's antler "
-                         "rings): what every base-game connection has"),
+        ("AUTO", "Auto", "Torso if a Torso bone can host the ring, else Head (as in the base game)"),
         ("TORSO", "Torso", "A socket in the torso (every limb's connection in the base game but antler rings, 0x800)"),
         ("HEAD", "Head", "A ring in the head (the horse's and the snowy owl's antlers, 0x40)")], default="AUTO")
     pick: bpy.props.BoolProperty(name="Pick Ring", default=True, description="Start Pick Ring for it (Edit Mode, "
@@ -311,8 +307,7 @@ class BZ_OT_create_connection(bpy.types.Operator):
 
 
 class BZ_OT_rename_connection(bpy.types.Operator):
-    """Rename the active connection (at most 63 ASCII characters, unique ignoring case). Nothing matches a connection
-    by name: the Object Editor and the combiner use its classes"""
+    """Rename the active connection"""
     bl_idname = "bz.rename_connection"
     bl_label = "Rename Connection"
     bl_options = {"REGISTER", "UNDO"}
@@ -360,8 +355,7 @@ class BZ_OT_rename_connection(bpy.types.Operator):
 
 
 class BZ_OT_delete_connection(bpy.types.Operator):
-    """Delete the active connection. The limb it attaches loses its socket, and ComboTest.exe then refuses the whole
-    creature in either role until a connection carries that limb's class again (Validate reports it)"""
+    """Delete the active connection; its limb can't combine until it has a new one"""
     bl_idname = "bz.delete_connection"
     bl_label = "Delete Connection"
     bl_options = {"REGISTER", "UNDO"}
@@ -409,9 +403,7 @@ class BZ_OT_delete_connection(bpy.types.Operator):
 
 
 class BZ_OT_conn_flag(bpy.types.Operator):
-    """Tick or untick a classification box of the active connection, for its Parent (the limb the ring is cut into)
-    or its Child (the limb attached there) -- Boner's Connection Options: ticking a box clears the other boxes of its
-    group. Non-Swappable is a limb box only"""
+    """Tick or untick a class box of the active connection's parent or child"""
     bl_idname = "bz.conn_flag"
     bl_label = "Connection Classification"
     bl_options = {"REGISTER", "UNDO"}
@@ -481,8 +473,7 @@ class BZ_OT_conn_flag(bpy.types.Operator):
 
 
 class BZ_OT_conn_set_host(bpy.types.Operator):
-    """Set the active connection's host bone (Boner's Choose Parent Bone): a bone of the limb the ring is cut into. With
-    Default: the parent of the attached limb's root bone, else the stock host"""
+    """Set the bone the active connection attaches to"""
     bl_idname = "bz.conn_set_host"
     bl_label = "Set Host Bone"
     bl_options = {"REGISTER", "UNDO"}
@@ -596,11 +587,7 @@ def ring_start_plans(obj, context, rows, indices, margin=None, gain=None):
 
 
 class BZ_OT_optimise_ring_start(bpy.types.Operator):
-    """Start the active connection's ring at the corner the stock creatures start theirs at (or every ring at once).
-    The combiner welds a donor's ring to a socket ring BY INDEX (corner i to corner i), so which corner a ring's list
-    starts at decides which donor corner meets which socket corner: a start one corner out drags the whole seam around
-    the ring. Every rotation is tried and the one the stock partners weld best is kept; the winding, the corners and
-    everything else about the ring stay as they are"""
+    """Rotate a ring's start corner to the one that welds best with stock creatures"""
     bl_idname = "bz.optimise_ring_start"
     bl_label = "Optimise Ring Start"
     bl_options = {"REGISTER", "UNDO"}
@@ -611,13 +598,10 @@ class BZ_OT_optimise_ring_start(bpy.types.Operator):
         ("ALL", "All Rings", "Every torso socket ring of the creature")], default="ACTIVE")
     margin: bpy.props.FloatProperty(
         name="Margin", default=20.0, min=0.0, max=180.0,
-        description="A partner is counted as mis-welded when the by-index weld is this much worse than the best "
-                    "pairing of the two rings (20 deg is what Validate's combine precheck flags; the worst stock ring "
-                    "sits at 15)")
+        description="A partner counts as mis-welded when its weld is this much worse than the best")
     gain: bpy.props.FloatProperty(
         name="Minimum Gain", default=1.0, min=0.0, max=180.0,
-        description="Rotate only when the best start wins at least this much of the mean corner angle, so a ring that "
-                    "is already as good as the stock ones is left byte-identical")
+        description="Rotate a ring only when the better start gains at least this angle")
 
     @classmethod
     def poll(cls, context):
@@ -811,11 +795,7 @@ def _create_stub_bone(context, obj, arm, plan, verts_blender, patch_cps):
 
 
 class BZ_OT_add_stub_socket(bpy.types.Operator):
-    """Give the creature a stub limb and its socket for a class it does not model (legs, arms, side or top wings), so it
-    can take that part from other creatures: select the 4 corners of one torso patch first. The limb has no patches and
-    one bone -- the skeleton's standard bone for the class when it is free, else a new bone under the host --, the socket
-    is that patch's ring, wound into the torso and started like the stock creatures'; a side and a top wing share a
-    patch. One undo step"""
+    """Add an empty limb and its socket on a selected patch, for a missing part"""
     bl_idname = "bz.add_stub_socket"
     bl_label = "Add Stub Socket"
     bl_options = {"REGISTER", "UNDO"}

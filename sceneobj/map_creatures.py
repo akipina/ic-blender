@@ -1,25 +1,8 @@
-"""sceneobj.map_creatures -- show the creatures of an imported map as their real models.
+"""Show an imported map's creatures as real models: stock ones from their blueprint, combined ones rebuilt from the map's
+recipe by ``combocore`` (``ICParse/FORMATS.md`` "Combine recipe"). Each kind is built once and instanced.
 
-The map import (ops_map_import.py) places every ``ENTT`` as an object; a scene model (structure, plant, gatherer) becomes an instance of
-its model, but a creature has no scene model: a stock creature's blueprint is a creature model (``FORM BOBJ``), and a creature
-*combined inside the map* has no blueprint file at all -- the map holds its recipe. This module builds those creatures once each and
-turns the placed objects that stood in for them into instances of the built models.
-
-What is built (the meanings of the recipe come from ``ICParse.sgb.structs.BPID`` and ``ICParse/FORMATS.md`` "Combine recipe"):
-
-* a **stock creature** (``art/ebps/<folder>/<name>.ebp``): its creature model, read from the game's files (embedded in the blueprint, or
-  the ``.sgm`` beside it), its surface evaluated at a light density (3 x 3 points per patch by default) in the bind pose;
-* a **creature combined in the map**: the recipe names the parent animals' ``.ebp`` files and lists the limb links (limb class, the
-  parent limb class, the source animal the limb comes from, the source animal whose socket it goes on); the torso comes from the link
-  whose class is 0x800, every other link puts that class's limb of its source animal on the torso. The existing combiner
-  (``combotest.combine.combine`` through ``combocore``, "saved design" rules: ``as_spec``) builds it, scaled to its size like the game's
-  Combiner, then the same surface evaluation as for a stock creature;
-* each distinct creature once, as one mesh with its skin textures, inside the map's hidden collection; every placed creature is then an
-  instance of it, at its stored position and turn (the same matrix as every scene model).
-
-A creature that cannot be built stays an empty with the reason in plain words (``ic_not_shown`` on the object). The placed objects keep
-exactly what the save reads (``ic_blueprint``, ``ic_entity_id``, ``ic_owner``, ``ic_groups``, ``ic_combined_creature``): this module only
-turns the empty into an instance and removes ``ic_not_shown``. Nothing is written to the game's folders.
+A failure leaves the empty with its reason (``ic_not_shown``). Keep the ``ic_*`` keys the save reads on the placed
+objects, and never write into the game's folders.
 """
 from __future__ import annotations
 
@@ -47,7 +30,7 @@ DEFAULT_DENSITY = 3                        # surface points per patch side: ligh
 PARENT_FOLDERS = ("stock", "creatures", "characters", "zombies")
 TORSO_CLASS = 0x800
 
-_PKG = __package__ or "blender_native"
+_PKG = __package__ or "ic_blender"
 if _PKG.endswith(".sceneobj"):
     _PKG = _PKG[:-len(".sceneobj")]
 

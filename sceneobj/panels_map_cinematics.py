@@ -39,7 +39,7 @@ def draw_cinematics(layout, context, top) -> None:
         layout.operator("bz.nis_new_anim", text="New Camera Animation", icon="ADD").kind = "camera"
         return
     if root.get(C.K_BAD):
-        _hint(layout, "The cinematics file beside this map could not be read, so it is left as it is and not saved again.", "ERROR")
+        _hint(layout, "The map's cinematics file could not be read, so it is left unchanged.", "ERROR")
         return
     _top, _root, active = O.active_anim(context)
     colls = C.anim_collections(root)
@@ -120,8 +120,7 @@ def draw_cinematics(layout, context, top) -> None:
             row = vb.row(align=True)
             row.operator("bz.nis_key_target", text="Look at selected", icon="RESTRICT_SELECT_OFF").clear = False
             row.operator("bz.nis_key_target", text="No target", icon="X").clear = True
-        _hint(vb, "Rotation and declination of 36000 mean the game points the view along the path. Declination is positive looking down. "
-                  "Turn the key's arrows in the 3D view and saving reads the new angles.", width=44)
+        _hint(vb, "36000 points the view along the path; or turn a key's arrows in the 3D view.", width=44)
     layout.operator("bz.nis_aspect", text="Cinematic 1.85 picture", icon="FULLSCREEN_ENTER",
                     depress=bpy.context.scene.get("nis_prev_resolution") is not None)
     layout.operator("bz.nis_check", text="Check cinematics", icon="CHECKMARK")
@@ -132,7 +131,7 @@ class BZ_PT_map_cinematics(bpy.types.Panel):
     bl_idname = "BZ_PT_map_cinematics"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = H.MAP_PANEL_ID
     bl_options = {"DEFAULT_CLOSED"}
 

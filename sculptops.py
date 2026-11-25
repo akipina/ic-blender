@@ -212,18 +212,16 @@ def gather(sculpt):
                           f"creature now has {Np} patches: Sculpt Surface again")
     nv = len(sculpt.data.vertices)
     if nv != int(sculpt.get(KEY_NVERTS, -1)):
-        raise SculptError(f"the topology of '{sculpt.name}' changed ({nv} vertices, the bake had "
-                          f"{sculpt.get(KEY_NVERTS)}): Refit needs the bake's vertices (no Dyntopo, remesh, delete "
-                          "or subdivide). Undo the topology change, or Sculpt Surface again")
+        raise SculptError(f"the topology of '{sculpt.name}' changed ({nv} vertices, the bake had {sculpt.get(KEY_NVERTS)}): "
+                          "no Dyntopo, remesh, delete or subdivide. Undo it, or Sculpt Surface again")
     s2v = np.asarray(list(sculpt.get(KEY_MAP, [])), dtype=np.int64)
     if len(s2v) != Np * K or (len(s2v) and (s2v.min() < 0 or s2v.max() >= nv)):
         raise SculptError(f"'{sculpt.name}' has no valid sample map ({len(s2v)} entries for {Np * K} samples at "
                           f"density {n}): Sculpt Surface again")
     verts = edittools._verts(obj)
     if pool_sha1(verts) != str(sculpt.get(KEY_POOL_SHA, "")):
-        raise SculptError(f"the control points of '{obj.name}' changed since '{sculpt.name}' was baked, so its "
-                          "samples no longer lie on the creature's surface: Undo the change, or Sculpt Surface again "
-                          "(and redo the sculpt on the new bake)")
+        raise SculptError(f"the control points of '{obj.name}' changed since '{sculpt.name}' was baked: Undo the change, or "
+                          "Sculpt Surface again")
     ms = np.asarray(sculpt.matrix_world) - np.asarray(obj.matrix_world)
     if np.abs(ms).max() > 1e-6:
         raise SculptError(f"'{sculpt.name}' was moved, rotated or scaled as an object: its vertices are read in "
@@ -284,16 +282,14 @@ def _select_only(context, obj) -> None:
 
 
 class BZ_OT_sculpt_surface(bpy.types.Operator):
-    """Bake the creature's exact surface into a connected mesh and sculpt it with Blender's brushes (the creature
-    and its rig are hidden meanwhile); Refit Patches then writes the sculpt back into only the patches you touched"""
+    """Sculpt the creature's surface with Blender's brushes, then use Refit Patches"""
     bl_idname = "bz.sculpt_surface"
     bl_label = "Sculpt Surface"
     bl_options = {"REGISTER", "UNDO"}
 
     density: bpy.props.IntProperty(
         name="Density", default=7, min=4, max=12,
-        description="Samples per patch edge (n x n per patch): more gives the brushes finer vertices, but a bicubic "
-                    "patch only holds smooth shapes -- Refit reports what the patches could not take")
+        description="Samples per patch edge; more gives finer sculpting detail")
     enter_sculpt: bpy.props.BoolProperty(
         name="Enter Sculpt Mode", default=True,
         description="Switch to Sculpt Mode on the new mesh (X symmetry on when the creature is symmetric)")
@@ -347,8 +343,7 @@ def _sculpt_for(context):
 
 
 class BZ_OT_refit_patches(bpy.types.Operator):
-    """Write the sculpt back into the creature's control points: only patches with moved samples are refit (the
-    rest export byte-identical); the creature is shown again and the sculpt mesh removed"""
+    """Write the sculpt back into the patches you changed"""
     bl_idname = "bz.refit_patches"
     bl_label = "Refit Patches"
     bl_options = {"REGISTER", "UNDO"}
@@ -399,7 +394,7 @@ class BZ_OT_refit_patches(bpy.types.Operator):
 
 
 class BZ_OT_discard_sculpt(bpy.types.Operator):
-    """Throw the sculpt away: show the creature again and remove the sculpt mesh (the creature is unchanged)"""
+    """Discard the sculpt and show the creature unchanged"""
     bl_idname = "bz.discard_sculpt"
     bl_label = "Discard Sculpt"
     bl_options = {"REGISTER", "UNDO"}

@@ -122,7 +122,7 @@ def _set_brush_colour(context, rgb, erase: bool = False, vertex: bool = False) -
 
 # ---------------------------------------------------------------------------------------------------- passability
 class BZ_OT_map_impass_paint(bpy.types.Operator):
-    """Paint where nobody can walk (red), or where the ground counts as flat (green), straight on the terrain with Texture Paint"""
+    """Paint blocked (red) and flat open (green) cells on the terrain"""
     bl_idname = "bz.map_impass_paint"
     bl_label = "Paint Passability"
     bl_options = {"REGISTER", "UNDO"}
@@ -182,7 +182,7 @@ class BZ_OT_map_paint_stop(bpy.types.Operator):
 
 
 class BZ_OT_map_impass_faces(bpy.types.Operator):
-    """Set the passability of the cells under the faces selected on the terrain (Edit Mode): each face covers 2 x 2 path cells"""
+    """Set passability under the terrain faces selected in Edit Mode"""
     bl_idname = "bz.map_impass_faces"
     bl_label = "Set Passability of Selected Faces"
     bl_options = {"REGISTER", "UNDO"}
@@ -280,7 +280,7 @@ def _overlay_items(self, context):
 
 
 class BZ_OT_map_overlay_show(bpy.types.Operator):
-    """Draw an overlay of the game's pathfinding over the terrain, made from the map as it would be saved now. Nothing is saved"""
+    """Show a pathfinding overlay of the map as it would be saved"""
     bl_idname = "bz.map_overlay_show"
     bl_label = "Show Overlay"
     bl_options = {"REGISTER", "UNDO"}
@@ -325,7 +325,7 @@ class BZ_OT_map_overlay_hide(bpy.types.Operator):
 
 # ---------------------------------------------------------------------------------------------------- terrain types
 class BZ_OT_map_types_paint(bpy.types.Operator):
-    """Paint terrain types (what footsteps sound like) on the terrain with Vertex Paint. The colours are the game's own"""
+    """Paint terrain types (footstep sounds) on the terrain with Vertex Paint"""
     bl_idname = "bz.map_types_paint"
     bl_label = "Paint Terrain Types"
     bl_options = {"REGISTER", "UNDO"}
@@ -442,13 +442,13 @@ class _WaterPaint:
 
 
 class BZ_OT_map_water_set(_WaterPaint, bpy.types.Operator):
-    """Give the terrain points selected in Edit Mode a water surface at their own height: a lake on a mountain, a waterfall's pool"""
+    """Add water at the height of the terrain points selected in Edit Mode"""
     bl_idname = "bz.map_water_set"
     bl_label = "Set Water Height of Selected Points"
     bl_options = {"REGISTER", "UNDO"}
 
     height: FloatProperty(name="Water height (m)", default=20.0, min=0.0, soft_max=127.0,
-                          description="The height of the water surface in metres. A point is wet where the water is above the ground")
+                          description="Water surface height in metres; ground below it is wet")
     redraw: BoolProperty(name="Draw the water again", default=True)
 
     def invoke(self, context, event):
@@ -571,7 +571,7 @@ def new_handle(context, top, mv, name: str, picture: str, x: float, z: float, sc
 
 
 class BZ_OT_map_decals_edit(bpy.types.Operator):
-    """Make a handle for every decal of the map: move, turn (about the vertical axis) or scale a handle to change its decal, delete one to remove it"""
+    """Make a movable handle for every decal of the map"""
     bl_idname = "bz.map_decals_edit"
     bl_label = "Edit Decals"
     bl_options = {"REGISTER", "UNDO"}
@@ -642,7 +642,7 @@ class BZ_OT_map_decal_add(bpy.types.Operator):
 
 
 class BZ_OT_map_decals_redraw(bpy.types.Operator):
-    """Draw the decals on the ground again at the places their handles are now (needs the game look)"""
+    """Redraw the decals where their handles are now"""
     bl_idname = "bz.map_decals_redraw"
     bl_label = "Redraw Decals"
     bl_options = {"REGISTER", "UNDO"}
@@ -700,7 +700,7 @@ def load_stamp(context, top, picture: str) -> np.ndarray:
 
 
 class BZ_OT_map_ground_picture(bpy.types.Operator):
-    """Show the map's ground picture (<map>.tga, what texture stamping paints into) over the terrain, or hide it"""
+    """Show or hide the map's ground picture on the terrain"""
     bl_idname = "bz.map_ground_picture"
     bl_label = "Ground Picture"
     bl_options = {"REGISTER", "UNDO"}
@@ -728,8 +728,7 @@ class BZ_OT_map_ground_picture(bpy.types.Operator):
 
 
 class BZ_OT_map_stamp(bpy.types.Operator):
-    """Stamp one of the game's decal pictures into the map's ground picture at the 3D cursor: the stamp is painted into the picture, not laid
-    on it, and cannot be moved afterwards (paint over it to remove it). Saved as the map's <name>.tga"""
+    """Paint a decal permanently into the map's ground picture at the 3D cursor"""
     bl_idname = "bz.map_stamp"
     bl_label = "Stamp Texture"
     bl_options = {"REGISTER", "UNDO"}
@@ -740,7 +739,7 @@ class BZ_OT_map_stamp(bpy.types.Operator):
     turn: FloatProperty(name="Turn (degrees)", default=0.0, min=-360.0, max=360.0)
     strength: FloatProperty(name="Strength", default=1.0, min=0.0, max=1.0, description="How opaque the stamp is: low is see-through")
     tint: bpy.props.FloatVectorProperty(name="Colour", subtype="COLOR", size=3, default=(1.0, 1.0, 1.0), min=0.0, max=1.0,
-                                        description="Multiplies the stamp's colours. White leaves the picture as it is")
+                                        description="Tint for the stamp's colours (white leaves them unchanged)")
     count: bpy.props.IntProperty(name="Stamps", default=1, min=1, max=200, description="How many stamps in a row")
     spacing: FloatProperty(name="Spacing (m)", default=8.0, min=0.0, soft_max=100.0,
                            description="The distance between stamps of a row, along the way the stamp is turned")
@@ -826,8 +825,7 @@ def _tile_items(self, context):
 
 
 class BZ_OT_map_add_blend_tile(bpy.types.Operator):
-    """Add one of the game's ready-made blend tiles (a smooth edge between two ground textures) to this map. Give it to the faces
-    where the two textures meet, as with any ground texture"""
+    """Add one of the game's blend tiles (a soft edge between two ground textures)"""
     bl_idname = "bz.map_add_blend_tile"
     bl_label = "Add Blend Tile"
     bl_options = {"REGISTER", "UNDO"}

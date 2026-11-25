@@ -106,9 +106,10 @@ def apply_limbs(m, src, rows, patch_limb, n_patches=None) -> List[str]:
     warns = []
     boneless = [l.name for l in out if not l.bone_names]
     if boneless:
-        warns.append(f"limb{'s' if len(boneless) != 1 else ''} {', '.join(boneless[:4])}"
-                     f"{', ...' if len(boneless) > 4 else ''} {'have' if len(boneless) != 1 else 'has'} no bones: the "
-                     "engine's model loader reports 'limbs are boneless!' and ComboTest.exe won't take the creature")
+        warns.append(f"limb{'s' if len(boneless) != 1 else ''} "
+                     f"{', '.join(boneless[:4])}{', ...' if len(boneless) > 4 else ''} "
+                     f"{'have' if len(boneless) != 1 else 'has'} no bones: the engine reports 'limbs are boneless!' and "
+                     "ComboTest.exe rejects it")
     orphans = int((pl < 0).sum())
     if orphans:
         warns.append(f"{orphans} patch{'es are' if orphans != 1 else ' is'} in no limb: the combiner and the Object "
@@ -337,8 +338,8 @@ def apply_stub_bones(m, limb_src, new_bones) -> Tuple[List[str], List[str], List
     skipped = [nb.name for nb in news if str(nb.name).lower() not in listed]
     if skipped:
         warns.append(f"stub bone{'s' if len(skipped) != 1 else ''} {', '.join(skipped[:4])} "
-                     f"{'are' if len(skipped) != 1 else 'is'} on the rig but in no limb, so not exported (an undone Add "
-                     "Stub Socket leaves its bone: Redo, Add Stub Socket again (it reuses it) or delete the bone)")
+                     f"{'are' if len(skipped) != 1 else 'is'} on the rig but in no limb, so not exported: Redo, run Add "
+                     "Stub Socket again, or delete the bone")
     # in limb-row order (the order the sockets were added), whatever order the rig keeps its bones in
     news = sorted((nb for nb in news if str(nb.name).lower() in listed), key=lambda nb: listed[str(nb.name).lower()])
     if news:
@@ -378,8 +379,7 @@ def apply_stub_bones(m, limb_src, new_bones) -> Tuple[List[str], List[str], List
             i = index.get(str(bn).lower())
             if i is None:
                 warns.append(f"limb '{l.name}' lists bone '{bn}', which is not in the skeleton (a stub bone deleted or "
-                             "renamed on the rig?): the Object Editor warns and ComboTest.exe fails on it; Undo, or give "
-                             "the limb a bone of the skeleton")
+                             "renamed?): Undo, or give the limb a bone of the skeleton")
                 continue
             # only a bone owning no points is a stub bone (ICParse.validate.stub_bone_lines): a bone with points moved
             # into a stub limb keeps its flags, and Validate's 'owns control points' STOCK line speaks for it
@@ -395,9 +395,8 @@ def apply_stub_bones(m, limb_src, new_bones) -> Tuple[List[str], List[str], List
                 m.bones[i].meta0 = int(m.bones[i].meta0) & 0xFFFFFF00
                 cleared.append(str(m.bones[i].name))
     if cleared:
-        warns.append(f"bone{'s' if len(cleared) != 1 else ''} {', '.join(cleared[:4])}"
-                     f"{', ...' if len(cleared) > 4 else ''} lost the stub byte: a limb with patches lists "
-                     f"{'them' if len(cleared) != 1 else 'it'}, and no base-game stub bone is in such a limb")
+        warns.append(f"bone{'s' if len(cleared) != 1 else ''} {', '.join(cleared[:4])}{', ...' if len(cleared) > 4 else ''} "
+                     f"lost the stub byte: a limb with patches lists {'them' if len(cleared) != 1 else 'it'}")
     return added, flagged, warns
 
 
@@ -441,10 +440,8 @@ class BoneResolution:
         for idn, copies, lost in self.overwritten or []:
             who = ", ".join(repr(c) for c in copies)
             gone = ", ".join(repr(x) for x in lost[:3]) + (", ..." if len(lost) > 3 else "")
-            out.append(f"bone(s) {who} carry the import stamp of '{idn}' while source bone(s) {gone} have no rig bone: "
-                       f"Blender's Symmetrize (and Duplicate) copy a bone's stamp onto the bone they write, so a renamed "
-                       f"mirror bone loses its identity. Undo the Symmetrize, or rename the mirror bone back to its import "
-                       f"name (a bone holding its import name is found by it), export, re-import and rename again")
+            out.append(f"bone(s) {who} carry the import stamp of '{idn}' while source bone(s) {gone} have no rig bone "
+                       "(Blender's Symmetrize or Duplicate): Undo it, or rename the mirror bone back")
         return out
 
     def changes(self) -> List[str]:
@@ -598,10 +595,8 @@ def name_conflicts(snapshot_names, resolution, extra=()) -> List[str]:
         if holder is not None and holder != who:
             other = ids[holder][1] if holder >= 0 else next(a for a in resolution.added if a.lower() == idn.lower())
             was = f" (it was '{ids[holder][0]}')" if holder >= 0 and ids[holder][0] != other else ""
-            out.append(f"bone '{idn}' was renamed to '{c}' and bone '{other}'{was} now has its old name: limb bone lists, "
-                       f"connection hosts and Actions name bones by their import name, so '{idn}' would mean two bones. "
-                       "Rename in two steps: give the bone a name no bone had, export and re-import, then rename again "
-                       "(or Undo)")
+            out.append(f"bone '{idn}' was renamed to '{c}' and bone '{other}'{was} now has its old name, so '{idn}' would "
+                       "mean two bones: use a new name, export, re-import and rename again (or Undo)")
     return out
 
 
@@ -911,8 +906,7 @@ class BoneInsert:
         if bad:
             cnt = int(np.isin(k, bad).sum())
             raise ValueError(f"{cnt} control point{'s are' if cnt != 1 else ' is'} skinned to an added bone that is not on "
-                             "the rig any more (its Add Bone undone in the rig's Edit Mode, or the bone deleted): they "
-                             "show orange in By Bone. Undo, or assign them to another bone (Boner > Bones > Select "
+                             "the rig any more (orange in By Bone): Undo, or assign another bone (Boner > Bones > Select "
                              "Unassigned)")
         top = int(k.max())
         lut = np.full(max(top + 1, 1), -1, dtype=np.int64)
@@ -1242,10 +1236,9 @@ def classify_added_bones(added, source_of, table_uids, n_src, stub_names=(), cha
             ident[named[0].name] = uid
         else:
             for b in bones:
-                refused[b.name] = (f"bone '{b.name}' was added: bones {', '.join(repr(x.name) for x in bones)} all carry the "
-                                   f"stamp of the bone Add Bone made as '{bones[0].stamp}' (Duplicate and Symmetrize copy "
-                                   "it) and none of them keeps that name, so which one is it can't be told: rename one "
-                                   f"back to '{bones[0].stamp}', or delete the copies")
+                refused[b.name] = (f"bone '{b.name}' was added: bones {', '.join(repr(x.name) for x in bones)} all carry "
+                                   f"the stamp of added bone '{bones[0].stamp}' and none of them keeps that name: rename "
+                                   "one back, or delete the copies")
     by_name = {b.name: b for b in added}
     depth: Dict[str, int] = {}
 
@@ -1263,9 +1256,8 @@ def classify_added_bones(added, source_of, table_uids, n_src, stub_names=(), cha
         if b.stub or b.name in refused:
             continue
         if b.src_stamp:
-            refused[b.name] = (f"bone '{b.name}' was added (it carries a source bone's import stamp: a copy Duplicate or "
-                               "Symmetrize made of a bone of the creature, which the export can't tell from that bone; "
-                               "add bones with Boner > Bones > Add Bone or Blender's Add / Extrude)")
+            refused[b.name] = (f"bone '{b.name}' was added (it carries a source bone's import stamp, from Duplicate or "
+                               "Symmetrize): use Boner > Bones > Add Bone or Blender's Add / Extrude")
             continue
         if not b.parent:
             refused[b.name] = (f"bone '{b.name}' was added at the root: a creature skeleton has one root bone (the "
@@ -1277,8 +1269,8 @@ def classify_added_bones(added, source_of, table_uids, n_src, stub_names=(), cha
             # Blender's Add / Extrude -- is plain new bones and is taken as it is, C8.3)
             orig = next((nm for nm, u in ident.items() if u == str(b.uid)), None) or b.stamp
             refused[b.name] = (f"bone '{b.name}' is a copy of the added bone '{orig}' (Duplicate / Symmetrize) with "
-                               f"{b.children} bone(s) under it, so the export can't tell a chain from a re-parent: "
-                               "Boner > Bones > Adopt Added Bones gives the copies their own identity")
+                               f"{b.children} bone(s) under it, so the export can't tell a chain from a re-parent: Boner > "
+                               "Bones > Adopt Added Bones gives the copies their own identity")
             continue
         if str(b.parent).lower() in stubs:
             refused[b.name] = (f"bone '{b.name}' was added under '{b.parent}', a stub bone (a stub limb's only bone, "

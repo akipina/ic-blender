@@ -1,21 +1,8 @@
-"""sceneobj.model -- the words every slice speaks (PLAN_FINAL contract C21). No Blender in here.
+"""Shared types of every slice: ``Issue``, bundles and reports, the ``Slice`` protocol and registry, ``refs.rename``,
+``claim_edit`` and small helpers.
 
-This module is imported by the pure tests (the venv python, no ``bpy``), so it must never import ``bpy`` and it reaches
-ICParse only when a function needs it. It holds:
-
-* ``Issue`` / ``issue()`` -- the one problem record. It is an adapter over ICParse's ``Finding`` (slice I00): calling it
-  returns a ``Finding``, with the fields ``code`` (``id``), ``level`` (``severity``), ``text`` and ``where``. Until I00 has
-  landed, a stand-in with the same fields is returned, so the add-on's checks work either way;
-* ``SourceBundle`` / ``OutBundle`` / ``ExportReport`` -- what a slice reads (the files as they were) and what it writes
-  (the files as they will be) during an export. ``OutBundle.shared`` carries the hand-over between export stages and only
-  accepts declared keys (``SHARED_KEYS``), so a misspelt key fails at once instead of silently handing nothing over;
-* ``Slice`` (the protocol), ``BaseSlice`` (do-nothing defaults) and the slice registry the exporter and the tests walk;
-* ``refs.rename`` -- tell every slice that a bone / clip / marker / material / part was renamed;
-* ``claim_edit`` -- a slice that now exports a kind of edit says so, and the safety guard stops refusing that edit;
-* small pure helpers shared by all slices (``foreach_get`` / ``foreach_set`` with explicit dtypes, the game-folder choice).
-
-Everything here is bpy-free on purpose: ``read`` / ``changed`` / ``apply`` / ``check`` of every slice are plain functions of bytes
-and plain data, so they are tested without Blender; only ``build`` and ``gather`` touch Blender.
+Never import bpy here (pure tests import it) and reach ICParse only inside functions. A slice's ``read`` / ``changed`` /
+``apply`` / ``check`` are pure; only ``build`` and ``gather`` touch Blender. ``OutBundle.shared`` takes ``SHARED_KEYS``.
 """
 from __future__ import annotations
 

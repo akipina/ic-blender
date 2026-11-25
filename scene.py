@@ -169,10 +169,8 @@ class SceneExport:
 
 def damage_states_refusal(name: str, count: int) -> str:
     """Why an edited part with damage states (morph targets) is not exported."""
-    return (f"'{name}' has damage states ({count} stored shapes the game blends into this part, such as a building's damage "
-            f"or a character's face); editing its mesh would break them, and editing them is not possible yet. Undo the "
-            f"edit to keep them, or tick \"Drop the damage states of edited parts\" when you export (File > Export, or Export "
-            f"Entity Folder in the Blueprint panel) to write the part without them")
+    return (f"'{name}' has damage states ({count} stored shapes); editing its mesh would break them. Undo the edit, or tick "
+            "\"Drop the damage states of edited parts\" in File > Export or Export Entity Folder")
 
 
 def part_objects(obj):
@@ -243,11 +241,9 @@ def build_part(obj, data, part) -> BuiltPart:
     n_out = len(order)
     from ICParse.sgm.scene.model import MAX_PART_VERTICES
     if n_out > MAX_PART_VERTICES:
-        raise ValueError(f"part '{obj.name}' comes to {n_out:,} vertices once it is split at UV seams and flat-shaded faces "
-                         f"(the game keeps one per distinct position, normal and UV); the game draws at most "
-                         f"{MAX_PART_VERTICES:,} per part and misreads the rest of the file above that. Reduce its detail "
-                         f"(apply a Decimate modifier, or use fewer seams and flat faces), or split it into two parts; this exporter "
-                         f"cannot add a part yet, so for now reducing the detail is the way")
+        raise ValueError(f"part '{obj.name}' comes to {n_out:,} vertices once split at UV seams and flat faces; the game "
+                         f"draws at most {MAX_PART_VERTICES:,} per part. Reduce its detail (Decimate, fewer seams) or split "
+                         "it into two parts")
     if n_out > nv:
         notes.append(f"{n_out - nv} vertices were added by splitting at UV seams / flat-shaded faces")
     unused = nv - len(np.unique(cv))

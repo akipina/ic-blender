@@ -1,26 +1,8 @@
 """Bpy-free glue between the add-on and the combiner (``pyRDN/combotest``, the only combiner).
 
-Nothing here combines, validates or parses on its own: combining is ``combotest.combine.combine``, the offline
-combine tier is ``combotest.validate``, formats are ICParse. This module turns add-on state into the combiner's
-inputs and its outputs into what the panel, the ghost overlay and Validate show:
-
-* :func:`status` -- is the combiner importable, is lupa (Lua) there, the game install, the stock creature dir;
-* :func:`stock_dir` / :class:`DonorIndex` / :func:`parent_for_file` -- the stock donor pool (indexed once per
-  directory state, disk-cached) and one cached :class:`combotest.loader.Parent` per file version (the combiner tells
-  animals apart by identity, so a creature must be one Parent);
-* :func:`companions` / :func:`blueprint_stem` / :func:`edited_parent` -- a Blender creature as a Parent: the
-  in-memory export model plus its sibling ``.lua``/``.lsc`` (or default attributes of ``default_size``, flagged);
-* :func:`run_preview` -> :class:`PreviewResult` -- one combine with the part buttons' semantics, its readout
-  (dropped parts in words, per-slot scales, stats with a delta against the creature alone, notes, timings);
-* :func:`build_ghost_arrays` -- the combined creature's surface arrays for the GPU overlay (numpy only; the batches
-  are built in ``combopreview``);
-* :func:`quick_validate` / :func:`format_messages` -- the Quick combine tier and its ``COMBINE ...`` lines;
-* :func:`ring_fix` / :func:`ring_status` -- a hand-picked connection ring put into the stock winding and start
-  (``combotest.validate.winding_into_torso`` / ``align_ring_start`` against the Quick donors' rings), and each ring's
-  OK / WARN / ERROR for the panel and the overlay.
-
-It is imported both as ``blender_native.combocore`` (Blender) and as a top-level module by the venv tests
-(``tests/combine_offline_test.py``), so it never imports bpy.
+Nothing here combines, validates or parses itself (combotest and ICParse do): it turns add-on state into the combiner's
+inputs and its outputs into what the panel, ghost overlay and Validate show. A creature must be one cached Parent per
+file version (the combiner tells animals apart by identity). Never import bpy: venv tests import this as a top-level module.
 """
 from __future__ import annotations
 
@@ -39,7 +21,7 @@ import numpy as np
 
 try:
     from . import core, fastsurf, material
-except ImportError:                      # imported top-level (tests put blender_native/ on sys.path)
+except ImportError:                      # imported top-level (tests put ic_blender/ on sys.path)
     import core  # type: ignore[no-redef]
     import fastsurf  # type: ignore[no-redef]
     import material  # type: ignore[no-redef]
@@ -210,13 +192,13 @@ def materialize_path(stem: str, blend_path: str = "", source_path: str = "", sto
 
 def extract_stock(out_dir: str, root: Optional[str] = None) -> List[str]:
     """Extract the base game's stock creatures (``Engine.sga`` ``art/ebps/stock/``: ``.ebp``, the embedded ``.sgm``,
-    ``.lua``, ``.lsc``) into ``out_dir`` with ``tools/extract_stock.py``'s :func:`extract`. Returns the paths written;
+    ``.lua``, ``.lsc``) into ``out_dir`` with ``stockextract.py``'s :func:`extract`. Returns the paths written;
     raises when the install or the archive is missing."""
     import importlib.util
     root = root or install_root()
     if not root:
-        raise SetupError("game install not found (set IC_INSTALL)")
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools", "extract_stock.py")
+        raise SetupError("game not found: set the Game folder in the add-on's preferences")
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stockextract.py")
     spec = importlib.util.spec_from_file_location("bz_extract_stock", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -1084,9 +1066,9 @@ def ring_start_plan(points, corners, slot_key, torso_centre_, partner_dirs, part
                        f"kept: the best start would win only {now[0] - best[0]:.1f} deg of the mean corner angle "
                        f"(under {float(gain):.1f})")
         if plan.reversed_gain > plan.margin:
-            plan.reason += (f"; the partners would rather weld it REVERSED ({plan.reversed_wins}/{plan.n}, by "
-                            f"{plan.reversed_gain:.0f} deg), which no rotation can give and the winding rule forbids: "
-                            "the ring's plane, not its start, is what differs from the stock sockets")
+            plan.reason += (f"; partners would weld it better REVERSED ({plan.reversed_wins}/{plan.n}, by "
+                            f"{plan.reversed_gain:.0f} deg), which the winding rule forbids: the ring's plane differs from "
+                            "the stock sockets")
         return plan
     s = best[3]
     plan.ok, plan.shift = True, s
@@ -1095,14 +1077,13 @@ def ring_start_plan(points, corners, slot_key, torso_centre_, partner_dirs, part
     # what the rotation is worth in metres: the weld pairs corner i to corner i, so rotating by s moves each welded
     # corner to where corner i + s was -- a seam displacement of up to the ring's own size
     plan.move_mm = float(max(np.linalg.norm(X[i] - X[(i + s) % len(corners)]) for i in range(len(corners)))) * 1000.0
-    plan.reason = (f"rotate the start by {s} (corner {corners[s]} first): mean corner angle to {plan.n} stock "
-                   f"{slot_key} ring(s) {now[0]:.0f} -> {best[0]:.0f} deg, worst gap to the best pairing "
-                   f"{now[2]:.0f} -> {best[2]:.0f} deg, partners over the {plan.margin:.0f} deg margin "
-                   f"{now[1]} -> {best[1]}; it moves the worst welded corner {plan.move_mm:.0f} mm along the seam")
+    plan.reason = (f"rotate the start by {s} (corner {corners[s]} first): mean corner angle to {plan.n} stock {slot_key} "
+                   f"ring(s) {now[0]:.0f} -> {best[0]:.0f} deg, worst gap {now[2]:.0f} -> {best[2]:.0f} deg, partners over "
+                   f"the {plan.margin:.0f} deg margin {now[1]} -> {best[1]}; worst corner moves {plan.move_mm:.0f} mm along "
+                   "the seam")
     if plan.over_after:
-        plan.reason += (f"; {plan.over_after} partner(s) stay over the margin -- the reversed pairing beats every "
-                        f"rotation by {plan.reversed_gain:.0f} deg, so that ring's PLANE differs from the stock "
-                        "sockets (a rotation cannot fix that, and reversing it would break the winding rule)")
+        plan.reason += (f"; {plan.over_after} partner(s) stay over the margin: reversed beats every rotation by "
+                        f"{plan.reversed_gain:.0f} deg, so the ring's PLANE differs from the stock sockets")
     return plan
 
 
@@ -1194,9 +1175,9 @@ def ring_status(world, patches, patch_limb, limb_ids, rows, stock_dir: Optional[
             continue
         al = V.align_ring_start(X, refs)
         if al.shift:
-            st._flag("WARN", f"the start corner is {al.shift} off the stock start (mean corner angle to {al.n} stock "
-                             f"rings {al.before_deg:.0f} deg, {al.after_deg:.0f} deg from corner {al.shift}): the "
-                             "by-index weld twists it; Optimise Ring Start rotates it in place (Pick Ring re-picks it)")
+            st._flag("WARN", f"the start corner is {al.shift} off the stock start (mean angle to {al.n} stock rings "
+                             f"{al.before_deg:.0f} deg, {al.after_deg:.0f} deg from corner {al.shift}), twisting the weld: "
+                             "use Optimise Ring Start or Pick Ring")
     return out
 
 

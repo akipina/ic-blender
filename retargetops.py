@@ -1,34 +1,8 @@
-"""Retarget Creature to Mesh (roadmap A3): keep a creature's patch layout, limbs, connection rings, skeleton,
-skinning and clips, and fit its surface to another mesh.
+"""Retarget Creature to Mesh: keep the creature's patches, limbs, rings, skeleton, skinning and clips and move only its
+control points (``ICParse.codecs.fit.fit_points``, journaled, so one Undo restores it).
 
-The creature's control points are the unknowns and its own patch table the layout: ``ICParse.codecs.fit.fit_points``
-(the one solver) moves them until the surface passes through the target mesh's vertices (normal-aware). Nothing
-else about the creature changes -- every table is left alone, only the pool is written (through the journaled edit,
-so one Undo gives the creature back and Export rewrites only the points that moved). Three things make the result
-a game creature rather than a shape:
-
-* **rings pinned** (default): the control points of every connection ring are ``fixed`` in the solve, so each
-  socket keeps the stock ring geometry the combiner welds and scales at, and the creature combines as before. With
-  the rings free the sockets follow the target and the combiner scales (and may warn about) the changed rings.
-* **scale to target** (default): the target is first rigidly aligned INTO THE CREATURE'S FRAME -- centred on the
-  creature's surface bounding box and scaled uniformly by the ratio of the bounding diagonals -- so a wolf model in
-  metres fits the wolf rig at the rig's size. The creature keeps its game size; the target is what moves (the
-  report says the scale). Bones are never moved by this alignment.
-* **symmetry**: when the creature's control net and the target are both X-symmetric, the fitted DISPLACEMENT is
-  mirrored exactly (partners averaged through the net's mirror pairs, on-plane points kept on the plane), so the
-  result is as symmetric as the creature was and the retarget adds no asymmetry (a stock net's own sub-millimetre
-  asymmetry is kept -- it is not our edit; a fit to the creature's own surface leaves every point alone).
-
-Seam smoothness defaults to 0 because stock creatures are only C0 across patch seams by design (the smoothing-group
-normals hide the kink); a soft C1 term is for fitting foreign shapes, and it costs fidelity.
-
-The skeleton keeps its bind pose (valid: the game plays it) unless **move bones** (default) translates each bone's
-rest head and tail by the mean displacement of the control points it owns (rigid skinning, the owner table), a bone
-that owns no points by its parent's move, through the rig's rest-pose edit path: Export detects the edited bones
-against the import-time snapshot and writes them as bone overrides, re-expressing owned points in the new bind
-(README P11). Hierarchy and names are untouched.
-
-The bpy-free part (``retarget_pool`` and its helpers) is what a pure test can run; the operator needs ``bpy``.
+Defaults: rings pinned (stock socket geometry), target aligned into the creature's frame, symmetry kept, seam smoothing
+0 (stock seams are only C0), bones moved with their points (exported as overrides). ``retarget_pool`` stays bpy-free.
 """
 from __future__ import annotations
 
@@ -42,7 +16,7 @@ from ICParse.codecs import fit
 
 try:
     from . import core, fitops
-except ImportError:                      # imported top-level (a pure test puts blender_native/ on sys.path)
+except ImportError:                      # imported top-level (a pure test puts ic_blender/ on sys.path)
     import core  # type: ignore[no-redef]
     import fitops  # type: ignore[no-redef]
 
@@ -405,57 +379,33 @@ def resolve_target(op, context, obj, name):
     pts, _ = fitops._mesh_arrays(me_eval)
     topo = fitops.target_topology(me_eval, fitops.bounding_diagonal(pts))
     if topo.parts != 1:
-        op.report({"ERROR"}, f"{fitops.parts_reason(tgt.name, topo)}: a creature is one closed skin, and separate "
-                             "shells (eyes inside sockets, a floating limb) pull the surface the wrong way. "
-                             "Merge by Distance / separate them (Edit Mode: P > By Loose Parts) and retarget to "
-                             "the skin alone")
+        op.report({"ERROR"}, f"{fitops.parts_reason(tgt.name, topo)}: a creature is one closed skin. Merge by Distance or "
+                             "separate extra shells (Edit Mode: P > By Loose Parts) and retarget to the skin alone")
         return None
     return tgt, me_eval
 
 
 class BZ_OT_retarget_mesh(_Operator):
-    """Fit this creature's surface to another mesh while keeping its patch layout, limbs, connection rings (pinned
-    by default), skeleton, skinning and clips: the control points move (undoable; Export writes only the moved ones)
-    and, with Move Bones, the rest bones follow the skin they own. The target is scaled into the creature's frame
-    first; the target mesh itself is not changed"""
+    """Fit this creature to another mesh, keeping its patches, skeleton and animations"""
     bl_idname = "bz.retarget_mesh"
     bl_label = "Retarget Creature to Mesh"
     bl_options = {"REGISTER", "UNDO"}
 
     if bpy is not None:
         target: StringProperty(name="Target Mesh", default="", search=_mesh_search,
-                               description="The mesh object whose shape the creature takes (one closed skin, not a "
-                                           "creature or a sculpt mesh)")
+                               description="The mesh whose shape the creature takes")
         iterations: IntProperty(name="Iterations", default=10, min=1, max=50,
                                 description="Project-and-solve rounds of the fit")
         smooth: FloatProperty(name="Seam Smoothness", default=0.0, min=0.0, soft_max=1.0, precision=3,
-                              description="Weight of the soft C1 term across patch seams. 0 (default) keeps the "
-                                          "creature's seams as the game has them: stock creatures are only C0 across "
-                                          "seams by design, the smoothing groups hide the kink; a positive weight "
-                                          "smooths seams at the cost of fidelity to the target")
+                              description="How strongly seams are smoothed; 0 keeps them as in the game")
         pin_rings: BoolProperty(name="Pin Rings", default=True,
-                                description="Keep every connection ring's control points exactly where they are, so "
-                                            "each socket stays at the stock ring geometry the combiner welds and "
-                                            "scales at and the creature combines as before. Off: the rings follow "
-                                            "the target and the combiner scales (and may warn about) the changed "
-                                            "rings")
+                                description="Keep connection rings in place so the creature combines as before")
         symmetry: BoolProperty(name="Keep Symmetry", default=True,
-                               description="When the creature's control net and the target are both X-symmetric, "
-                                           "mirror the fitted displacement exactly so the result is as symmetric as "
-                                           "the creature was (no asymmetry is added by the fit)")
+                               description="Keep the result symmetric when the creature and target are symmetric in X")
         scale_to_target: BoolProperty(name="Scale to Target", default=True,
-                                      description="First align the target into the creature's frame: centre it on "
-                                                  "the creature's surface bounding box and scale it uniformly by the "
-                                                  "ratio of the bounding diagonals, so a model in other units fits "
-                                                  "the rig at the creature's game size (the creature keeps its size; "
-                                                  "bones are not moved by this). Off: the target is fitted where it "
-                                                  "is, at its size")
+                                      description="First centre and scale the target to fit the creature")
         move_bones: BoolProperty(name="Move Bones", default=True,
-                                 description="Translate each rest bone by the mean displacement of the control "
-                                             "points it owns (a bone owning none follows its parent) so the rig "
-                                             "stays inside the retargeted skin; Export writes the moved bones as "
-                                             "bone overrides (P11). Off: bones keep their bind pose, which the game "
-                                             "plays but may leave bones outside the new skin")
+                                 description="Move the rest bones along with the skin they own")
 
     @classmethod
     def poll(cls, context):
@@ -464,7 +414,7 @@ class BZ_OT_retarget_mesh(_Operator):
     def execute(self, context):
         obj = ops._active_native(context)
         if obj is None:
-            self.report({"ERROR"}, "Select a native patch creature to retarget")
+            self.report({"ERROR"}, "Select a patch creature to retarget")
             return {"CANCELLED"}
         if obj.mode == "EDIT":
             obj.update_from_editmode()
@@ -539,16 +489,14 @@ class BZ_OT_retarget_mesh(_Operator):
             self.report({"WARNING"}, f"{obj.name} has an object transform: the fit is in its local space, and Export "
                                      "refuses a creature with a transform (apply or clear it)")
         if not self.pin_rings:
-            self.report({"WARNING"}, f"the {n_ring} connection-ring control points moved with the fit: the combiner "
-                                     "will scale the changed rings and may warn about them (Validate's combine tier "
-                                     "shows it); Pin Rings keeps the stock ring geometry")
+            self.report({"WARNING"}, f"the {n_ring} connection-ring control points moved with the fit, so combining may "
+                                     "scale them and warn; Pin Rings keeps the stock rings")
         if r.coverage.max_pct > 2.0:
             self.report({"WARNING"}, f"parts of the retargeted surface are up to {r.coverage.max_pct:.1f} % of the "
                                      "size away from any target vertex (the target has no vertices there)")
         if bone_drift > 2e-3:
-            self.report({"WARNING"}, f"a moved bone's orientation drifted by {1000 * bone_drift:.1f} mrad (Blender stores "
-                                     "bones as float32 head / tail: a bone shorter than a millimetre can't hold its "
-                                     "direction better); the rest shape is exact, clips play that bone that much off")
+            self.report({"WARNING"}, f"a moved bone's orientation drifted by {1000 * bone_drift:.1f} mrad (very short bones "
+                                     "lose precision): the rest shape is exact, clips differ by that much")
         if not self.move_bones and arm is not None:
             self.report({"INFO"}, "the bones keep their bind pose (valid; they may sit outside the new skin -- Move "
                                   "Bones translates them by the skin they own)")

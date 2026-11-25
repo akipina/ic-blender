@@ -1,6 +1,6 @@
 """Textured rendering of the live bicubic surface: a custom texture x lighting shader plus
 per-material draw lists. Shared by the live viewport overlay (draw.py) and the offscreen
-verifier (tools/offscreen_preview.py), so what we verify is exactly what ships.
+tests, so what we verify is exactly what ships.
 
 Per surface vertex we carry pos, uv and a `col` that bakes the lambert shade (and, for
 flat/untextured slots, the material base colour). One vertex buffer is drawn once per material

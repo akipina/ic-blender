@@ -1,18 +1,8 @@
-"""sceneobj.ui_kit -- the Blender 5.x interface pieces every slice reuses (PLAN_FINAL contract C21).
+"""Shared Blender UI pieces: ``alert`` / ``issue_rows``, the one list ``BZ_UL_rows``, ``SubPanel`` and
+``draw_scene_pointer``. Pure logic lives in ``model``.
 
-Panels, lists and messages for gatherers, characters, structures and props are built from these, so they look and behave alike:
-
-* ``alert(layout, text)`` / ``issue_rows(layout, issues)`` -- a wrapped red message, and one row per problem (the exporter's and
-  the checks' findings) with an icon by severity;
-* ``BZ_UL_rows`` -- ONE registered list, ``layout.template_list("BZ_UL_rows", "<list id>", data, "rows", ...)``. Blender filters it by
-  name and sorts it itself; a slice only says how a row looks with ``@row_drawer("<list id>")`` and registers no list class of its own;
-* ``SubPanel`` -- the base of the sub-panels of the Entity panel: shown only where the entity has the capability (never by subtype),
-  closed by default, ordered with ``bl_order``. A slice subclasses it, sets ``bl_idname``, ``bl_label``, ``bl_order``, ``capability``
-  and ``draw``, and lists the class in its module's ``CLASSES`` (this base class is never registered);
-* ``draw_scene_pointer(layout, obj)`` -- what the 3D-view "SGM" panel shows under a scene object (a gatherer, character, structure
-  or prop): today the short info + export buttons, and as soon as the Entity panel exists, a one-line pointer to it.
-
-This module is for Blender; the pure logic lives in ``model``.
+Add list rows with ``@row_drawer`` instead of registering list classes. ``SubPanel`` is never registered itself;
+subclasses go in their module's ``CLASSES``.
 """
 from __future__ import annotations
 
@@ -146,7 +136,7 @@ class SubPanel(bpy.types.Panel):
     ``capability`` and draws itself; it is shown only when the active entity has that capability, and starts closed."""
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = "BZ_PT_entity"
     bl_options = {"DEFAULT_CLOSED"}
     capability = ""
@@ -156,9 +146,9 @@ class SubPanel(bpy.types.Panel):
         return has_capability(context, cls.capability)
 
 
-# ---------------------------------------------------------------------------------------------------- the 3D-view SGM panel
+# ---------------------------------------------------------------------------------------------------- the 3D-view IC panel
 def draw_scene_pointer(layout, obj, *, rig_box=None) -> None:
-    """What the "SGM" panel shows under a scene part object. Once the Entity panel exists this is a single pointer line; until then it
+    """What the "IC" panel shows under a scene part object. Once the Entity panel exists this is a single pointer line; until then it
     is the short info box and the export buttons the panel always had. ``rig_box(layout, obj)`` draws the rig / animation box
     (the panel passes its own)."""
     if panel_registered("BZ_PT_entity"):

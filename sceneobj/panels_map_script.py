@@ -206,7 +206,7 @@ def draw_exprs(layout, top, owner, which: str, title: str, *, controller: bool =
 # ---------------------------------------------------------------------------------------------------- groups and variables
 def draw_groups(layout, context, top) -> None:
     layout.label(text="Groups")
-    _hint(layout, "A group is a named set of placed objects. Triggers use it to act on all of them at once.", width=44)
+    _hint(layout, "A named set of placed objects that triggers can act on at once.", width=44)
     row = layout.row()
     row.template_list("BZ_UL_script_rows", "script_groups", top, "bz_script_groups", top, "bz_script_groups_index", rows=4)
     col = row.column(align=True)
@@ -236,15 +236,13 @@ def draw_groups(layout, context, top) -> None:
         layout.label(text=f"{o.name} is in: " + (", ".join(mine) if mine else "no group"))
     layout.separator()
     layout.label(text="Variables")
-    _hint(layout, f"The map has {len(top.bz_script_vars)} variables, numbered from 0. A trigger can set and test them. Rename one by "
-                  "double-clicking its name.", width=44)
+    _hint(layout, f"{len(top.bz_script_vars)} variables for triggers; double-click a name to rename it.", width=44)
     layout.template_list("BZ_UL_script_rows", "script_vars", top, "bz_script_vars", top, "bz_script_vars_index", rows=4)
 
 
 # ---------------------------------------------------------------------------------------------------- triggers
 def draw_triggers(layout, context, top) -> None:
-    _hint(layout, "A trigger fires its actions when all its conditions are true, for the players it is set for. Triggers are saved in "
-                  "the map's .trg file.", width=44)
+    _hint(layout, "A trigger runs its actions when all its conditions are true.", width=44)
     row = layout.row()
     row.template_list("BZ_UL_script_rows", "script_triggers", top, "bz_script_triggers", top, "bz_script_triggers_index", rows=6)
     col = row.column(align=True)
@@ -286,8 +284,7 @@ def draw_triggers(layout, context, top) -> None:
 
 # ---------------------------------------------------------------------------------------------------- dialog triggers
 def draw_dialogs(layout, context, top) -> None:
-    _hint(layout, "A dialog is a list of actions only (no conditions), played one after another by the 'Play dialog' action with the "
-                  "dialog's number. With Controller on, the next action waits until that one has finished. Saved in the map's .dlg file.",
+    _hint(layout, "Actions run in order by 'Play dialog'; Controller waits for each to finish.",
           width=44)
     row = layout.row()
     row.template_list("BZ_UL_script_rows", "script_dialogs", top, "bz_script_dialogs", top, "bz_script_dialogs_index", rows=4)
@@ -315,8 +312,7 @@ def draw_dialogs(layout, context, top) -> None:
 
 # ---------------------------------------------------------------------------------------------------- AI scripts and armies
 def draw_ai(layout, context, top) -> None:
-    _hint(layout, "For single-player maps: a Lua AI script and an army file for each player slot, as DATA:SCENARIOS\\SP\\... paths. Leave "
-                  "a slot empty for no script.", width=44)
+    _hint(layout, "Single-player: a Lua AI script and army file per slot (DATA:SCENARIOS\\SP\\...).", width=44)
     if not len(top.bz_script_ai_scripts) and not len(top.bz_script_ai_armies):
         layout.label(text="This map has no per-player AI list.")
         return
@@ -331,7 +327,7 @@ def draw_ai(layout, context, top) -> None:
 class _Sub:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = H.MAP_PANEL_ID
     bl_options = {"DEFAULT_CLOSED"}
 

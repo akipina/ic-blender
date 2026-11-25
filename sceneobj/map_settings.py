@@ -59,8 +59,8 @@ def _view():
 class BZ_PG_map_settings(PropertyGroup):
     """The map's header as Blender shows it (``Collection.ic_settings``)."""
     ready: BoolProperty(default=False)
-    title: StringProperty(name="Map name", description="The text the game shows in its map list. A name like $42001 is a string of the game's "
-                          "language files; any other text is shown as it is")
+    title: StringProperty(name="Map name", description="Name in the game's map list; a code like $42001 is a language-file "
+                                                       "text")
     kind: EnumProperty(name="Kind", items=[("2", "Multiplayer", "Listed in the game's multiplayer map list; saved in Data/scenarios/mp"),
                                            ("1", "Single player", "A campaign or scripted map; saved in Data/scenarios/sp")], default="2")
     players: IntProperty(name="Players", min=1, max=8, default=2, description="How many players the map is made for (the game lists a "
@@ -153,9 +153,8 @@ def save_side_files(sctx) -> None:
         data = _view().game_data(game_dir) if game_dir else None
         side = sc.template_side_files(data, key, sctx.name)
         if not side:
-            sctx.add_warning(f"The files a new map needs beside it (its ground picture, minimap and icon, from the terrain template {key}) could "
-                             "not be read: no game folder was found. Without the ground picture the game paints the map magenta. Set the game "
-                             "folder in the add-on's preferences and save again.")
+            sctx.add_warning(f"No game folder was found, so the new map's ground picture, minimap and icon (template {key}) "
+                             "are missing and the game paints it magenta. Set the folder and save again.")
         side[f"{sctx.name}.trg"] = sc.TRG_EMPTY
         for fname, raw in side.items():
             if fname not in sctx.files:
@@ -460,8 +459,8 @@ def check_files(cctx) -> list:
         return []
     game_dir = prefs.resolve_game_dir(cctx.context)[0]
     if not game_dir:
-        return [H.problem(H.ERROR, "No game folder was found, so the ground picture, minimap and icon of the new map cannot be copied from its "
-                                   "terrain template: the game would paint the map magenta. Set the game folder in the add-on's preferences.", None)]
+        return [H.problem(H.ERROR, "No game folder was found, so the new map's ground picture, minimap and icon cannot be "
+                                   "copied (magenta in game): set it in the preferences.", None)]
     data = _view().game_data(game_dir)
     missing = [s for s in _sc().SIDE_SUFFIXES if not data.read(f"scenarios/mt/{key}{s}")]
     return [H.problem(H.WARNING, f"The terrain template {key} has no file {m} in the game's files.", None) for m in missing]

@@ -166,12 +166,11 @@ def skin_segments(heads, parents) -> np.ndarray:
     return T
 
 
-AUTO_TARGETS = (("AUTO", "Selected, else Unassigned", "Edit Mode: the selected control points, or every unassigned "
-                 "one when none are selected. Object Mode (the selection is not shown): every unassigned one"),
+AUTO_TARGETS = (("AUTO", "Selected, else Unassigned", "Edit Mode: selected points (or all unassigned); Object Mode: all "
+                                                      "unassigned"),
                 ("SELECTED", "Selected", "The selected control points (Edit Mode)"),
                 ("UNASSIGNED", "Unassigned", "Every control point with no bone"),
-                ("ALL", "Reset All", "Every control point (Boner's Reset: re-derive the whole skin from the skeleton, "
-                 "replacing the skin the creature has)"))
+                ("ALL", "Reset All", "Replace the whole skin, derived again from the skeleton (Boner's Reset)"))
 
 
 def skin_targets(owners, selected, target="AUTO") -> np.ndarray:
@@ -201,9 +200,8 @@ def auto_target_refusal(target, selected, in_edit_mode) -> Optional[str]:
         return None
     sel = np.asarray(selected, dtype=bool).reshape(-1)
     if target in ("AUTO", "SELECTED") and len(sel) and sel.all():
-        return (f"every control point is selected ({len(sel)}): Auto Skin would replace the creature's whole skin. Use "
-                "Reset All for that, or select only the points to skin (Alt+A clears the selection; Select "
-                "Unassigned selects the orange ones)")
+        return (f"every control point is selected ({len(sel)}), so Auto Skin would replace the whole skin: use Reset All, "
+                "or select only the points to skin (Alt+A clears the selection)")
     return None
 
 
@@ -362,9 +360,8 @@ def standard_root_refusal(std, root, owner) -> Optional[str]:
     tail = ("a limb with no bones makes the engine's model loader report 'limbs are boneless!' and ComboTest.exe won't "
             "take the creature")
     if root is None:
-        return (f"the skeleton has no bone '{std.root}' for the {class_label(std.limb_id)} limb's root: add it first "
-                f"(Boner > Bones > Add Bone, under the bone it should hang from -- a bone added there can root this "
-                f"limb), or give an existing limb this class; {tail}")
+        return (f"the skeleton has no bone '{std.root}' for the {class_label(std.limb_id)} limb's root: add it first (Boner "
+                f"> Bones > Add Bone), or give an existing limb this class; {tail}")
     if owner is not None:
         return (f"bone '{root}', the {class_label(std.limb_id)} limb's root, already belongs to limb '{owner}': delete "
                 f"that limb or take the bone out of it first; {tail}")
@@ -627,8 +624,8 @@ def _host_refusal(verb, lists, new, limb_ids, limb_names, hosts):
             where.setdefault(_low(b), (str(b), limb_names[j]))
     parts = [f"{where.get(k, (k, None))[0]} (hosts {', '.join(hosts[k][:3])}{', ...' if len(hosts[k]) > 3 else ''})"
              for k in gone]
-    return (f"{verb} would take {'; '.join(parts)} out of the Torso: a torso connection's host bone stays a Torso bone "
-            "(every base-game creature's does) or ComboTest.exe fails 'Index >= 0' with this creature as the torso")
+    return (f"{verb} would take {'; '.join(parts)} out of the Torso: a torso connection's host bone stays a Torso bone, or "
+            "ComboTest.exe fails 'Index >= 0'")
 
 
 @dataclass
@@ -657,9 +654,8 @@ def _finish_edit(limb_lists, new_lists):
 
 
 def _boneless_refusal(j, limb_names, bones) -> str:
-    return (f"limb '{limb_names[j]}' would have no bones left (it has only {', '.join(bones)}): a limb with no bones "
-            "makes the engine's model loader report 'limbs are boneless!' and ComboTest.exe won't take the creature; "
-            "give it another bone first, or delete that limb")
+    return (f"limb '{limb_names[j]}' would have no bones left (it has only {', '.join(bones)}): the engine reports 'limbs "
+            "are boneless!'; give it another bone first, or delete that limb")
 
 
 def _check_index(index, limb_lists):
@@ -729,10 +725,8 @@ def set_root_edit(index, root, skeleton_names, parents, limb_lists, limb_ids, li
             dest = f"'{limb_names[torso]}'" if torso >= 0 else "no limb"
             raise ValueError(
                 f"Set Root Bone '{skeleton_names[r]}' would leave {', '.join(roots)} (the standard root of "
-                f"{', '.join(class_label(std[_low(b)]) for b in roots)} limbs) to {dest}: no base-game Torso lists a "
-                "standard limb root, and with this creature as the torso ComboTest.exe's skeleton gets two bones of "
-                f"that name (cheetah's: the grafted front leg lands 0.21 m off); keep the root at {roots[0]} or above, "
-                "or move single bones with Add / Remove Active Bone")
+                f"{', '.join(class_label(std[_low(b)]) for b in roots)} limbs) to {dest}: combining then gives two bones of "
+                f"that name. Keep the root at {roots[0]} or above, or use Add / Remove Active Bone")
         if torso >= 0 and home:
             new[torso] = merge_order(new[torso], list(new[torso]) + home, skeleton_names, src[torso])
         moved += [(b, index, still[_low(b)] if _low(b) in still else torso) for b in dropped]
@@ -1287,10 +1281,8 @@ HARD_CODED_USES = (
 
 # what a rename away from the name was MEASURED to do in the game's tools (the generic uses above say where it is read)
 MEASURED_LOSS = {
-    "tail1": ("measured in ComboTest.exe (cheetah tail1 renamed, as the torso): with another creature's tail the tail "
-              "seam tears (vertices on the root bone, up to 0.27 m off; Validate's combine checks report such designs "
-              "as COMBINE ERROR), and with a kept tail the combined creature loses its TailWag procedural clip and tail "
-              "ground clearance"),
+    "tail1": ("measured in ComboTest.exe: with another creature's tail the tail seam tears, and with a kept tail the "
+              "combined creature loses its TailWag clip and tail ground clearance"),
     "tail2": ("measured in ComboTest.exe (cheetah tail2 renamed, as the torso + bull head): the combined creature loses "
               "its TailWag procedural clip"),
 }

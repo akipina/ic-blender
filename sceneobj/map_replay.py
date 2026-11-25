@@ -1,57 +1,8 @@
-"""sceneobj.map_replay -- act a cinematic out on Blender's timeline (the "Replay").
+"""Replay: act a cinematic out on the timeline from ``ICParse.sgb.cine_timeline`` events: stand-ins, a camera, markers and
+a text marking each event exact, approximate or skipped. Camera, fade and path rules are decompiled from IC.exe.
 
-What it does. The game plays a cinematic by running the map's trigger script (``<map>.trg``) together with the simulation that carries
-out its orders. ``ICParse.sgb.cine_timeline`` reads that script and says, second by second, what happens (a :class:`Timeline` of
-events, each marked exact, approximate or skipped). This module turns such a timeline into a collection ``<map> replay``:
-
-* a **stand-in** for every object the cinematic touches: an instance of the very model the placed object uses, keyframed from the
-  events (so the map's own objects are never moved: the save of a map reads those). While the replay is shown the originals it
-  stands in for are hidden in the 3D view; clearing the replay shows them again;
-* one **replay camera** that plays the cinematic's camera animations one after the other (play, cut, pause, resume, stop), and
-  timeline markers bound to cameras so the scene camera switches by itself (also to an NIS camera);
-* the frame rate and the frame range of the scene are set to the cinematic (and put back when the replay is cleared);
-* a text ``Replay <cinematic>`` that lists every event with its time, what it does, and whether it is exact, approximate or skipped.
-
-What each event does on the timeline (frames are ``1 + seconds x 30``):
-
-========================  =====================================================================================================
-teleport                  a step in position (constant keys); the heading too when it is given
-walk                      location keys along the route (linear, a key per path point and at least every 3 m, on the ground),
-                          the heading turns at each bend; the time is the event's ``t_end`` or the route over the speed
-face / look_at            the stand-in turns at that time (at once: the game turns the creature over a moment)
-despawn / delete          hidden from then on (``hide_viewport`` and ``hide_render`` keys, constant)
-respawn / visible / create  shown again (a created object is hidden before it exists, at the given place)
-anim                      the clip number is keyed on the custom property ``replay_anim`` and, where the model has a clip of that
-                          name, the clip plays on a copy of the model (see ``clip_for``)
-motion_var                a keyed custom property ``mv_<name>`` of the stand-in
-move_anim / obj_anim      the stand-ins follow the 0.7.0 path of that animation (``map_cinematics``), at its speeds
-nis start / end           ``map_nis.build_nis`` builds the animated stand-in and its camera; shown between start and end
-camera                    the replay camera blends to the animation's first point (its blend-in time), then follows the path at the
-                          animation's speeds; pause holds it, resume goes on, cut / a new play takes over from where it is
-anim_camera use / done    a marker binds the scene camera to the NIS camera and back
-fade                      a black plane in front of the replay camera whose opacity is keyed
-cinematic_mode, focus,    listed with a marker, not drawn
-dialog
-========================  =====================================================================================================
-
-Axes. The timeline speaks the game's axes (x, y up, z); Blender's are (x, -z, y), as for every placed object. The timeline's heading is
-the game's own, in radians (0 for the identity matrix, the unit looks along (sin h, cos h) in x, z: ``cine_timeline.heading_of``); the
-replay turns it into degrees about Blender's up axis (``-degrees(h)``) and keys that. The stand-in's own facing at the start is the
-placed object's matrix applied to +z.
-
-Where the rules come from (decompiled, IC.exe, decomp/ic/src/Simulation; the trigger tick of 1/8 s, the trigger passes, the walks and the NIS lengths are
-``cine_timeline``'s and ``map_nis``'s, which cite their own code):
-
-* the camera: ``CameraAnim::Play`` 0x004e418c / ``Restart`` 0x004e43ee (blend from where the camera is to the first point over the blend-in time, unless
-  already there), ``PathAnim::Update`` 0x004f1c9e (the blend in moves nothing, then ``dist += dt * speed``), ``CameraAnim::CutFrom`` 0x004e4635 (a cut takes
-  over from the pose the old animation left); how far along the path an animation is at each moment is the timeline's ``samples``;
-* the fade: ``FadeAnim.cpp`` 98 / 126 / 181 (a black quad of alpha ``m_current``, linear from ``from`` to ``to`` over the duration; 1 is black);
-* a move animation: ``MoveAnim_SetEntity`` 0x004edfb4 / ``WarpEntityTransform`` 0x004ee0d0 (one entity, the path's own positions) -- inferred;
-* an animation text: ``PlayAnimation`` sets a motion NODE of the blueprint (``cine_timeline``: 0x004c85df); the node's clip is a leaf below it, the last that is not
-  an idle (inferred: the conditions that pick among children are not run), looping when bit 0 of the node flags is set (as ``nis_scene.schedule`` reads it).
-
-The replay never changes the map: its objects live in their own collection outside the map's, carry no ``ic_*`` key the save reads,
-and the originals are only hidden in the view layer.
+Frames are ``1 + seconds x 30``; game (x, y up, z) is Blender (x, -z, y); a heading ``h`` is keyed as ``-degrees(h)``.
+Never change the map: replay objects live outside its collection with no ``ic_*`` key; originals are only hidden.
 """
 from __future__ import annotations
 
@@ -106,10 +57,6 @@ def _g(obj, name, default=None):
 
 def frame_of(t: float) -> int:
     return FRAME0 + int(round(float(t) * FPS))
-
-
-def time_of(frame: float) -> float:
-    return (float(frame) - FRAME0) / FPS
 
 
 def g2b(p) -> Vector:
@@ -229,13 +176,6 @@ class Track:
                     return a[1] + (b[1] - a[1]) * (t - a[0]) / (b[0] - a[0])
                 return a[1]
         return keys[-1][1]
-
-    def visible_at(self, t: float) -> bool:
-        v = self.vis[0][1]
-        for k in self.vis:
-            if k[0] <= t:
-                v = k[1]
-        return v
 
     # -- writing (always in time order; a new event cuts what an earlier one had planned beyond it)
     def cut(self, t: float) -> None:

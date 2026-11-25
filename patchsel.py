@@ -1,33 +1,8 @@
-"""Patch-level selection on the control-point mesh (B6): corner quads, hide / unhide, Delete Patch, vertex types.
+"""Patch selection: one quad face per patch over corner slots 0, 12, 15, 3 (winding matches the surface normal), so
+Blender's Face mode selects and hides patches; the visible surface stays the GPU overlay.
 
-The editable mesh carries ONE QUAD FACE PER PATCH over the patch's four corner control points (slots 0, 12, 15, 3:
-this winding agrees with the bicubic surface normal on every stock patch), built at import (``build.py``) and
-maintained by every operator that adds or removes patches (Extrude Patch, Delete Patch). The faces are never
-shaded: the object is displayed as Wire (Blender draws no fill for it in Solid shading and, in Edit Mode, only the
-quads' edges -- the patch outline, orange when selected), and the visible surface stays the gpu overlay. What the
-faces give:
-
-* Blender's Face select mode IS patch selection: click a patch, box / lasso / circle over patches, Select Linked,
-  Grow / Shrink along the net. Every add-on operator that took "a patch = its 4 corners selected" now takes the
-  selected faces first (:func:`selected_rows`), the 4-corner rule as the fallback.
-* Occlusion: with faces present, a box select with X-ray off no longer takes the far side of the creature -- that is
-  Blender's own rule (the selection depth test uses the mesh's faces; X-ray / Alt+Z selects through), not code here.
-* Hide (H) / Unhide (Alt+H) on faces: the overlay skips a patch whose face is hidden (:func:`hidden_rows`).
-  :class:`BZ_OT_hide_patches` also hides the handles used only by hidden patches; :class:`BZ_OT_unhide_patches`
-  reveals faces, corners and handles but keeps the interior points hidden (the B5 rule), which Blender's own
-  Alt+H would reveal -- so Alt+H is routed to it in Edit Mode on a native creature (an add-on keymap; the operators'
-  polls fall through to Blender's own keys on any other object).
-* Delete: :class:`BZ_OT_delete_patch` (X > Patches, or the Modeling box) removes the selected patches from the SGM
-  tables, drops the control points no other patch uses (the pool is compacted and every index table -- patches,
-  rings, limbs, UVs, materials, types, manual flags -- remapped; per-point data travels with its vertex) and refuses
-  a patch on a connection ring, naming the ring. Blender's own X > Faces is intercepted by the same keymap
-  (:class:`BZ_OT_delete_menu`); a native face delete that gets through (the F3 search, a script) is caught by the
-  pool guard (:func:`face_error`: the mesh must hold exactly one corner quad per patch, in patch order), which names
-  Delete Patch and Undo. Deleting VERTICES stays refused as before.
-
-Degenerate patches (two corner slots on the same pool point: 6 patches in the base game) get no face; two patches
-over the same four corners (a front / back fin: hornbill, lammergeier) get two faces over the same vertices, which
-Blender tolerates. :func:`face_rows` is the one rule saying which patch has a face.
+:func:`face_rows` says which patch has a face (none if two corners share a point). The mesh must hold exactly one quad
+per patch, in patch order (:func:`face_error`); delete only via :class:`BZ_OT_delete_patch`, which remaps every table.
 """
 from __future__ import annotations
 
@@ -75,14 +50,12 @@ def face_error_pure(faces, patches):
         n, k = len(faces), len(rows)
         what = (f"{k - n} corner quad{'s' if k - n != 1 else ''} deleted" if n < k
                 else f"{n - k} face{'s' if n - k != 1 else ''} added")
-        return (f"the mesh holds {n} corner quads for {k} patches ({what}): a patch is deleted with Delete Patch "
-                f"(X > Patches, or Modeling > Delete Patch), which removes it from the patch table too; faces are never "
-                f"made by hand. Undo it (Ctrl+Z)")
+        return (f"the mesh holds {n} corner quads for {k} patches ({what}): remove patches only with Delete Patch (X > "
+                "Patches). Undo it (Ctrl+Z)")
     for i, (f, q) in enumerate(zip(faces, quads)):
         if len(f) != 4 or sorted(int(v) for v in f) != sorted(int(v) for v in q):
-            return (f"face {i} of the mesh is not the corner quad of patch {int(rows[i])} (its corners are "
-                    f"{[int(v) for v in q]}, the face has {[int(v) for v in f]}): a Blender topology tool changed the "
-                    f"faces; Undo it (Ctrl+Z) or re-import the creature")
+            return (f"face {i} of the mesh is not the corner quad of patch {int(rows[i])} (corners {[int(v) for v in q]}, "
+                    f"face {[int(v) for v in f]}): a topology tool changed it; Undo it (Ctrl+Z) or re-import the creature")
     return None
 
 
@@ -189,6 +162,7 @@ def mesh_faces(obj) -> list:
     """The mesh's faces as vertex-index tuples, mesh order (the live bmesh in Edit Mode)."""
     bm = _bm(obj)
     if bm is not None:
+        bm.verts.index_update()                 # Edit Mode leaves them stale (-1) after some changes
         return [tuple(v.index for v in f.verts) for f in bm.faces]
     me = obj.data
     return [tuple(p.vertices) for p in me.polygons]
@@ -343,8 +317,7 @@ def _face_mode(context) -> bool:
 
 
 class BZ_OT_hide_patches(bpy.types.Operator):
-    """Hide the selected patches (their corner quads, and the corners and handles no visible patch uses); the
-    surface overlay skips them. Unselected: hide every patch that is not selected"""
+    """Hide the selected patches, or all the others with Unselected"""
     bl_idname = "bz.hide_patches"
     bl_label = "Hide Patches"
     bl_options = {"REGISTER", "UNDO"}
@@ -396,8 +369,7 @@ class BZ_OT_hide_patches(bpy.types.Operator):
 
 
 class BZ_OT_unhide_patches(bpy.types.Operator):
-    """Reveal every hidden patch (corner quads, corners and handles); the interior points stay hidden unless
-    Display > Show Interior Points is on. Replaces Blender's Alt+H on a creature, which would reveal them"""
+    """Show every hidden patch again"""
     bl_idname = "bz.unhide_patches"
     bl_label = "Unhide Patches"
     bl_options = {"REGISTER", "UNDO"}
@@ -452,10 +424,7 @@ def _ring_rows_for_plan(obj):
 
 
 class BZ_OT_delete_patch(bpy.types.Operator):
-    """Delete the selected patches (Face select, or all 4 corners selected): they leave the patch table, the control
-    points no other patch uses are dropped (the pool is compacted; limbs, rings, UVs, materials, types and skinning
-    follow), one undo step. A patch on a connection ring is refused. The holes are yours to close: Validate reports
-    the dangling edges, and the game refuses an open mesh"""
+    """Delete the selected patches and the points no other patch uses"""
     bl_idname = "bz.delete_patch"
     bl_label = "Delete Patch"
     bl_options = {"REGISTER", "UNDO"}
@@ -568,9 +537,7 @@ class BZ_OT_delete_patch(bpy.types.Operator):
 
 
 class BZ_OT_set_vertex_type(bpy.types.Operator):
-    """Set the selected corners' vertex type (3ds Max): Corner = free handles (every stock handle); Coplanar = the
-    corner's handles are flattened into one plane through it now, and a handle you move afterwards turns the others
-    so they stay in a common plane"""
+    """Set the selected corners to Corner (free handles) or Coplanar (flat handles)"""
     bl_idname = "bz.set_vertex_type"
     bl_label = "Set Vertex Type"
     bl_options = {"REGISTER", "UNDO"}
@@ -621,7 +588,7 @@ class BZ_OT_set_vertex_type(bpy.types.Operator):
 
 
 class BZ_MT_delete(bpy.types.Menu):
-    """X / Delete on a native creature in Edit Mode."""
+    """X / Delete on a creature in Edit Mode"""
     bl_idname = "BZ_MT_delete_patch"
     bl_label = "Delete"
 
@@ -636,7 +603,7 @@ class BZ_MT_delete(bpy.types.Menu):
 
 
 class BZ_OT_delete_menu(bpy.types.Operator):
-    """Delete on a creature: patches (through the SGM tables), or Blender's own vertex / edge delete"""
+    """Delete patches on a creature, or Blender's vertex / edge delete"""
     bl_idname = "bz.delete_menu"
     bl_label = "Delete (creature)"
 
@@ -653,7 +620,7 @@ class BZ_OT_delete_menu(bpy.types.Operator):
 
 
 class BZ_OT_hide_key(bpy.types.Operator):
-    """H on a creature in Face select mode: Hide Patches (in Vertex / Edge select Blender's own H runs)"""
+    """Hide patches with H in Face select; otherwise Blender's own hide"""
     bl_idname = "bz.hide_key"
     bl_label = "Hide Patches (H)"
     bl_options = {"REGISTER", "UNDO"}

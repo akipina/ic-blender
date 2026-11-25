@@ -1,4 +1,4 @@
-"""sceneobj.panels_map_paint -- the painting panels of the Map panel (3D View sidebar, SGM tab): passability, overlays, terrain types,
+"""sceneobj.panels_map_paint -- the painting panels of the Map panel (3D View sidebar, IC tab): passability, overlays, terrain types,
 water levels and decals. Plain words; every sub-panel says what the feature saves into."""
 from __future__ import annotations
 
@@ -24,9 +24,7 @@ def _top(context):
 
 
 def draw_passability(layout, context, top) -> None:
-    _hint(layout, "Mark cells nobody can walk on (red) or that count as flat ground (green) when the ground rule gets it wrong: a cliff "
-                  "that should stay closed, a ford. Saved into the map's passability layer; the pathfinding is updated to match. "
-                  "Use it as a last touch: what you see should be what units do.")
+    _hint(layout, "Paint cells blocked (red) or flat open ground (green); saved with the map.")
     col = layout.column(align=True)
     op = col.operator("bz.map_impass_paint", text="Paint blocked", icon="BRUSH_DATA")
     op.state = "BLOCK"
@@ -53,8 +51,7 @@ def draw_passability(layout, context, top) -> None:
 
 def draw_overlays(layout, context, top) -> None:
     from ICParse.sgb import overlays
-    _hint(layout, "Draw where units can go, made from the map as it would be saved now. Press the same entry again after a change to bring "
-                  "it up to date. Nothing here is saved.")
+    _hint(layout, "Shows where units can go; pick it again to update (nothing is saved).")
     now = OV.shown(top)
     col = layout.column(align=True)
     for key, title, _desc in overlays.KINDS:
@@ -67,8 +64,7 @@ def draw_overlays(layout, context, top) -> None:
 
 
 def draw_types(layout, context, top) -> None:
-    _hint(layout, "Terrain types decide which footstep sounds and effects play. Unknown counts as grass. Paint with the game's colours, or "
-                  "select points in Edit Mode. Saved into the map's terrain type layer.")
+    _hint(layout, "Terrain types set footstep sounds and effects (Unknown counts as grass).")
     col = layout.column(align=True)
     for value, name in ((1, "Grass"), (2, "Snow"), (3, "DirtSand"), (4, "Rock"), (0, "Unknown")):
         row = col.row(align=True)
@@ -84,8 +80,7 @@ def draw_types(layout, context, top) -> None:
 
 
 def draw_water(layout, context, top) -> None:
-    _hint(layout, "Give selected terrain points (Edit Mode) a water surface at their own height: a lake high on a mountain, a pool under a "
-                  "waterfall. The sea stays at the map's water level. Saved into the map's water plane; the pathfinding is updated.")
+    _hint(layout, "Give selected points water at their height (lakes, pools); saved with the map.")
     col = layout.column(align=True)
     col.operator("bz.map_water_set", text="Water at a height...", icon="MOD_OCEAN")
     col.operator("bz.map_water_dry", text="Dry the selected points", icon="X")
@@ -94,8 +89,7 @@ def draw_water(layout, context, top) -> None:
 
 
 def draw_decals(layout, context, top) -> None:
-    _hint(layout, "Decals are pictures laid on the ground (cracks, coral, cliffs). Make handles, then move, turn (R) or scale (S) a handle "
-                  "to change its decal, delete one to remove it. Saved into the map's decal block.")
+    _hint(layout, "Make handles, then move, turn (R), scale (S) or delete them to edit decals.")
     col = layout.column(align=True)
     n = len(P.decal_handles(top))
     if n:
@@ -107,17 +101,12 @@ def draw_decals(layout, context, top) -> None:
 
 
 def draw_tiles(layout, context, top) -> None:
-    _hint(layout, "The game ships blend tiles: ground textures that are already a smooth edge between two others (50% / 75% corners, "
-                  "straight edges, gradients). Add one, then select the faces where the two textures meet in Edit Mode and press 'Use on "
-                  "selected faces' in Ground textures. Each 8 x 8 block of cells holds one tile; only a few texture pairs have tiles.")
+    _hint(layout, "Add a blend tile, then 'Use on selected faces' where two textures meet.")
     layout.operator("bz.map_add_blend_tile", text="Add a blend tile...", icon="ADD")
 
 
 def draw_stamp(layout, context, top) -> None:
-    _hint(layout, "Stamping paints one of the game's decal pictures INTO the map's ground picture (<name>.tga), at the 3D cursor, with a "
-                  "strength and a colour tint; a row of stamps takes a spacing. A stamp cannot be moved or deleted afterwards: paint over "
-                  "it. Saved as <name>.tga beside the map. Caution: the game draws <name>.tga only at its highest ground detail setting; "
-                  "at the others it draws the _decaled pictures, which this does not change.")
+    _hint(layout, "Stamps are permanent in <name>.tga, which the game shows only at top ground detail.")
     obj = P.paint_object(top, "ground")
     col = layout.column(align=True)
     if obj is None:
@@ -132,7 +121,7 @@ def draw_stamp(layout, context, top) -> None:
 class _Sub:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = H.MAP_PANEL_ID
     bl_options = {"DEFAULT_CLOSED"}
     draw_fn = None

@@ -1,4 +1,4 @@
-"""sceneobj.panels_map -- the Map panel (3D View sidebar, SGM tab): edit an imported Impossible Creatures map and save it.
+"""sceneobj.panels_map -- the Map panel (3D View sidebar, IC tab): edit an imported Impossible Creatures map and save it.
 
 It shows when the scene holds an imported map (File > Import > Impossible Creatures Map). It says which map it is, its size and what
 it holds, and gives the actions of ``ops_map_export``: sculpt the ground, move the water, give faces a ground texture, move / copy /
@@ -66,21 +66,16 @@ def draw_terrain(layout, context, top) -> None:
     if terrain is None:
         ui_kit.alert(layout, "The terrain object of this map is not in the scene.", width=44)
         return
-    _hint(layout, "Sculpt the ground in Sculpt Mode, or move its points in Edit Mode (proportional editing works). Save reads each "
-                  "point's height back. Do not add or remove points: the map keeps a fixed grid.", width=44)
+    _hint(layout, "Sculpt or move the ground's points, but do not add or remove any.", width=44)
     step = float(terrain.get("ic_height_scale", 0.5))
     _hint(layout, f"The map keeps heights in steps of {step:g} m; the save report says how many were rounded.", width=44)
     water = X.water_of(top)
     level = float(terrain.get("ic_water_level", 0)) * step
     if water is not None:
-        _hint(layout, f"Water: the surface is at {level:g} m. Move the water object up or down to change the water level. The water "
-                      "surface is drawn again by itself after you sculpt the ground on maps up to 257 x 257 points; press Redraw "
-                      "water after changing a bigger map or the water level.", width=44)
+        _hint(layout, f"Water: the surface is at {level:g} m. Move the water object to change it, then press Redraw water.", width=44)
         layout.operator("bz.map_redraw_water", text="Redraw water", icon="FILE_REFRESH")
     else:
-        _hint(layout, f"Water level: {level:g} m. This scene has no water surface. Add water gives the map one at the level you "
-                      "pick. Saving the map then writes that level as the map's water level; the water shows in the game wherever "
-                      "the ground is lower than that level.", width=44)
+        _hint(layout, f"Water level {level:g} m, with no water surface. Add water makes one.", width=44)
         layout.operator("bz.map_add_water", text="Add water...", icon="ADD")
 
 
@@ -90,8 +85,7 @@ def draw_look(layout, context, top) -> None:
         layout.operator("bz.map_remove_look", text="Remove game look")
     else:
         layout.operator("bz.map_game_look", text="Show game look", icon="LIGHT_SUN")
-    _hint(layout, "The game look shows the map's sun, sky, fog, the open sea round it, its decals and its water colours. None of it "
-                  "is saved with the map.", width=44)
+    _hint(layout, "The game look is for viewing only and is not saved.", width=44)
 
 
 def draw_ground(layout, context, top) -> None:
@@ -107,13 +101,11 @@ def draw_ground(layout, context, top) -> None:
     if not mats:
         layout.label(text="This map has no ground materials.")
     layout.operator("bz.map_add_ground", text="Add ground texture...", icon="ADD")
-    _hint(layout, "In Edit Mode select faces, then press 'Use on selected faces'. Each 8 x 8 block of cells takes the texture most "
-                  "of its faces have.", width=44)
+    _hint(layout, "Select faces in Edit Mode, then 'Use on selected faces' (per 8 x 8 cell block).", width=44)
 
 
 def draw_objects(layout, context, top) -> None:
-    _hint(layout, "Move or turn an object to move that placed object. Delete one to remove it. Copy one (Shift+D) to add another "
-                  "with the same blueprint.", width=44)
+    _hint(layout, "Move, turn, delete or copy (Shift+D) objects to edit the placed objects.", width=44)
     col = layout.column(align=True)
     col.operator("bz.map_add_object", text="Add object at the 3D cursor...", icon="ADD")
     col.operator("bz.map_set_owner", text="Set owner of the selected...", icon="USER")
@@ -134,14 +126,13 @@ def draw_save(layout, context, top) -> None:
     op = col.operator("bz.export_map", text="Save ready-to-drop folder...", icon="PACKAGE")
     op.ready_to_drop = True
     op.map_name = top.name
-    _hint(layout, "Saving goes into a folder you pick, never into the game's own folder. The ready-to-drop folder holds "
-                  "Data/scenarios/mp/<name>.sgb and a README on putting it into a copy of the game.", width=44)
+    _hint(layout, "Saves into a folder you pick, never into the game's own folder.", width=44)
 
 
 class _MapPanel:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
 
     @classmethod
     def poll(cls, context):

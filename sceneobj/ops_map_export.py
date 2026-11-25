@@ -1,33 +1,8 @@
-"""sceneobj.ops_map_export -- edit an imported Impossible Creatures map in Blender and save it as a map (.sgb) again.
+"""Save an edited map as .sgb: ground heights (fixed grid), water level, ground textures per 8 x 8 block and placed
+objects (byte work: ``ICParse.sgb.edit``).
 
-In plain words. The map import (``ops_map_import``) shows a map as Blender objects. This module reads the changes back and writes
-the map file: File > Export > "Impossible Creatures Map (.sgb)", or the Save Map button of the Map panel (``panels_map``).
-
-What you can change, and how it is read back (every edit is read against the map file the scene was opened from, which is read again
-at save time, so a save never depends on an earlier one):
-
-* the ground -- sculpt or move the terrain's points up and down (Sculpt Mode, proportional editing). Each point's height is read
-  back. The terrain must keep its grid: the same points in the same order (the game stores one height per grid point), so a terrain
-  with points added or removed is refused. The map stores a height in steps (0.5 m in most stock maps); the save report says how
-  many heights had to be rounded or clamped. A point pushed sideways keeps only its height;
-* the water -- moving the water surface up or down sets the map's water level;
-* the ground textures -- give faces one of the map's ground materials (or one added with "Add ground texture"). Each 8 x 8 block of
-  cells takes the material most of its faces have (a tie keeps the block's own);
-* the placed objects -- moving or turning an object moves that entity; deleting one removes it; a copy (Shift+D, Alt+D) is a new
-  entity with the same blueprint; "Add object" places a blueprint from the game's own list at the 3D cursor on the ground;
-  "Set owner" and "Drop to ground" work on the selected ones. Scale is ignored (the map stores a position and a turn only). A creature
-  combined in the map has no blueprint file, so a copy of one is left out and said so;
-* nothing else: an object you did not touch is written back exactly as it was read, so a map saved with no edits is byte for byte the
-  map that was opened.
-
-Where it writes. Into a folder the user picks, never into the game's own folder (a Steam game folder is refused: Steam rewrites it).
-Next to the map goes every file that sits beside it in the game's files and belongs to it (its triggers ``.trg``, dialogue, preview
-pictures ...), copied unchanged. The second option writes a ready-to-drop folder ``Data/scenarios/mp/<name>.sgb`` with a README that
-says how to put it into a game copy the user owns (loose files in the game's ``Data`` folder load and win over the archives: CLAUDE.md,
-App_SetupFilePathAliases).
-
-The byte work is done by ``ICParse.sgb.edit`` (``apply_edits``, ``pathfinding_fidelity``): this module gives it the heights, the water
-level, the per-block ground textures and the complete list of entities, and passes nothing for what was not changed.
+Edits are read against the source map file, re-read at save time; untouched things are written back exactly, so an
+unedited map saves byte for byte. Never write into the game's own folder.
 """
 from __future__ import annotations
 
@@ -363,15 +338,13 @@ def _read_terrain(plan: Plan, top) -> None:
     nv, nf = len(me.vertices), len(me.polygons)
     quads = mv.quads()
     if nv != w * h or nf != len(quads):
-        raise MapSaveError(f"The terrain no longer has the grid it was opened with: {nv} points and {nf} faces now, {w * h} and "
-                           f"{len(quads)} when the map was opened. The map stores one height for each point of a fixed grid, so points "
-                           "cannot be added, removed or merged. Undo the change (Ctrl+Z) or open the map again.")
+        raise MapSaveError(f"The terrain no longer has the grid it was opened with: {nv} points and {nf} faces now, {w * h} "
+                           f"and {len(quads)} then. Points cannot be added or removed: Undo (Ctrl+Z) or open the map again.")
     loops = np.empty(len(me.loops), np.int32)
     me.loops.foreach_get("vertex_index", loops)
     if len(loops) != quads.size or not (np.sort(loops.reshape(-1, 4), axis=1) == np.sort(quads, axis=1)).all():
-        raise MapSaveError("The terrain's faces no longer join the same points in the same order as when the map was opened (points or "
-                           "faces were rearranged, joined or split). The map stores one height for each point of a fixed grid. "
-                           "Undo the change (Ctrl+Z) or open the map again.")
+        raise MapSaveError("The terrain's faces no longer join the same points (rearranged, joined or split). The grid is "
+                           "fixed: Undo (Ctrl+Z) or open the map again.")
     co = np.empty(nv * 3, np.float32)
     me.vertices.foreach_get("co", co)
     co = co.reshape(-1, 3).astype(np.float64)
@@ -933,8 +906,7 @@ def _need_map(op, context):
 
 
 class BZ_OT_export_map(bpy.types.Operator, ExportHelper):
-    """Save the map as a map file (.sgb): the ground, the water, the ground textures and the placed objects as they are in the scene.
-    Written into a folder you pick, never into the game's own folder"""
+    """Save the map as a .sgb file in a folder you pick, never in the game's own"""
     bl_idname = "bz.export_map"
     bl_label = "Export Impossible Creatures Map"
     bl_options = {"REGISTER"}
@@ -944,18 +916,15 @@ class BZ_OT_export_map(bpy.types.Operator, ExportHelper):
     map_name: StringProperty(default="", options={"HIDDEN"})
     ready_to_drop: BoolProperty(
         name="Ready-to-drop folder", default=False,
-        description="Write Data/scenarios/mp/<name>.sgb inside the chosen folder, with a README on putting it into a copy of the game. "
-                    "Off: write <name>.sgb directly into the chosen folder")
+        description="Write into Data/scenarios/mp/ with a README; off writes <name>.sgb directly")
     replace_original: BoolProperty(
         name="Replace the original file", default=False,
         description="Allow writing over the map file this map was opened from (off: that is refused)")
     pathfinding: EnumProperty(
         name="Pathfinding", default="auto",
-        items=(("auto", "Update when needed", "Update the map's own pathfinding only where the terrain or a blocking object changed; "
-                                              "what the game baked elsewhere stays as it was"),
-               ("always", "Rebuild like the game", "Throw the pathfinding away and build it again the way the game's own editor does: "
-                                                    "from the ground, the cells painted passable or blocked in the map, and the "
-                                                    "scenery that blocks (read from its blueprint)"),
+        items=(("auto", "Update when needed", "Update pathfinding only where the terrain or blocking objects changed"),
+               ("always", "Rebuild like the game", "Rebuild all pathfinding from the ground, painted cells and blocking "
+                                                   "scenery"),
                ("never", "Leave as it is", "Do not touch the pathfinding: units walk as on the old terrain")),
         description="What to do with the map's pathfinding (where units can walk) after the terrain changed")
 
@@ -1044,7 +1013,7 @@ def ground_materials(terrain) -> list:
 
 
 class BZ_OT_map_add_ground(bpy.types.Operator):
-    """Add one of the game's ground textures to this map, so it can be given to faces of the terrain"""
+    """Add one of the game's ground textures to this map"""
     bl_idname = "bz.map_add_ground"
     bl_label = "Add Ground Texture"
     bl_options = {"REGISTER", "UNDO"}
@@ -1096,8 +1065,7 @@ class BZ_OT_map_add_ground(bpy.types.Operator):
 
 
 class BZ_OT_map_use_ground(bpy.types.Operator):
-    """Give the selected faces of the terrain (in Edit Mode) this ground material. Each 8 x 8 block of cells takes the material most
-    of its faces have"""
+    """Give the selected terrain faces (Edit Mode) this ground texture"""
     bl_idname = "bz.map_use_ground"
     bl_label = "Use on Selected Faces"
     bl_options = {"REGISTER", "UNDO"}

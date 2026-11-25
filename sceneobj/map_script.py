@@ -1,22 +1,7 @@
-"""sceneobj.map_script -- scripting a map: groups, variables, triggers, dialog triggers and the per-player AI scripts (no operators and no
-panels here: ``ops_map_script`` and ``panels_map_script``).
+"""Map scripting state (no operators or panels): groups, variables, AI scripts and armies (saved in the map file),
+triggers (``.trg``) and dialogs (``.dlg``), kept on the map's collection so they save and undo with the .blend.
 
-In plain words. The Mission Editor has a Group List, a Variable List, a Trigger Wizard, Dialog Triggers and "AI Scripts and Armies".
-This module keeps their state on the map's collection (so it saves with the .blend and undoes with Ctrl+Z), reads it from the map
-and its files when the map is opened, and writes it back when the map is saved:
-
-* **groups** (``bz_script_groups``) -- the named entity groups. Saved into the map file (``FORM EGRP``, one ``ESGP`` record each);
-* **variables** (``bz_script_vars``) -- the 256 variable names. Saved into the map file (``FORM TVRS``, ``TVAR``);
-* **AI scripts and armies** (``bz_script_ai_scripts`` / ``bz_script_ai_armies``) -- one path per player slot. Saved into the map file
-  (``AISC`` / ``AIAM`` in ``FORM WSTC``);
-* **triggers** (``bz_script_triggers`` + ``bz_script_folders``) -- the ``.trg`` beside the map. Saved as the file ``<name>.trg``;
-* **dialogs** (``bz_script_dialogs``) -- the ``.dlg`` beside the map. Saved as ``<name>.dlg``.
-
-A map feature that was not touched writes nothing: each part keeps a fingerprint of what was read, and a save whose state still has
-that fingerprint leaves the map's bytes and the files beside it exactly as they were (the stock maps are tested byte for byte).
-
-The byte work is in the format library (``ICParse.sgb.script_edit``, ``trigger_edit``, ``dialog_edit``). This module is the glue:
-the Blender property groups, the import step, the save step and the check.
+Byte work is in ``ICParse.sgb``. A part whose fingerprint still matches what was read must be left byte for byte.
 """
 from __future__ import annotations
 
@@ -251,7 +236,8 @@ class BZ_PG_script_trigger(bpy.types.PropertyGroup):
     folder: StringProperty(name="Folder", description="The folder the trigger sits in (letters, digits and underscores)", update=_folder_update)
     tid: IntProperty(name="Number")
     pset: IntProperty(name="Players")
-    active: BoolProperty(name="Active", default=True, description="Active triggers are checked from the start; an inactive one waits until another trigger switches it on")
+    active: BoolProperty(name="Active", default=True, description="Active triggers are checked from the start; inactive "
+                                                                  "ones wait to be switched on")
     looping: BoolProperty(name="Repeats", description="A repeating trigger fires again and again; otherwise it fires once")
     conditions: CollectionProperty(type=BZ_PG_script_expr)
     actions: CollectionProperty(type=BZ_PG_script_expr)

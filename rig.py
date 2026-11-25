@@ -1,18 +1,7 @@
-"""Native rigging: import the creature skeleton as a Blender armature and rigid-skin the
-control-point mesh to it, so the lossless control net can be posed/animated and the bicubic
-surface follows.
+"""Rigging: the creature skeleton as a Blender armature, with the control-point mesh rigid-skinned (one bone per point).
 
-The geometry is rigid skin (one bone per control point: ICParse gives the owner via each bone's
-contiguous vertex range). Each bone's REST matrix is set to its bind-pose WORLD matrix
-(`reconstruct.bind_world_matrices`, the same transform that placed the verts), converted to
-Blender axes. Then for a vertex weighted 1.0 to bone b:
-
-    deformed = pose_b.matrix @ rest_b^-1 @ v_rest
-             = B @ anim_world_sgm @ B^-1  @  (B @ bind_world_sgm @ B^-1)^-1 @ (B @ bind_world_sgm @ local)
-             = B @ anim_world_sgm @ local           # == the exact IC animated world position
-
-so posing the bone to `B @ animated_bone_world @ B^-1` reproduces IC animation exactly. Editing
-and export happen on the REST mesh, untouched by the modifier -> still lossless.
+Each bone's rest matrix is its bind-pose world matrix in Blender axes, so posing it to ``B @ anim_world @ B^-1``
+reproduces IC animation exactly. Editing and export use the rest mesh, untouched by the modifier (lossless).
 """
 from __future__ import annotations
 
@@ -84,10 +73,7 @@ KEY_BONE_LIMITS = "bz_joint_limits"           # on a rig Bone (C8.4): the BONE r
 #                                               min > max. Then the record's limit flag word (bit 0; present when more than
 #                                               3 bytes remain) as ICParse keeps it. Export writes a bone's limits only
 #                                               when they differ from its record.
-LIMITS_TOOLTIP = ("Joint limits of the BONE record: min x, y, z then max x, y, z, Euler angles in radians on disk (the game "
-                  "and the editor both convert them to degrees at load and sort each min/max pair; nothing shipped reads "
-                  "them back or enforces them in play), then the record's limit flag word where the file has one. Values "
-                  "as in stock until edited; Export writes a bone's limits only when they differ from its record")
+LIMITS_TOOLTIP = ("Joint limits (min x y z, max x y z in radians, then flags); exported if changed")
 
 
 def stamp_joint_limits(arm_obj, model) -> int:
@@ -438,9 +424,8 @@ def skeleton_error(arm_obj, model=None, src_stubs=None, rules=None):
                 "its import name), or Undo")
     if res.by_rest:
         pairs = [(o, n) for _i, o, n in res.by_rest]
-        return ("; ".join(f"bone '{o}' was renamed to '{n}'" for o, n in pairs) + sk.note + " -- this rig was imported "
-                "before bones carried identity stamps, so a rename can't be told from a deleted and an added bone: "
-                "rename it back and rename with Boner > Bones > Rename Bone (it stamps the rig first), or re-import")
+        return ("; ".join(f"bone '{o}' was renamed to '{n}'" for o, n in pairs) + sk.note + " -- this rig was imported before "
+                "bones carried identity stamps: rename it back and use Boner > Bones > Rename Bone, or re-import")
     extra = sk.stub_renames
     conflicts = structure.name_conflicts([n for n, _p in sk.snapshot], res, extra=extra)
     if conflicts:

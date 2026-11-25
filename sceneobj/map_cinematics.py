@@ -1,26 +1,8 @@
-"""sceneobj.map_cinematics -- the map's cinematics (NISlets): camera, object and move animations, kept in ``<map>.na`` beside the map.
+"""The map's cinematics (``<map>.na``): an empty per key frame (``nis_*`` properties) plus path, speed line and an
+approximate preview (the game plays the key values; the preview camera is mirrored to match the game).
 
-What it does. On import (a step of ``map_hooks``) it reads the map's ``.na`` file (``ICParse.sgb.nislet``) and builds, in the map's
-collection, one collection ``<map> cinematics`` with a sub-collection for each animation:
-
-* one **empty per key frame** (``<anim> key N``), standing where the key is. Its arrows show where the camera / object looks
-  (the key's rotation, declination and roll; a key whose angle is "automatic" looks along the path). Everything else the engine keeps for
-  a key -- speed, tension, continuity, bias, look distance, zoom distance, target entity and group, the key's name -- is a custom
-  property of the empty (``nis_speed`` ...), shown and edited in the Cinematics panel;
-* a **path** curve through the keys (the engine's own path is a Catmull-Rom spline through them) and a **speed line** over it, drawn
-  higher where the animation is faster;
-* a **preview**: a camera (camera animations) or a cube (move and object animations) that follows the path with F-curves, so the
-  animation can be scrubbed on the timeline. The F-curves are an approximation made for looking (the time between two keys is the
-  distance over the speed); what the engine plays is the key values. The preview camera is flipped left to right, so its picture
-  is the game's (``ops_map_import.show_game_picture``);
-
-Saving (a step of ``map_hooks``) reads the empties and properties back and writes ``<name>.na`` -- only when something changed. A value
-that still equals the file's keeps the file's text, an animation nobody touched is written exactly as it was, and a map nobody touched
-the cinematics of writes the same ``.na`` byte for byte. The original ``.na`` is kept in the .blend (a text named ``Map cinematics
-<collection>``) so edits are always read against it.
-
-Game axes (x, y up, z) become Blender's (x, -z, y), as for every placed object of the map: the world in Blender is the game's
-seen in a mirror, which only the flipped cameras undo.
+Saving writes the ``.na`` only if changed: unchanged values keep the file's text and untouched maps stay byte-identical.
+The original is kept in the .blend and edits are read against it. Game (x, y up, z) is Blender (x, -z, y).
 """
 from __future__ import annotations
 

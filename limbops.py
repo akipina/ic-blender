@@ -268,8 +268,7 @@ class BZ_OT_limb_set_active(bpy.types.Operator):
 
 
 class BZ_OT_rename_limb(bpy.types.Operator):
-    """Rename the active limb (at most 63 ASCII characters, unique ignoring case). Nothing matches a limb by name: the
-    Object Editor and the combiner use its classification"""
+    """Rename the active limb"""
     bl_idname = "bz.rename_limb"
     bl_label = "Rename Limb"
     bl_options = {"REGISTER", "UNDO"}
@@ -319,10 +318,7 @@ class BZ_OT_rename_limb(bpy.types.Operator):
 
 
 class BZ_OT_limb_flag(bpy.types.Operator):
-    """Tick or untick a classification box of the active limb (Boner's Limb Options: ticking a box clears the other
-    boxes of its group -- Left/Right, Front/Rear/Mid/Mid 2, Top/Side, Torso/Head/Tail/Arm/Leg/Wing/Fin). When the limb's
-    connection is the only one with its old class, the connection's Child class follows in the same step; refused when
-    it would leave other connections without their limb"""
+    """Tick or untick a class box of the active limb"""
     bl_idname = "bz.limb_flag"
     bl_label = "Limb Classification"
     bl_options = {"REGISTER", "UNDO"}
@@ -435,10 +431,7 @@ def _standard_items(self, context):
 
 
 class BZ_OT_add_standard_limb(bpy.types.Operator):
-    """Add a limb of a standard class this creature has none of, as a stub: no patches and its typical root bone. Refused
-    when the skeleton lacks that bone or another limb owns it (a limb with no bones makes the engine report 'limbs are
-    boneless!' and ComboTest.exe won't take the creature). The Object Editor requires the leg, arm and wing classes (a
-    stub will do)"""
+    """Add an empty limb of a standard class the creature lacks"""
     bl_idname = "bz.add_standard_limb"
     bl_label = "Add Standard Limb"
     bl_options = {"REGISTER", "UNDO"}
@@ -514,8 +507,7 @@ def _target_items(self, context):
 
 
 class BZ_OT_delete_limb(bpy.types.Operator):
-    """Delete the active limb: its patches go to the limb you choose (the Torso by default) and its bones are left in
-    no limb (Validate lists them). Refused while it is the last limb of a class a connection uses (child or parent)"""
+    """Delete the active limb and move its patches to another limb"""
     bl_idname = "bz.delete_limb"
     bl_label = "Delete Limb"
     bl_options = {"REGISTER", "UNDO"}
@@ -805,8 +797,7 @@ def _commit(op, obj, t, edit, verb, sk=None) -> bool:
 
 
 class BZ_OT_limb_select_bones(bpy.types.Operator):
-    """Select the active limb's bones on the rig as the Limbs panel lists them -- added bones where Export puts them (the
-    first becomes the rig's active bone and the Boner panel's active bone). The creature's data does not change"""
+    """Select the active limb's bones on the rig"""
     bl_idname = "bz.limb_select_bones"
     bl_label = "Select Limb Bones"
     bl_options = {"REGISTER", "UNDO"}
@@ -867,9 +858,7 @@ def _root_items(self, context):
 
 
 class BZ_OT_limb_set_root(bpy.types.Operator):
-    """Set the active limb's root bone: the limb takes that bone and its children, except branches another limb (not
-    the Torso) owns and other classes' standard stub bones. Bones it takes leave the limb that had them; bones it no
-    longer covers go back to the Torso. The report lists every bone that moved"""
+    """Set the active limb's root bone; the limb takes it and its child bones"""
     bl_idname = "bz.limb_set_root"
     bl_label = "Set Root Bone"
     bl_options = {"REGISTER", "UNDO"}
@@ -929,8 +918,7 @@ def _bone_arg(op, context, obj, sk=None):
     clash = stamp_clash(obj, name)
     if clash:
         op.report({"ERROR"}, f"'{name}' and {', '.join(repr(c) for c in clash)} are copies of one imported bone (a "
-                             "duplicated bone): skeleton changes are pending, and a limb's bone list can only name the "
-                             "file's bones (Export refuses a copy of a bone of the creature); delete the copy first")
+                             "duplicated bone) and skeleton changes are pending: delete the copy first")
         return None
     fn = file_bone_name(obj, name, sk)
     if fn is None:
@@ -939,8 +927,7 @@ def _bone_arg(op, context, obj, sk=None):
 
 
 class BZ_OT_limb_add_bone(bpy.types.Operator):
-    """Add the active bone to the active limb (it leaves any other limb that had it). Refused when it is another limb's
-    only bone"""
+    """Add the active bone to the active limb"""
     bl_idname = "bz.limb_add_bone"
     bl_label = "Add Active Bone"
     bl_options = {"REGISTER", "UNDO"}
@@ -978,8 +965,7 @@ class BZ_OT_limb_add_bone(bpy.types.Operator):
 
 
 class BZ_OT_limb_remove_bone(bpy.types.Operator):
-    """Remove the active bone from the active limb: it is in no limb afterwards (Validate lists it; Add Active Bone on
-    another limb gives it a home). Refused for the limb's only bone"""
+    """Remove the active bone from the active limb"""
     bl_idname = "bz.limb_remove_bone"
     bl_label = "Remove Active Bone"
     bl_options = {"REGISTER", "UNDO"}

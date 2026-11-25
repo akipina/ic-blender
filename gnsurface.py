@@ -1,29 +1,8 @@
-"""D9 spike: the bicubic patch surface as REAL evaluated geometry, through Geometry Nodes.
+"""Experimental: the patch surface as real evaluated geometry through Geometry Nodes, instead of the ``draw.py`` overlay.
 
-Today the surface is a gpu overlay (``draw.py``): exact, fast, and invisible to everything that reads
-*geometry* -- Sculpt Mode, downstream modifiers, snapping, ray-cast selection and the renderer (Bake
-Surface is the workaround). This module evaluates the same Bernstein surface inside a Geometry Nodes
-group on the creature object, so the depsgraph-evaluated mesh IS the surface.
-
-How the patch table reaches the nodes
--------------------------------------
-The mesh vertices are the control-point pool and the mesh faces are the B6 corner quads, one per
-patch (``patchsel.face_rows``). A node group cannot hold a table, so the table is written as ordinary
-mesh attributes on the FACE domain, one face per patch:
-
-* ``bz_p0`` .. ``bz_p15`` (INT) -- the patch's 16 pool indices;
-* ``bz_uv0`` .. ``bz_uv3`` (FLOAT2) -- its 4 stored corner UVs (slots 0, 3, 12, 15).
-
-The group then, per output point: ``Sample Index`` (FACE) to read the 16 pool indices of its patch,
-``Sample Index`` (POINT) to read those control points' positions, and the bicubic Bernstein sum of
-them at the point's (u, v). The output geometry is built inside the group -- an n x n ``Grid``
-instanced on one point per face and realized -- so nothing outside the creature object is needed.
-
-This is a spike: read ``ROADMAP_NATIVE.md`` D9 for the verdict and the numbers.
-
-A patch whose four corners are not distinct has no corner quad (6 in the base game), so it has no
-face to carry its row and is NOT evaluated here; ``missing_patches`` counts them and the caller says
-so rather than dropping them silently.
+The patch table is written as FACE attributes on the corner quads (``bz_p0``..``bz_p15`` pool indices, ``bz_uv0``..
+``bz_uv3`` corner UVs) for the node group to read. A patch without four distinct corners has no face and is NOT
+evaluated: ``missing_patches`` counts them and the caller must say so.
 """
 from __future__ import annotations
 

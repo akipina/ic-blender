@@ -1,307 +1,210 @@
 <section id="boner">
 <h2>Bones, limbs and connections (Boner)</h2>
 
-<p>A creature loads in the Object Editor when its patches are watertight and rigged. It <em>combines</em> in the game when its
-<strong>limbs</strong>, <strong>connections</strong> and <strong>skeleton</strong> follow the rules the combiner (ComboTest.exe,
-the same code the game runs) hard-codes. Those three tables are what Relic's <em>Boner</em> tool edited, and what the
-<strong>Boner</strong> sub-panel of the SGM sidebar edits here: <strong>N sidebar &gt; SGM tab &gt; Boner</strong>, with
-Boner's three tabs <strong>Bones | Limbs | Connections</strong>. Every edit is one undo step (Ctrl+Z / Ctrl+Shift+Z work in Object
-and Edit Mode), refusals change nothing, and an untouched creature exports byte-identical.</p>
+<p>A creature loads in the Object Editor when its patches are watertight and rigged. To <em>combine</em> in the game,
+its limbs, connections and skeleton must also follow the rules of the combiner (ComboTest.exe). Edit them in the
+<strong>IC</strong> tab under <strong>Boner</strong>: <strong>Bones | Limbs | Connections</strong>. Every edit can be
+undone, and a refused edit changes nothing.</p>
 
 <h3>The model in one minute</h3>
 <ul>
-<li><strong>Limbs</strong> are named groups of patches with a <em>classification</em> and a <em>bone list</em>. The classification
-is Boner's checkboxes: Side (Left / Right), Position (Front / Rear / Mid / Mid 2), Plane (Top / Side), Type (Torso / Head / Tail /
-Arm / Leg / Wing / Fin) and, on its own, Non-Swappable (the part stays with its torso: fins and stubs). A stock quadruped has 13
-limbs: Torso, Head, Tail, four legs, and six <em>stub limbs</em> (side and top wings, front arms) with no patches and one bone,
-so the creature can still take wings or arms from another creature. The Object Editor requires the leg, arm and wing classes
-(a stub will do). The bone list says which bones leave with the limb: a non-torso limb is one subtree (its root bone and every
-descendant no other limb owns); the Torso is every bone no other limb owns.</li>
-<li><strong>Connections</strong> are the sockets: a ring of patch corners on the boundary between the torso and a limb, where the
-combiner cuts and grafts. Each has a <em>Parent</em> class (the limb the ring is cut into: the Torso for every limb socket; the
-Head for the horse's antler ring), a <em>Child</em> class (the limb attached through it), a <em>host bone</em> (a bone of the
-parent limb, normally the parent of the limb's root bone: neck1 for the head, pelvis for the tail, spine3 for front legs and
-wings) and the ring itself: 6 corners for a head or tail, 4 for anything else, wound into the torso and started where the stock
-creatures start theirs.</li>
-<li><strong>The skeleton</strong> uses standard names the game looks up: pelvis, spine1-3, neck1-3, head, tail1-4, endtail,
-front_leg1_l, rear_leg1_r, swing1_l, top_wing_r, front_arm1_l and so on (18 bones are on every base-game creature). Stub limbs
-own <em>stub bones</em>: leaves owning no control points, written after every other bone with the stub flag.</li>
-<li><strong>What ComboTest.exe refuses outright</strong> (measured, and reported by Validate and Combine Preview): a limb whose
-class no connection carries (stubs included), a Left limb without its Right mirror, and a limb with no bones (the loader says
-<code>limbs are boneless!</code> and the picker never takes the creature).</li>
+<li><strong>Limbs</strong> are named groups of patches, each with a class and a bone list. A class combines Side,
+Position, Plane and Type; <strong>Non-Swappable</strong> parts stay with their torso.</li>
+<li>A limb other than the Torso is a root bone and its descendants. The Torso owns every other bone.</li>
+<li><strong>Stub limbs</strong> have one bone and no patches, so the creature can still receive wings or arms. The
+Object Editor requires the leg, arm and wing classes.</li>
+<li><strong>Connections</strong> are the sockets where limbs are grafted. Each has a Parent class (usually Torso), a
+Child class, a host bone in the parent limb, and a ring of corners (6 for head or tail, otherwise 4).</li>
+<li>The game finds bones by standard names (<code>pelvis</code>, <code>spine1</code>, <code>neck1</code>,
+<code>head</code>, <code>tail1</code>, <code>front_leg1_l</code> and so on).</li>
+<li>ComboTest.exe refuses a creature with a limb class that has no connection, a Left limb without its Right mirror, or
+a limb with no bones.</li>
 </ul>
 
 <h3>Setting up</h3>
 <ol>
-<li><strong>SGM &gt; Import SGM / EBP (Native Patches)</strong> the stock <code>rhinoceros.sgm</code>. Widen the sidebar (drag its
-left edge) so the limb rows are readable.</li>
-<li>In <strong>Display</strong> tick <strong>Show Connections</strong> (the graft rings) and leave the shading on <strong>By
-Limb</strong>: switching Boner to Limbs selects it anyway while <em>Follow Shading</em> (the link icon in the Bones tab) is on.</li>
-<li>Open <strong>Boner</strong> below the main panel and choose the <strong>Limbs</strong> tab.</li>
+<li>Use <strong>IC Blender &gt; Import Model</strong> on <code>rhinoceros.sgm</code> and widen the sidebar.</li>
+<li>In <strong>Display</strong>, tick <strong>Show Connections</strong>.</li>
+<li>Open <strong>Boner</strong> and choose <strong>Limbs</strong>. With <em>Follow Shading</em> on, the shading switches
+to <strong>By Limb</strong>.</li>
 </ol>
-<figure><img src="img/boner_overview.jpg" alt="The rhinoceros shaded by limb with its twelve graft rings drawn, and the Boner > Limbs tab listing thirteen limbs with class, patch and bone counts"><figcaption>The stock rhinoceros in Boner &gt; Limbs: the surface shaded By Limb, the twelve graft rings drawn by Show Connections, and the limb list: name, class, <code>32p 5b · ok</code> (patches, bones, status).</figcaption></figure>
+<figure><img src="img/boner_overview.jpg" alt="Limbs tab and graft rings"><figcaption>Limbs are shaded, and rings show
+where they graft.</figcaption></figure>
 
 <h3>Boner &gt; Limbs</h3>
-<p>The list shows every limb with its class label, patch and bone counts and a status (<code>ok</code>, <code>stub</code>, and
-in red <code>no bones</code>, <code>no class</code>, <code>duplicate</code>, <code>not allowed</code>, <code>needs patches</code>).
-Click a name to make it the active limb; the box below shows its classification, then <em>Bones of &lt;limb&gt;</em>.</p>
+<p>Each row shows the limb's name, class, patches, bones and status; problems are red. Click a name to select it.</p>
 <ol>
-<li><strong>Rename</strong> (the pencil): a dialog; at most 63 ASCII characters, unique ignoring case. A renamed limb exports
-with only its name changed.</li>
-<li><strong>The classification boxes</strong> behave like Boner's: a ticked box is unticked, an unticked one sets its bit and
-clears the rest of its group; Non-Swappable stands alone. The header line shows the resulting id, e.g.
-<code>Rhinoceros_LFLeg: 0x25 = L Front Leg</code>.</li>
-<li><strong>Select Bones</strong> selects the limb's bones on the rig (visible with the rig in Pose or Edit Mode) and makes the first
-the panel's <strong>Bone</strong>. The <strong>Bone</strong> field (search, or the eyedropper to click a control point or a bone)
-shows which limb the bone is in.</li>
-<li><strong>Set Root Bone</strong> opens a search list of the skeleton: the limb takes that bone and its children (branches another
-limb owns stay out; bones the limb no longer covers go back to the Torso; every moved bone is reported). On a stock creature every
-other root is refused, because the rules the combiner needs are enforced: a standard limb root (front_leg1_l, neck2, tail1 ...)
-may never be left to the Torso, and a torso connection's host bone may never leave the Torso. Set Root is for rigs with their own
-root bones, such as New Creature's <code>front_leg_root</code>.</li>
-<li><strong>Add Active Bone</strong> moves the panel's bone into the active limb (from whichever limb had it);
-<strong>Remove Active Bone</strong> leaves it in no limb. The report names every moved bone with where it came from and went,
-and warns when the move strands a limb's points on a bone outside it.</li>
+<li><strong>Rename</strong>: a unique name of up to 63 ASCII characters.</li>
+<li><strong>Class boxes</strong>: ticking one clears the others in its group. Non-Swappable stands alone.</li>
+<li><strong>Select Bones</strong> selects the limb's bones on the rig (visible in Pose or Edit Mode). The
+<strong>Bone</strong> field shows which limb a bone is in.</li>
+<li><strong>Set Root Bone</strong> gives the limb a bone and its children. It is for rigs with their own root bones;
+stock creatures refuse other roots.</li>
+<li><strong>Add Active Bone</strong> moves the chosen bone into this limb. <strong>Remove Active Bone</strong> leaves
+it in no limb. You are warned if this strands points.</li>
 </ol>
-<figure><img src="img/boner_limbs_lfleg.jpg" alt="Rhinoceros_LFLeg active: Left, Front and Leg ticked, the bones box listing its seven bones, Select Bones and Set Root Bone buttons"><figcaption>Rhinoceros_LFLeg active: Left, Front and Leg ticked (<code>0x25 = L Front Leg</code>), its seven bones listed, Select Bones / Set Root Bone, the Bone field, Add / Remove Active Bone.</figcaption></figure>
-<figure><img src="img/boner_limb_move_bone.jpg" alt="After Add Active Bone with the Torso active and nose as the bone: the Torso lists six bones including nose and the status bar shows the warning"><figcaption>Add Active Bone with the Torso active and <code>nose</code> as the Bone. Report: <code>moved 1 bone: nose ('Rhinoceros_Head' -&gt; 'Rhinoceros_Torso')</code>, then the warning <code>nose owns 218 control points of 'Rhinoceros_Head' and is now in 'Rhinoceros_Torso': grafted as a donor, ComboTest.exe puts them on the root bone (give nose back to 'Rhinoceros_Head', or those points to one of its bones)</code>. Add Active Bone with the Head active moves it back; the export is the source's list again.</figcaption></figure>
-<figure><img src="img/boner_limb_reclass.jpg" alt="Position: Mid ticked on Rhinoceros_LFLeg, the row now reading L Mid Leg"><figcaption>Position &gt; <strong>Mid</strong> ticked on Rhinoceros_LFLeg: the row reads <code>L Mid Leg</code> (<code>0x20021</code>). Its connection's Child class followed in the same undo step (<code>connection 'Rhinoceros_LFLeg' child 0x25 -&gt; 0x20021</code>) and the operator warned: <code>limb 'Rhinoceros_LFLeg' (L Mid Leg) has no Right partner of class 0x20022: ComboTest.exe fails 'Assertion of (LimbToAdd.m_pLimb)' ... (re-class its partner limb the same way)</code>. Ticking Front again is the identity.</figcaption></figure>
+<figure><img src="img/boner_limbs_lfleg.jpg" alt="Left front leg selected"><figcaption>The selected limb shows its
+class and bones.</figcaption></figure>
+<figure><img src="img/boner_limb_move_bone.jpg" alt="Nose moved to the Torso"><figcaption>Moving <code>nose</code> to
+the Torso raises a warning.</figcaption></figure>
+<figure><img src="img/boner_limb_reclass.jpg" alt="Leg changed to Mid"><figcaption>Changing a class also updates its
+connection.</figcaption></figure>
 <ol start="6">
-<li><strong>Add Standard</strong> lists the Object Editor's 17 classes the creature has no limb of, as a stub with its typical root
-bone. On the stock rhinoceros only the four mid legs are missing, and each is refused: <code>the skeleton has no bone
-'mid_leg1_l' for the L Mid Leg · Non-Swappable limb's root: add that bone first ... a limb with no bones makes the engine's model
-loader report 'limbs are boneless!' and ComboTest.exe won't take the creature</code>. (For legs, arms and wings use
-<em>Add Stub Socket</em> below, which creates the bone.)</li>
-<li><strong>Delete</strong> (a dialog: the patches go to the Torso or a limb you choose; the bones are left in no limb) is refused
-while a connection still uses the limb's class, and so is unticking a class a connection needs: <code>Limb Classification refused:
-connection 'Rhinoceros_Tail' attaches a limb of class 0x80 (Tail) and no other limb has that class: delete or re-point its
-connection first, or tick another box instead</code>. The Torso can never be unticked (every socket is cut into it).</li>
-<li>In Edit Mode the tab adds <strong>Select Limb</strong> (grab a body part) and <strong>Assign Selected to Limb</strong> (move the
-selected patches into any limb, stubs and new limbs included).</li>
+<li><strong>Add Standard</strong> adds a missing standard limb as a stub. Its root bone must exist. For front legs, rear
+legs, wings and arms, use <strong>Add Stub Socket</strong>, which can create the bone.</li>
+<li><strong>Delete</strong> asks where the patches go and leaves the bones in no limb. You can't delete or untick a
+class that a connection still needs, or untick the Torso.</li>
+<li>In Edit Mode, <strong>Select Limb</strong> and <strong>Assign Selected to Limb</strong> select and move
+patches.</li>
 </ol>
-<figure><img src="img/boner_limb_delete_refused.jpg" alt="The Delete Limb refusal popup: connection Rhinoceros_LFLeg attaches a limb of this class and no other limb has that class"><figcaption>Delete on Rhinoceros_LFLeg: <code>Delete Limb refused: connection 'Rhinoceros_LFLeg' attaches a limb of this class (L Front Leg) and no other limb has that class: delete or re-point its connection first</code>.</figcaption></figure>
+<figure><img src="img/boner_limb_delete_refused.jpg" alt="Delete refused popup"><figcaption>A limb that a connection
+needs can't be deleted.</figcaption></figure>
 
 <h3>Boner &gt; Connections</h3>
-<p>Every connection is a row: name, <code>Parent &gt; Child</code> class, corners (<code>6/6</code>: picked / wanted), host bone
-and status (<code>ok</code>, <code>no ring</code>, <code>no child limb</code>, <code>no parent limb</code>, <code>no host</code>,
-<code>host not in parent</code>, <code>duplicate</code>); the tick, info or error icon is the ring's own status (winding, start,
-placement). Click a row to make it active: its ring is drawn thick in the viewport, the others dimmed, and the boxes below edit
-it. Work in <strong>Edit Mode</strong> for the ring tools.</p>
+<p>Each row shows Parent &gt; Child class, corners (picked / wanted), host bone and status. Click a row to highlight
+its ring.</p>
 <ol>
-<li><strong>Rename</strong> / <strong>Delete</strong>: as for limbs. Delete warns that the limb has no connection now (ComboTest.exe
-then refuses the whole creature) and the list shows a red <em>no connection</em> line until one carries the class again.</li>
-<li><strong>Parent</strong> / <strong>Child</strong> (the radio) chooses which class the boxes edit. Non-Swappable is not offered:
-it belongs on the limb, the loader ignores a connection's copy. A limb re-classed in Boner &gt; Limbs takes its connection's
-Child class along; changing the Child here to a class another connection carries gives <code>duplicate</code>.</li>
-<li><strong>Host bone</strong>: pick a bone in the search field and press <strong>Set</strong>, or <strong>Default</strong> (the
-parent of the limb's root bone). Only bones of the parent limb are accepted: <code>Set Host Bone refused: 'jaw1' is not in the
-bones of the parent limb (Torso): a host bone is a bone of the limb the ring is cut into (the Object Editor warns, ComboTest.exe
-asserts 'Index &gt;= 0')</code>.</li>
-<li><strong>Create for Limb</strong> lists the limbs without a connection and makes one: Parent Torso (Head when only a Head bone
-can host it), Child the limb's class, named like the limb, host bone the default; status <code>no ring</code> until you pick one.
-From the panel in Edit Mode it goes straight on to Pick Ring.</li>
-<li><strong>Pick Ring</strong> (the eyedropper) is interactive: click the ring's corners one by one in the viewport. Only the torso's
-patch corners joined to the last pick by a patch side are offered, the ring closes itself at the slot's size (6 corners head /
-tail, 4 otherwise), and is then wound into the torso and started where the stock creatures start, so it welds like a stock ring
-(Backspace steps back, Esc cancels). <strong>From Selection</strong> is its scriptable twin (<code>bz.set_connection_ring</code>):
-Shift+click the same corners in order, then press it.</li>
-<li><strong>Optimise Start</strong> / <strong>All Rings</strong> fix a ring that is right in every way except where its
-corner list <em>begins</em>. See below.</li>
+<li><strong>Rename</strong> or <strong>Delete</strong>. A limb left without a connection is refused by
+ComboTest.exe.</li>
+<li><strong>Parent</strong> / <strong>Child</strong> chooses which class the boxes edit. A Child class that another
+connection already has shows as <em>duplicate</em>.</li>
+<li><strong>Host bone</strong>: choose one and press <strong>Set</strong>, or press <strong>Default</strong>. It must
+belong to the parent limb.</li>
+<li><strong>Create for Limb</strong> makes a missing connection. Then pick its ring.</li>
+<li><strong>Pick Ring</strong> (Edit Mode): click the corners along patch sides; the ring closes by itself. Backspace
+steps back, Esc cancels. Or Shift+click the corners in order and press <strong>From Selection</strong>.</li>
+<li><strong>Optimise Start</strong> / <strong>All Rings</strong>: see below.</li>
 </ol>
 
 <h3>Optimise Ring Start: where the weld begins</h3>
-<p>The combiner welds a donor's ring to a socket ring <strong>by index</strong>: it pairs the two rings' vertex lists
-element by element, and each list is the corners in the connection's own order followed by the two interior points of
-each edge's patch row. So which corner a ring's list starts at decides which donor corner meets which socket corner, and
-a start one corner out drags the whole seam around the ring. Validate has measured this since the combine precheck
-landed (<em>the by-index weld is N deg worse than the best rotation</em>); the button fixes it.</p>
+<p>The combiner welds two rings corner by corner from each ring's first corner. A wrong start twists the seam.</p>
 <ol>
-<li><strong>Optimise Start</strong> tries every rotation of the active ring's corner list and keeps the one the stock
-creatures weld best. The corners, the winding, the host bone and everything else stay as they are.</li>
-<li>The report gives the mean corner angle before and after, how many stock partners the weld leaves over the 20&deg;
-margin, and &mdash; the number that actually matters &mdash; <strong>how far the worst welded corner moves in
-millimetres</strong>: the same one-corner error is 320 mm on the cheetah's front-leg socket and 16 mm on a compact
-insect's.</li>
-<li>A ring that is already as good as the stock ones is <strong>refused</strong>, with its numbers, so an untouched
-creature stays byte-identical. <strong>All Rings</strong> does the whole creature in one undo step.</li>
-<li>The other thing the file could express &mdash; <em>reversing</em> the corner list &mdash; flips the ring's winding
-normal, and every one of the 730 base-game rings points its normal into the torso. So a ring whose stock partners would
-rather weld it reversed is <em>reported</em> ("the ring's PLANE, not its start"), never reversed.</li>
+<li><strong>Optimise Start</strong> tries every start for the active ring and keeps the one that welds best with stock
+creatures.</li>
+<li>The report shows the improvement and how far the worst corner moves.</li>
+<li>An already good ring is refused. <strong>All Rings</strong> does the whole creature in one undo step.</li>
+<li>It never reverses a ring, but reports when a reversed one would weld better.</li>
 </ol>
-<aside class="note"><p>Measured on the 61 base-game creatures: <strong>724 of 726 rings are already optimal</strong>, and
-the two that are not are both the raven's (its L Side Wing, 75&deg; &rarr; 24&deg;, and its L Front Arm, 100&deg; &rarr;
-48&deg;). A second, independent rule agrees: all 302 Left/Right socket-ring pairs of the base game are geometric mirrors
-and 300 start at mirror corners &mdash; the two exceptions being exactly those raven rings. In ComboTest.exe, the stock
-cheetah with its L Front Leg socket started two corners out grafts a bull's front leg <strong>up to 87 mm off</strong>
-while the right leg in the same run is untouched; after the operator (byte-identical to stock again) the left/right
-asymmetry over that leg goes from 25.3 mm to 0.81 mm. Both files LOAD in the Object Editor: a mis-started ring is a
-valid model, only the graft is wrong.</p></aside>
-<figure><img src="img/boner_conn_list.jpg" alt="Boner > Connections in Edit Mode: twelve rows with Parent > Child, corners, host and status; the Head connection active with its Parent/Child boxes, host bone neck1 and ring box"><figcaption>Boner &gt; Connections in Edit Mode: twelve sockets; Rhinoceros_Head active (<code>Torso &gt; Head 6/6 · neck1 · ok</code>) and drawn thick on the neck; below it the Parent / Child radio and boxes, <em>Host bone: neck1</em> with Set / Default, and the ring box with Pick Ring / From Selection.</figcaption></figure>
-<figure><img src="img/boner_conn_deleted.jpg" alt="After deleting the Head connection: eleven rows and a red alert, no connection: Rhinoceros_Head"><figcaption>The Head connection deleted: <code>no connection: Rhinoceros_Head (ComboTest.exe refuses the creature until each has one)</code>.</figcaption></figure>
-<figure><img src="img/boner_conn_created.jpg" alt="Create for Limb > Rhinoceros_Head made a new row, Torso > Head 0/6 · neck1 · no ring, shown in red"><figcaption>Create for Limb &gt; Rhinoceros_Head: a new row <code>Torso &gt; Head 0/6 · neck1 · no ring</code>, Parent Torso, Child Head, host neck1 (the parent of neck2, the Head's root).</figcaption></figure>
-<figure><img src="img/boner_conn_ring_set.jpg" alt="Zoomed on the neck: the six corners selected and the re-picked head ring drawn thick, the row now 6/6 · neck1 · ok"><figcaption>The six corners of the old ring Shift+clicked in order (here backwards and starting two corners off) and <strong>From Selection</strong>: wound into the torso and started like the stock creatures, the ring is the stock ring again (<code>6/6 · neck1 · ok</code>), so the re-created connection exports as the original record.</figcaption></figure>
-<aside class="note"><p>Re-picking a ring is safe as long as you pick the same corners: the picker only offers corners along patch sides
-and fixes winding and start itself. A ring on the wrong patches shows a WARN (fewer than half its sides border the limb's patches:
-probably inside the torso or around another socket) and Validate names it.</p></aside>
+<aside class="note"><p>A badly started ring still loads in the Object Editor; only the graft is wrong.</p></aside>
+<figure><img src="img/boner_conn_list.jpg" alt="Connections tab with head ring"><figcaption>The head connection and its
+ring are selected.</figcaption></figure>
+<figure><img src="img/boner_conn_deleted.jpg" alt="Missing connection alert"><figcaption>Deleting a connection raises
+an alert.</figcaption></figure>
+<figure><img src="img/boner_conn_created.jpg" alt="New connection without a ring"><figcaption>A new connection needs a
+ring.</figcaption></figure>
+<figure><img src="img/boner_conn_ring_set.jpg" alt="Neck ring re-picked"><figcaption>From Selection orders the ring for
+you.</figcaption></figure>
+<aside class="note"><p>A ring warning here or in Validate can mean the ring is on the wrong patches.</p></aside>
 
 <h3>Add Stub Socket: a class the creature does not model</h3>
-<p>A creature without, say, arm stubs cannot take arms from another creature and, worse, the Object Editor warns
-<em>Required limb class not found</em> for it. <strong>Add Stub Socket</strong> (Boner &gt; Connections, Edit Mode) gives it the stub
-limb and the socket in one undo step. Its menu lists the ten stub-able classes (front / rear legs, side / top wings, front arms)
-no limb or connection has; on a complete creature it says <em>(no stub-able class is missing)</em>.</p>
+<p>Without arm stubs, for example, a creature can't take arms, and the Object Editor warns <em>Required limb class not
+found</em>. <strong>Add Stub Socket</strong> adds the stub limb and its connection.</p>
 <ol>
-<li>Tab into Edit Mode and select the <strong>4 corners of exactly one Torso patch</strong> (the patch the socket goes on; the
-stock creatures put arm stubs at the shoulder, wing stubs on the back). Nothing, two patches, a patch outside the Torso or a patch
-that is already a socket's ring are refused with the reason (a side and a top wing may share a patch).</li>
-<li><strong>Add Stub Socket &gt; LFArm</strong>. The stub limb gets the skeleton's standard bone (<code>front_arm1_l</code>) when it
-is free, else a <em>new</em> bone of that name under the host at the patch centre; the ring is the patch's corner loop wound and
-started like the stock ones; the host is the stock host of the class (neck1 for arms, spine3 for wings and front legs, pelvis for
-rear legs).</li>
-<li>Do the other side too: until then the tab warns <em>no Right partner</em>.</li>
+<li>In Edit Mode select the <strong>4 corners of one Torso patch</strong> (such as a shoulder for arms, or the back for
+wings).</li>
+<li>Choose a missing class, for example <strong>Add Stub Socket &gt; LFArm</strong>. The bone, ring and host bone are
+set up for you.</li>
+<li>Add the other side too.</li>
 </ol>
-<figure><img src="img/boner_stub_before.jpg" alt="A rhinoceros without arm stubs in Edit Mode, the four corners of one shoulder patch selected, the Connections tab with Add Stub Socket"><figcaption>A rhinoceros stripped of its arm stubs (11 limbs, 52 bones) in Edit Mode: the four corners of one Torso patch at the shoulder are selected; <strong>Add Stub Socket</strong> offers LFArm and RFArm.</figcaption></figure>
-<figure><img src="img/boner_stub_after.jpg" alt="After Add Stub Socket > LFArm: a new row Rhinoceros_LFArm, Torso > L Front Arm 4/4 · neck1 · ok, its ring drawn thick on the shoulder patch"><figcaption>Add Stub Socket &gt; LFArm. Report: <code>Added stub socket LFArm (L Front Arm): limb 'Rhinoceros_LFArm' with the new bone 'front_arm1_l', connection 'Rhinoceros_LFArm' on patch 38 (ring [1133, 373, 375, 1134]), host bone neck1 (a new bone under it: the stock host of L Front Arm limbs)</code>, plus the one-sided warning that RFArm clears. Export writes the created bone last with the stub flag and no clip track.</figcaption></figure>
-<aside class="note"><p>A created stub bone sits at the patch centre, not where Relic put theirs, and the combiner counts stub bone
-positions in the body size: a combination comes out about 0.8 % smaller than with the stock creature's own stubs. ComboTest.exe
-accepts such sockets (eagle wings and praying-mantis arms graft at them). Undo takes the bone off the rig and the rows out of the
-tables together.</p></aside>
+<figure><img src="img/boner_stub_before.jpg" alt="Shoulder patch selected"><figcaption>Select one torso
+patch.</figcaption></figure>
+<figure><img src="img/boner_stub_after.jpg" alt="New arm socket"><figcaption>The new socket sits on that
+patch.</figcaption></figure>
+<aside class="note"><p>A new stub bone sits at the patch centre, so combinations come out slightly (about 0.8 %)
+smaller.</p></aside>
 
 <h3>Boner &gt; Bones: renaming, adding, deleting and re-parenting bones</h3>
-<p>The Bones tab is also the skinning loop (Assign Selected, Select Points, Auto Skin: see the skinning chapter). Everything
-below changes the skeleton itself &mdash; renaming, adding, deleting and re-parenting bones, their joint limits and the
-creature's IK chains.</p>
+<p>This tab also holds the skinning tools (see the skinning chapter).</p>
 <ol>
-<li><strong>Rename Bone</strong> (the pencil next to the <strong>Bone</strong> field; also Blender's own rename with F2 or in the
-Outliner, which exports the same bytes). A dialog asks for the new name: at most 63 ASCII characters, unique ignoring case.
-Export writes the name everywhere the file names the bone: skeleton, limb bone lists, connection hosts, IK chains and the clip
-tracks (unedited clips keep their bytes, so no re-encode); the rig bone, its vertex group and every Action's F-curves follow
-at once. Renaming a name the game looks up (pelvis, spine1-3, neck1-3, head, tail1-4, endtail, the combiner's leg / arm / wing
-bones, the scaling list) is allowed but warned in the dialog, in the tab (<em>pending: renamed ...</em>) and by Validate, saying
-what the creature loses; renaming <em>to</em> such a name warns that the game will treat the bone specially. Refused: a
-case-only clash (<code>another bone is already called 'ear_r' (names must differ, ignoring case)</code>), a rename chain (a
-bone given the name another bone had at import: export and re-import between the two steps), and copies Duplicate or Symmetrize
-made that cannot be told from the original.</li>
+<li><strong>Rename Bone</strong> (pencil next to <strong>Bone</strong>, or Blender's F2). Use a unique name of up to 63
+ASCII characters; references and Actions follow. Renaming a bone the game looks up is allowed but warned. To reuse
+another bone's old name, export and re-import first.</li>
 </ol>
-<figure><img src="img/boner_bone_rename_dialog.jpg" alt="The Rename Bone dialog for tail1 with a red warning that the game looks tail1 up by name"><figcaption>Rename Bone on <code>tail1</code>: the dialog warns before you confirm. Measured in ComboTest.exe: with tail1 renamed, any design that replaces the tail tears the tail seam (vertices on the root bone, up to 0.27 m off), and a kept tail loses TailWag and its ground clearance.</figcaption></figure>
+<figure><img src="img/boner_bone_rename_dialog.jpg" alt="Rename Bone warning"><figcaption>The dialog warns about
+special names.</figcaption></figure>
 <ol start="2">
-<li><strong>Add Bone under Active</strong>: pick the parent in <strong>Bone</strong>, then the dialog asks for a name, an offset from the
-parent's tail in the parent's axes and a length (0 = half the parent's). The bone is a deforming leaf in its parent's limb; skin
-control points to it with <strong>Assign Selected</strong> in Edit Mode and Export writes it into the skeleton (before the stub
-bones, flags and colour from its parent). Kept clips need no track for it: the game holds a bone a clip has no keys for at its
-rest under its parent, which is what Blender shows too; an Action you key it in is re-encoded.</li>
-<li><strong>Adopt Added Bones</strong> (the import icon that appears next to Add Bone) takes bones you made with Blender's own tools
-(Shift+A, E in the rig's Edit Mode, Shift+D copies), chains too: each is stamped and put into its parent's limb so the skin tools
-can use it. A single leaf under a bone of the creature is taken at Export even without adopting; an unstamped chain, or a copy
-with bones under it, is refused until you adopt.</li>
+<li><strong>Add Bone under Active</strong>: choose the parent in <strong>Bone</strong>, then give a name, offset and
+length. Skin points to it with <strong>Assign Selected</strong>.</li>
+<li><strong>Adopt Added Bones</strong> (import icon) takes in bones made with Blender's tools. Chains and copied bones
+with children need it; a single new leaf is exported without it.</li>
 </ol>
-<figure><img src="img/boner_bone_add.jpg" alt="The Bones tab after Add Bone under Active: pending renamed ear_L -> ear_left, pending added horn_l, horn_l · 8 points · parent head, the rig with 55 bones"><figcaption>Add Bone under Active (parent <code>head</code>, name <code>horn_l</code>, 2 cm along the head's tail, 12 cm long), then eight head points assigned to it: <em>pending: renamed ear_L -&gt; ear_left</em> from the earlier rename, <em>pending: added horn_l</em>, and <code>horn_l · 8 points · parent head</code>; the rig box counts 55 bones.</figcaption></figure>
-<figure><img src="img/boner_bone_pending.jpg" alt="A bone made with Blender's own tools under endtail: pending: added horn_l, tail_tip, with the Adopt button next to Add Bone"><figcaption>A leaf (<code>tail_tip</code>) made under <code>endtail</code> in the rig's Edit Mode with Blender's own tools: the tab lists it as pending, the Adopt button appears next to Add Bone.</figcaption></figure>
-<figure><img src="img/boner_bone_adopted.jpg" alt="Boner > Limbs after Adopt Added Bones: the Tail limb lists six bones ending with tail_tip"><figcaption>After <strong>Adopt Added Bones</strong> (<code>Adopted 'tail_tip' (Rhinoceros_Tail)</code>), Boner &gt; Limbs: the Tail lists <code>tail_tip</code> after its stock bones.</figcaption></figure>
-<p><strong>An added bone always follows its parent's limb.</strong> Rename it and nothing changes; re-parent it on the rig and it moves
-(the Limbs tab shows <em>at Export: horn_l -&gt; Rhinoceros_Tail (moved from Rhinoceros_Head ...)</em>, and points it owns in its old
-limb's patches become a warning); delete it again and the export is as if it had never been added (<em>dropped ... an added bone
-not on the rig any more</em>). Limbs &gt; Add / Remove Active Bone on an added bone say so: re-parent it to move it.</p>
-<figure><img src="img/boner_bone_refused.jpg" alt="The refusal popup: Add Bone refused: top_wing_r is a stub bone (a stub limb's only bone, written after every other bone): add the bone under the stub's host instead"><figcaption>Add Bone under Active with <code>top_wing_r</code> as the parent: <code>Add Bone refused: 'top_wing_r' is a stub bone (a stub limb's only bone, written after every other bone): add the bone under the stub's host instead</code>.</figcaption></figure>
+<figure><img src="img/boner_bone_add.jpg" alt="Added horn bone"><figcaption>A new bone with points skinned to
+it.</figcaption></figure>
+<figure><img src="img/boner_bone_pending.jpg" alt="Pending bone and Adopt button"><figcaption>A Blender-made bone
+waiting to be adopted.</figcaption></figure>
+<figure><img src="img/boner_bone_adopted.jpg" alt="Tail limb with new bone"><figcaption>The adopted bone is in its
+parent's limb.</figcaption></figure>
+<p>An added bone always belongs to its parent's limb; re-parent it to move it.</p>
+<figure><img src="img/boner_bone_refused.jpg" alt="Add Bone refused popup"><figcaption>You can't add a bone under a
+stub bone.</figcaption></figure>
 
 <h3>Deleting and re-parenting the creature's own bones</h3>
-<p>These are Blender's own tools in the rig's Edit Mode &mdash; <kbd>X</kbd> and <kbd>Ctrl+P</kbd>, or the Outliner
-&mdash; and Export takes them:</p>
+<p>Use <kbd>X</kbd> and <kbd>Ctrl</kbd>+<kbd>P</kbd> in the rig's Edit Mode, or the Outliner.</p>
 <ul>
-<li><strong>A deleted bone</strong> loses its record. Its control points go to its parent with a warning naming the
-count, its children hang from its parent with their bind world kept, it comes off the limb lists and the IK chains, and
-the kept clips that keyed it are rebuilt without its track &mdash; every other track byte-identical.</li>
-<li><strong>A re-parented bone</strong> keeps its bind world (only the record's parent index changes; a bone put under a
-later record moves right after its new parent and nothing else moves), and its kept clips' tracks are re-expressed
-under the new parent, so Blender plays the same pose for the same Action keys. An IK chain broken by the move is
-completed along the hierarchy (a <code>neck4</code> inserted between neck3 and head joins the Neck chain) or dropped
-with a warning.</li>
+<li><strong>Deleting</strong> a bone gives its points and children to its parent, and removes it from limbs, IK chains
+and clips.</li>
+<li><strong>Re-parenting</strong> keeps the bone's rest position and its animation.</li>
 </ul>
-<figure><img src="img/boner_bone_deleted.jpg" alt="The panel after deleting the nose bone with Blender's X in the rig's Edit Mode"><figcaption>One of the creature's own bones deleted with Blender's <kbd>X</kbd> (<code>nose</code>, a leaf of the head). Export takes it: <code>bones: deleted 1 (nose (218 points -&gt; head)); IK chains: 1 rebuilt (Head: nose taken out (1 bone left)); clips: 4 kept clip(s) rebuilt (4 track(s) of deleted bones dropped; the other tracks keep their bytes)</code>.</figcaption></figure>
-<p><strong>What is still refused</strong>, in the rig box and at Export: the root bone; a bone the game looks up by name
-(pelvis, spine, neck, head, tail, the combiner's leg bones &mdash; the reason is given, at length); a stub bone; a
-connection's host bone; the only bone of a limb; a bone made a root; one under a stub bone; and a re-parent that would
-split a limb other than the Torso into two branches.</p>
-<figure><img src="img/boner_bone_deleted_alert.jpg" alt="The refusal after deleting tail1: the game looks that name up"><figcaption>Deleting <code>tail1</code> instead is refused: <code>bone 'tail1' was deleted, but the game looks 'tail1' up by name (procedural animation; tail ground clearance; the combiner's lookups; seam skinning; creature scaling): deleting it breaks that in game. Undo the delete (skin nothing to it if it should move nothing)</code>.</figcaption></figure>
+<figure><img src="img/boner_bone_deleted.jpg" alt="Nose bone deleted"><figcaption>A deleted bone's points move to its
+parent.</figcaption></figure>
+<p>You can't delete the root, bones the game looks up by name, stub bones, host bones or a limb's only bone. You can't
+move the root, make a second root, put a bone under a stub, or split a limb other than the Torso.</p>
+<figure><img src="img/boner_bone_deleted_alert.jpg" alt="Deleting tail1 refused"><figcaption><code>tail1</code> can't
+be deleted.</figcaption></figure>
 
 <h3>Joint limits and IK chains</h3>
-<p>Below the skinning tools the Bones tab carries two more pieces of the BONE record, both round-tripped and both
-editable:</p>
 <ul>
-<li><strong>Joint limits.</strong> Every rig bone carries its record's limits as the <code>bz_joint_limits</code> custom
-property (min x, y, z then max x, y, z in radians, then the record's limit flag word where the file has one). The tab
-shows the stock values and the editable copy under the active bone, <strong>Reset to Stock</strong> puts them back, and
-Export writes a bone's limits only when they differ from its record. The Object Editor sorts each pair and shows
-degrees; no shipped tool has been seen to enforce them in play.</li>
-<li><strong>IK chains</strong> (the <code>IKCH</code> chunk: name, kind bit, enabled word, bones). <strong>Add IK
-Chain</strong> (from a bone down to a bone under it), <strong>Edit</strong> (name and words), <strong>Remove</strong>
-and <strong>Reset</strong>. A chain follows renamed, deleted and re-parented bones the way the source's chains do, and
-one whose bones are not one line of the hierarchy is refused at Export and blocking in Validate (all 905 stock chains
-are one line). Nothing shipped reads the chunk, so it is kept consistent rather than made to do anything.</li>
+<li><strong>Joint limits</strong>: each rig bone's <code>bz_joint_limits</code> property, in radians. <strong>Reset to
+Stock</strong> restores it.</li>
+<li><strong>IK chains</strong>: <strong>Add IK Chain</strong>, edit, remove or reset them. A chain must be one line of
+bones.</li>
+<li>No game tool has been seen to use either in play.</li>
 </ul>
-<p>Export's summary line lists what the skeleton edits did. For this rhinoceros (arm stubs re-added, ear renamed, two bones added):
-<code>bones: added 2 stub bones (front_arm1_l, front_arm1_r); bones: added 2 (horn_l, tail_tip); bones: renamed 1 (ear_L -&gt;
-ear_left), followed by 1 limb list(s), 1 IK chain(s), 9 clip track(s); limbs: bones 2 (Rhinoceros_Head, Rhinoceros_Tail); added 2
-(Rhinoceros_LFArm, Rhinoceros_RFArm); connections: added 2 (Rhinoceros_LFArm, Rhinoceros_RFArm)</code>.</p>
 
 <h3>Validate, Combine Preview and the Quick combine tier</h3>
-<p><strong>Tools &gt; Validate (will it load?)</strong> with <strong>Combine Checks: Quick</strong> (the default) reports three tiers:
-load-blocking problems, <code>STOCK</code> gaps (things every base-game creature has) and <code>WARN</code> advisories, plus the
-combiner's precheck and 13 real combines with 6 stock donors as <code>COMBINE ERROR / WARN / INFO</code> lines. The lines are
-reports: read them in an Info editor (change any area's type to Info) or the console; the status bar shows the summary. Combine
-lines never block loading, but a <code>COMBINE ERROR</code> means the real ComboTest.exe fails on the creature.</p>
+<p><strong>Validate (will it load?)</strong>, with <strong>Combine Checks: Quick</strong> (default), reports:</p>
+<ul>
+<li>problems that block loading;</li>
+<li><code>STOCK</code>: things every base-game creature has but yours lacks;</li>
+<li><code>WARN</code>: advice;</li>
+<li><code>COMBINE</code>: trial combinations with stock creatures. A <code>COMBINE ERROR</code> means ComboTest.exe
+fails on your creature.</li>
+</ul>
 <ol>
-<li>Make the creature bad on purpose: tick Mid on LFLeg alone, Delete the LFArm socket, Remove Active Bone <code>nose</code> from the
-Head. The Connections tab already shows two red lines.</li>
-<li>Press <strong>Validate (will it load?)</strong> and read the report.</li>
-<li>Open <strong>Combine Preview</strong> (the collapsed panel at the bottom), choose a stock donor and press
-<strong>Preview</strong>: instead of drawing a combination the real tool never makes, it fails with the first refusal.
-<strong>Validate Combines</strong> in the same panel runs the Quick tier alone.</li>
+<li>To try it, break a creature: tick Mid on LFLeg only, delete the LFArm connection, and remove <code>nose</code> from
+the Head.</li>
+<li>Press <strong>Validate (will it load?)</strong> and read the lines in an <strong>Info</strong> editor.</li>
+<li>Open <strong>Combine Preview</strong>, choose a stock donor and press <strong>Preview</strong>. It stops at the
+first refusal. <strong>Validate Combines</strong> runs only the quick combine checks.</li>
 </ol>
-<figure><img src="img/boner_conn_alerts.jpg" alt="Boner > Connections with two red alerts: no connection: Rhinoceros_LFArm, and no Right partner: Rhinoceros_LFLeg"><figcaption>After the three edits the Connections tab names both refusals: <code>no connection: Rhinoceros_LFArm (ComboTest.exe refuses the creature until each has one)</code> and <code>no Right partner: Rhinoceros_LFLeg (ComboTest.exe refuses the creature: re-class the partner limb too)</code>.</figcaption></figure>
-<figure><img src="img/boner_validate_status.jpg" alt="After Validate: the status bar sums up the report, N stock-rulebook gaps, warnings and combine issues"><figcaption>Validate (will it load?) pressed with Combine Checks: Quick: the status bar sums the report up, <code>Loads in the Object Editor; 4 stock-rulebook gap(s) (things every base-game creature has), 3 warning(s), 5 combine issue(s) -- see info log</code>.</figcaption></figure>
-<figure><img src="img/boner_validate_info.jpg" alt="The Info editor showing Validate's report lines: STOCK and COMBINE ERROR warnings and the summary"><figcaption>Validate's report in the Info editor (the viewport area switched to Info for the shot). <code>STOCK</code>: the lfarm ring missing, <code>1 bone is in no limb (nose)</code>, the Head's patches using nose's 218 points, <code>added bone 'tail_tip' owns no control points</code>. <code>WARN</code>: the lfleg ring missing (the limb is L Mid Leg now), the Object Editor's <code>Required limb class not found ... 0x25</code>, and the Actions of the earlier import (deleted with its rig) not exported. <code>COMBINE ERROR precheck</code>: the socketless LFArm (<code>Assertion of (pDesLimb-&gt;m_pLimbConn)</code>) and the unmirrored L Mid Leg (<code>Assertion of (LimbToAdd.m_pLimb)</code>); <code>COMBINE WARN</code>: nose's points on the root bone as a donor, the mid-leg socket hosted on spine3 (stock: spine1), no ground speed attributes. Last, the summary.</figcaption></figure>
-<figure><img src="img/boner_combine_refused.jpg" alt="Combine Preview with the stock cheetah as the other creature and the error popup: Combine failed: ComboTest.exe does not take rhinoceros_noarms: limb Rhinoceros_LFArm has no connection carrying its class"><figcaption>Combine Preview &gt; Preview with the stock cheetah: <code>Combine failed: ComboTest.exe does not take rhinoceros_noarms: limb 'Rhinoceros_LFArm' (class 0x15) has no connection carrying its class: ComboTest.exe fails 'Assertion of (pDesLimb-&gt;m_pLimbConn)' (CombinerImp.cpp:180) as soon as the creature is loaded, in either role, so no combination with it exists (every non-torso limb, stubs included, needs its connection) (and 1 more)</code>.</figcaption></figure>
+<figure><img src="img/boner_conn_alerts.jpg" alt="Two connection alerts"><figcaption>The tab flags both
+problems.</figcaption></figure>
+<figure><img src="img/boner_validate_status.jpg" alt="Validate summary in status bar"><figcaption>The status bar sums up
+the report.</figcaption></figure>
+<figure><img src="img/boner_validate_info.jpg" alt="Validate report lines"><figcaption>The Info editor shows each
+line.</figcaption></figure>
+<figure><img src="img/boner_combine_refused.jpg" alt="Combine failed popup"><figcaption>Preview explains why combining
+fails.</figcaption></figure>
 
 <aside class="note">
-<p><strong>Gotchas.</strong></p>
 <ul>
-<li>Every class on a stock creature has a connection, so a stock limb can only lose its class after another limb has it or its
-connection is deleted; the classification boxes and Delete refuse the "untick, then delete" bypass on purpose.</li>
-<li>A one-sided re-class is allowed (the partner is your next click) but warned; ComboTest.exe refuses the creature until both
-sides match.</li>
-<li>Moving a single bone with Add / Remove Active Bone may strand a limb's points on a Torso or unlimbed bone: allowed, warned with
-the count, reported by Validate as <code>STOCK</code> and by the precheck as <code>COMBINE ERROR</code> (legs) or <code>WARN</code>.
-Re-skin the points or move the bone back.</li>
-<li>Rename Bone is fine for clips you did not edit (they stay byte-identical); renaming a bone the game hard-codes is your risk,
-and <code>tail1</code> is the measured worst case.</li>
-<li>Shift+D copies of bones: a copy of an original bone can't be told from it and is refused; copies of an added bone need Adopt
-Added Bones to get their own identity.</li>
-<li>Add Bone ends with the rig out of its Edit Mode so that one Ctrl+Z undoes the bone and the creature's tables together.</li>
+<li>Re-class both Left and Right partners; a one-sided change is refused by ComboTest.exe.</li>
+<li>Moving one bone can strand skin points outside their limb. Re-skin them or move the bone back.</li>
+<li>Don't rename <code>tail1</code>: combinations that replace the tail tear at the seam.</li>
+<li>Shift+D copies of original bones are refused. Copies of added bones need <strong>Adopt Added Bones</strong>.</li>
 </ul>
 </aside>
 
 <aside class="limits">
-<p><strong>Not possible yet.</strong></p>
 <ul>
-<li>An added bone cannot be moved to another limb on its own (re-parent it) and cannot host a connection; the Limbs / Connections
-operators name the file's bones and created stub bones only.</li>
-<li>A rename chain (giving a bone the name another bone had at import) needs an export and re-import between its steps.</li>
-<li>Add Standard Limb still cannot create a root bone by itself: mid legs (LMLeg ... RM2Leg) need their
-<code>mid_leg1_*</code> bone first &mdash; though <strong>Add Bone</strong> now makes one that can root the limb, and
-Add Stub Socket creates bones for the ten leg / arm / wing classes.</li>
-<li>No tool places a created stub bone where Relic put theirs (a created one sits at the patch centre, which costs a
-combination about 0.8 % of its size), and stub bones are never re-sorted (a reused bone that is not last stays where it
-is; Validate says so).</li>
-<li>Pick Ring needs the 3D Viewport (scripts use Set Connection Ring); a New Creature ring re-picked starts one corner off
-the scaffold's own start for its head (both combine cleanly).</li>
-<li>Optimise Ring Start can only <em>rotate</em> a ring's corner list. A ring whose stock partners would rather weld it
-reversed is reported, never reversed, because that would flip the ring's winding normal out of the torso &mdash; which
-no base-game ring does.</li>
-<li>No Torso "reset to the remainder" button, and no highlight of the active limb's bones in the overlay.</li>
-<li>Nothing here reads or writes a creature's <code>.ebp</code>: joint limits and IK chains are kept consistent in the
-<code>.sgm</code>, but which clip plays when is the blueprint's business, and that is the Object Editor's. (The
-Blueprint panel edits the blueprints of gatherers, characters, structures and props, not of creatures.)</li>
-<li>Scene objects (structures, characters) get none of this: no bone adds, no exported bone renames.</li>
+<li>An added bone can't be moved to another limb on its own, or host a connection.</li>
+<li><strong>Add Standard</strong> can't create root bones: for mid legs, add the <code>mid_leg1_*</code> bone
+first.</li>
+<li>Stub bones can't be placed or re-ordered by a tool.</li>
+<li><strong>Pick Ring</strong> needs the 3D Viewport.</li>
+<li>No button resets the Torso, and the overlay doesn't highlight a limb's bones.</li>
+<li>Creature <code>.ebp</code> blueprints can't be edited.</li>
+<li>Scene objects have none of these tools.</li>
 </ul>
 </aside>
 </section>

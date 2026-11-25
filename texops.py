@@ -1,35 +1,8 @@
-"""Transfer Texture (roadmap A4): give a native creature a per-patch atlas UV layout and bake a source mesh's
-image onto it, so a creature fitted / retargeted from a textured scan wears the scan's skin instead of the
-template's or donor's.
+"""Transfer Texture: give each patch its own atlas cell (corner UVs, which the engine interpolates bilinearly) and bake a
+source mesh's image onto it with Cycles. Unhit texels are filled, never magenta (IC keys that to transparent).
 
-How it works
-  1. **Atlas UVs.** Every patch gets its own square cell of an N x N grid (N = ceil(sqrt(patches))) with a gutter
-     of a few texels, written as the 4 corner UVs the file stores (``store.set_patch_uv``). The engine interpolates
-     the 4 corner UVs bilinearly over the patch (``core.surface_uvs`` is that rule, verified against the Object
-     Editor's vertex stream), so a cell per patch maps the patch exactly, and a seam between two patches is a seam
-     between two cells: no UV island has to be continuous across patches.
-  2. **Bake.** The creature's exact surface is tessellated (density D, the atlas UVs per sample, the engine's
-     normals) into a temporary target mesh; the source mesh gets a temporary copy with one Emission material
-     showing its image on its own UVs; Cycles (CPU) bakes EMIT "selected to active" from the source onto the target's
-     atlas image (no lighting; rays from a cage pushed out by ``extrusion`` of the creature's size, up to
-     ``ray distance``). Texels no ray hit stay unhit: they are measured (the coverage), filled from their hit
-     neighbours (a dilation of ``gutter + 2`` texels, so the gutters carry the cell's edge colour and bilinear /
-     mip sampling never reads black), the rest with the mean hit colour (never magenta: IC keys (255, 0, 255) to
-     transparent).
-  3. **Materials.** The image becomes the creature's ONE texture: every material slot's texture is the atlas
-     (positions kept, so ``patch.material_index`` still holds), the texture table is [atlas]. Export re-encodes it
-     as the creature's TXMP (``ICParse.codecs.texture.encode_texture``: the creature format is a 256-colour
-     paletted texture with a mip chain, as every stock creature; the type-1 ``.txr`` is the scene-object format)
-     and points every material's TXTR tag at it.
-
-Sizes (MEASURED, 2026-09-16): the 61 base-game creatures (``Assets/engine_stock``, 444 textures) top out at
-**256 x 256** -- nothing bigger ships with the game. The wider stock folder (``Assets/stock``: expansion and
-community creatures, 512 textures) goes to 512 x 512 (8) and 256 x 1024 (8, squid suckers); the only 1024 x 1024
-textures are on three hand-made creatures (ChickenTest*, a scan's ``Image_0``). So 1024 is the default here (a scan
-deserves more than 256) and 2048 is the most this tool writes: the Object Editor loaded a 2048 one (the pillbug,
-rdn-oe 6.9 s), but nothing in the game ships that big, so the in-game side is the modder's to test. A power of two
-is required by the halving mip chain. A sculpt in progress refuses (its refit would move the surface the bake was
-made on).
+The atlas becomes the creature's only texture (paletted TXMP). Size is a power of two: stock creatures stop at 256 and
+only the Object Editor is known to load 2048. Refused while a sculpt is in progress.
 """
 from __future__ import annotations
 
@@ -406,9 +379,8 @@ def transfer(context, obj, src, image, size: int, density: int, gutter_px: int, 
         cells = cell_mask(n_patches, size, gutter_px)[::-1]    # top-down -> bottom-up like the pixels
         cov, per = coverage(hit, cells, n_patches)
         if not hit.any():
-            raise TransferError(f"no ray from {obj.name}'s surface hit {src.name} within {ray_pct:.1f} % of the "
-                                "creature's size: the source is elsewhere or at another scale (Scale to Creature "
-                                "aligns it by bounding box; a source in other units needs it)")
+            raise TransferError(f"no ray from {obj.name}'s surface hit {src.name} within {ray_pct:.1f} % of the creature's "
+                                "size: check its position and scale (Scale to Creature aligns it)")
         rgb, n_dil, n_rest = dilate(px[:, :, :3], hit, steps=int(gutter_px) + 2)
         out = np.empty_like(px)
         out[:, :, :3] = rgb
@@ -439,36 +411,27 @@ def transfer(context, obj, src, image, size: int, density: int, gutter_px: int, 
 
 if bpy is not None:
     class BZ_OT_transfer_texture(bpy.types.Operator):
-        """Give the creature a per-patch atlas UV layout and bake a source mesh's image onto it (Cycles, no
-        lighting): a creature fitted or retargeted from a textured scan gets the scan's skin as its one texture"""
+        """Bake a source mesh's texture onto the creature"""
         bl_idname = "bz.transfer_texture"
         bl_label = "Transfer Texture"
         bl_options = {"REGISTER", "UNDO"}
 
-        source: StringProperty(name="Source Mesh", description="The textured mesh (with UVs and an image) to bake "
-                                                               "from; empty = the mesh the creature was fitted or "
-                                                               "retargeted from, when recorded")
+        source: StringProperty(name="Source Mesh", description="Textured mesh to bake from; empty = the fit or retarget "
+                                                               "source")
         image: StringProperty(name="Image", description="The image to bake; empty = the first image texture of the "
                                                         "source's materials")
         size: EnumProperty(name="Size", items=SIZES, default="1024",
-                           description=f"Texels per side of the atlas (a power of two). Measured: no base-game "
-                                       f"creature's texture is bigger than {BASE_GAME_MAX} x {BASE_GAME_MAX}, the "
-                                       f"wider stock folder reaches {STOCK_MAX}; {MAX_SIZE} is the most this tool "
-                                       f"writes and only the Object Editor has been seen to load one")
+                           description=f"Texture size in pixels (a power of two); stock creatures use up to {BASE_GAME_MAX}")
         density: IntProperty(name="Bake Density", default=7, min=3, max=17,
                              description="Surface samples per patch side the bake target is tessellated at")
         gutter: IntProperty(name="Gutter (texels)", default=4, min=1, max=32,
-                            description="Empty texels around every patch cell, filled from the cell's edge after the "
-                                        "bake so bilinear / mip sampling never crosses into a neighbour")
+                            description="Padding in pixels around each patch's texture cell")
         extrusion: FloatProperty(name="Cage Extrusion (% of size)", default=2.0, min=0.0, max=20.0,
                                  description="How far out of the creature's surface the bake rays start")
         ray: FloatProperty(name="Ray Distance (% of size)", default=4.0, min=0.1, max=50.0,
-                           description="How far a ray looks for the source; texels whose ray finds nothing are "
-                                       "filled from their neighbours and counted against the coverage")
+                           description="How far to search for the source; misses are filled from neighbours")
         scale_to_creature: BoolProperty(name="Scale to Creature", default=False,
-                                        description="Centre the source on the creature's surface bounding box and "
-                                                    "scale it by the ratio of the bounding diagonals first (Retarget's "
-                                                    "Scale to Target rule; for a source in other units)")
+                                        description="First centre and scale the source to fit the creature")
 
         @classmethod
         def poll(cls, context):
@@ -479,7 +442,7 @@ if bpy is not None:
             from . import draw, ops as bzops, sculptops
             obj = bzops._active_native(context)
             if obj is None:
-                self.report({"ERROR"}, "Select a native patch creature")
+                self.report({"ERROR"}, "Select a patch creature")
                 return {"CANCELLED"}
             if obj.mode == "EDIT":
                 obj.update_from_editmode()
@@ -523,8 +486,7 @@ if bpy is not None:
                 return {"CANCELLED"}
             size = int(self.size)
             if size & (size - 1) or not MIN_SIZE <= size <= MAX_SIZE:
-                self.report({"ERROR"}, f"size {size} is not a power of two between {MIN_SIZE} and {MAX_SIZE} (the mip "
-                                       f"chain halves, so a power of two is required; for scale, no base-game "
+                self.report({"ERROR"}, f"size {size} is not a power of two between {MIN_SIZE} and {MAX_SIZE} (no base-game "
                                        f"creature's texture is bigger than {BASE_GAME_MAX} x {BASE_GAME_MAX})")
                 return {"CANCELLED"}
             if obj.get(store.KEY_TEX_IMGS) is None:
@@ -563,14 +525,12 @@ if bpy is not None:
                                              "image": r["image"].name, "texture": tex_name}
             if r["coverage"] < 0.5:
                 self.report({"WARNING"}, f"only {100 * r['coverage']:.0f} % of the creature's texels found the source "
-                                         f"within {self.ray:.1f} % of its size: check the source is aligned with the "
-                                         "creature (Scale to Creature for other units) or raise the ray distance")
+                                         f"within {self.ray:.1f} % of its size: check alignment (Scale to Creature) or "
+                                         "raise the ray distance")
             elif r["coverage"] < 0.9:
                 self.report({"WARNING"}, f"{100 * (1 - r['coverage']):.0f} % of the creature's texels found no source "
-                                         f"within {self.ray:.1f} % of its size and were filled from their neighbours "
-                                         f"({r['low']} patch{'es' if r['low'] != 1 else ''} under half covered): those "
-                                         "parts of the creature are not on the source (a limb the source has not), so "
-                                         "raise Ray Distance to let them take the nearest source colour")
+                                         f"within {self.ray:.1f} % of its size and were filled from neighbours ({r['low']} "
+                                         f"patch{'es' if r['low'] != 1 else ''} under half covered): raise Ray Distance")
             if r["scale"] != 1.0:
                 self.report({"INFO"}, f"{src.name} scaled x{r['scale']:.4f} into the creature's frame for the bake")
             self.report({"INFO"}, line + f"; the creature's texture is now '{r['image'].name}' ({tex_name}); Export "

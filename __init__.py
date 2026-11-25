@@ -1,4 +1,4 @@
-"""SGM Native Patches -- WYSIWYG bicubic-Bezier patch editing for Impossible Creatures.
+"""IC Blender -- make and edit Impossible Creatures models and maps in Blender.
 
 Edit IC creature geometry as what it actually is: a control-point pool driving bicubic
 Bezier patches. The editable object's vertices ARE the control points (1:1, lossless), so
@@ -19,11 +19,11 @@ import sys
 import bpy
 
 bl_info = {
-    "name": "SGM Native Patches",
+    "name": "IC Blender",
     "author": "pyIC",
-    "version": (0, 8, 1),
+    "version": (0, 9, 0),
     "blender": (5, 3, 0),
-    "location": "View3D > Sidebar > SGM; File > New, Import and Export",
+    "location": "View3D > Sidebar > IC; File > New, Import and Export",
     "description": "Make and edit Impossible Creatures models: creatures, gatherers, characters, buildings and props",
     "category": "Import-Export",
 }
@@ -153,7 +153,7 @@ def _unload_stale_libraries() -> None:
     """Unload ICParse and combotest (each with its submodules) when the copy in memory is not the one this add-on would load now.
 
     Installing a new version over an enabled one, Blender disables the old add-on, removes only the add-on's own modules
-    (``bl_ext.<repository>.sgm_native_patches`` and below) from sys.modules, installs the new wheels and enables the new add-on
+    (``bl_ext.<repository>.ic_blender`` and below) from sys.modules, installs the new wheels and enables the new add-on
     in the same session (Blender 5.3: ``_preferences_ensure_disabled`` and ``exec_command_finish`` in
     ``scripts/addons_core/bl_pkg/bl_extension_ops.py``). Without this the new add-on ran against the old libraries until Blender
     was restarted, and when it needed a newer library name while it loaded, the enable failed and Blender's wheel sync then
@@ -190,7 +190,7 @@ def _unload_stale_libraries() -> None:
         for key in [k for k in sys.modules if k == name or k.startswith(name + ".")]:
             sys.modules.pop(key, None)
         UNLOADED[name] = why[name]
-        print(f"SGM Native Patches: {name} from an earlier load was still in memory ({why[name]}); it is loaded again from the "
+        print(f"IC Blender: {name} from an earlier load was still in memory ({why[name]}); it is loaded again from the "
               f"installed files.", flush=True)
 
 

@@ -1,18 +1,8 @@
-"""Combine Preview: combine the creature being edited with another one, the way the game's combiner does, and show
-the result beside it as a transient GPU "ghost" (no datablocks, nothing saved, no undo steps).
+"""Combine Preview: combine the edited creature with another and draw the result beside it as a transient GPU ghost
+(no datablocks, nothing saved, no undo steps). The bpy layer over ``combocore`` and ``combotest``.
 
-The bpy layer over ``combocore`` (bpy-free glue) and ``combotest`` (the combiner):
-
-* ``BZCombineSettings`` at ``Scene.bz_combine`` (registered by ``props.register`` before its pointer);
-* operators ``bz.combine_preview`` / ``combine_clear`` / ``combine_swap`` / ``combine_parts`` /
-  ``combine_materialize`` (writes the combined ``.sgm`` + companions and imports it as a native object into the
-  ``IC Combine Preview`` collection) / ``combine_clear_materialized`` / ``combine_validate`` (the Quick combine tier)
-  / ``combine_extract_stock``;
-* the ghost: its own POST_VIEW handler and ``_ghost`` state (``draw._state`` is untouched), batches built lazily in
-  the draw callback from ``combocore.build_ghost_arrays`` with ``fastsurf`` / ``texdraw`` exactly as the native
-  overlay draws; cleared on Clear, on file load (``load_post``) and on unregister, hidden when its object is gone;
-* a state digest (control points, patch / limb / ring / skin tables, rest pose, companions, settings) that marks
-  the readout stale, and an optional debounced auto refresh (Object mode only, never during a modal operator).
+``BZCombineSettings`` is registered by ``props.register`` before its pointer. The ghost has its own draw handler and state
+(never ``draw._state``), is cleared on Clear, file load and unregister, and auto refresh runs only in Object mode.
 """
 from __future__ import annotations
 
@@ -205,7 +195,7 @@ class BZCombineSettings(bpy.types.PropertyGroup):
         default=combocore.ROLE_TORSO, update=_on_setting)
     other_kind: bpy.props.EnumProperty(
         name="Other Creature", items=[("STOCK", "Stock", "A base-game creature from the stock directory"),
-                                      ("OBJECT", "Object", "Another native creature in this scene (its edits count)"),
+                                      ("OBJECT", "Object", "Another creature in this scene (including its edits)"),
                                       ("FILE", "File", "A creature .sgm / .ebp on disk (with its .lua / .lsc)")],
         default="STOCK", update=_on_setting)
     other_stock_name: bpy.props.StringProperty(name="Stock Creature", default="cheetah", update=_on_setting)
@@ -216,8 +206,7 @@ class BZCombineSettings(bpy.types.PropertyGroup):
     other_file: bpy.props.StringProperty(name="File", subtype="FILE_PATH", update=_on_setting)
     stock_dir: bpy.props.StringProperty(
         name="Stock Directory", subtype="DIR_PATH", update=_on_setting,
-        description="Stock creatures (.sgm + .lua + .lsc); empty = $BZ_STOCK_DIR, the repo's Assets/engine_stock, or "
-                    "the extracted copy in Blender's user data")
+        description="Folder of stock creatures; empty = $BZ_STOCK_DIR, the repo, or the extracted copy")
     # Advanced
     show_advanced: bpy.props.BoolProperty(name="Advanced", default=False)
     run_lua: bpy.props.BoolProperty(name="Run attrcombiner.lua", default=True, update=_on_setting,
@@ -225,8 +214,7 @@ class BZCombineSettings(bpy.types.PropertyGroup):
     body_scale: bpy.props.BoolProperty(name="Body Scale", default=True, update=_on_setting,
                                        description="Scale the combination to its size, as the game does")
     as_spec: bpy.props.BoolProperty(name="Take Picks Verbatim", default=False, update=_on_setting,
-                                    description="Like a saved design: no part-button rules (flagged fins and limbs "
-                                                "without a socket are not dropped; a missing socket is an error)")
+                                    description="Combine like a saved design, without the part-button rules")
     script_source: bpy.props.EnumProperty(
         name="Script", items=[("game", "Game", "The archives' attrcombiner.lua (what IC.exe runs)"),
                               ("tool", "ComboTest.exe", "ComboTest.exe's built-in copy (its exports' costs)")],
@@ -246,8 +234,7 @@ class BZCombineSettings(bpy.types.PropertyGroup):
         default="TEXTURED", update=_on_display)
     auto_refresh: bpy.props.BoolProperty(
         name="Auto Refresh", default=False, update=_on_setting,
-        description=f"Refresh the preview {AUTO_DELAY} s after the last edit (Object mode only; leaving Edit mode "
-                    "refreshes once)")
+        description=f"Refresh the preview {AUTO_DELAY} s after the last edit (Object mode only)")
     validate_level: bpy.props.EnumProperty(
         name="Combine Checks", items=[("QUICK", "Quick", "Validate also runs the Quick combine tier (13 combines "
                                                          "with 6 stock donors, a few seconds)"),
@@ -465,7 +452,7 @@ def other_parent(scene, obj, settings, notes: list):
     if kind == "OBJECT":
         o = settings.other_object
         if o is None or not store.is_native(o):
-            raise ValueError("pick another native creature object as the other creature")
+            raise ValueError("pick another creature object as the other creature")
         if o is obj:
             raise ValueError("the other creature is this creature: pick a different object")
         info = {}
@@ -604,8 +591,7 @@ def _active_creature(context):
 
 
 class BZ_OT_combine_preview(bpy.types.Operator):
-    """Combine this creature with the other one as the game's combiner does (part buttons, limb and body scaling,
-    attributes) and draw the result beside it (Refresh after edits)"""
+    """Combine this creature with another one and show the result beside it"""
     bl_idname = "bz.combine_preview"
     bl_label = "Preview Combination"
 
@@ -639,7 +625,7 @@ class BZ_OT_combine_clear(bpy.types.Operator):
 
 
 class BZ_OT_combine_swap(bpy.types.Operator):
-    """Swap roles: this creature becomes the donor if it was the torso, and the other way round"""
+    """Swap which creature is the torso and which is the donor"""
     bl_idname = "bz.combine_swap"
     bl_label = "Swap"
 
@@ -691,8 +677,7 @@ def _preview_collection(context, create=True):
 
 
 class BZ_OT_combine_materialize(bpy.types.Operator, ExportHelper):
-    """Write the previewed combination as a creature .sgm (plus its combined attributes .lua and a .lsc) and import
-    it as a native creature (rig, Validate, Export) into the 'IC Combine Preview' collection"""
+    """Save the combined creature to .sgm and import it for editing"""
     bl_idname = "bz.combine_materialize"
     bl_label = "Materialize Combination"
     bl_options = {"REGISTER", "UNDO"}
@@ -700,8 +685,8 @@ class BZ_OT_combine_materialize(bpy.types.Operator, ExportHelper):
     filename_ext = ".sgm"
     filter_glob: bpy.props.StringProperty(default="*.sgm", options={"HIDDEN"})
     companions: bpy.props.BoolProperty(name="Write .lua / .lsc", default=True,
-                                       description="Also write the combined attributes (.lua) and a limb-scale "
-                                                   "rule set (.lsc) beside the .sgm, as combotest --companions does")
+                                       description="Also write the combined attributes (.lua) and limb scales (.lsc) "
+                                                   "beside the .sgm")
 
     @classmethod
     def poll(cls, context):
@@ -834,8 +819,7 @@ def clear_materialized(context) -> dict:
 
 
 class BZ_OT_combine_clear_materialized(bpy.types.Operator):
-    """Delete the materialized combinations (the 'IC Combine Preview' collection) with their rigs, meshes, Actions
-    and images"""
+    """Delete the saved combinations from the scene with their rigs, Actions and images"""
     bl_idname = "bz.combine_clear_materialized"
     bl_label = "Clear Materialized"
     bl_options = {"REGISTER", "UNDO"}
@@ -885,8 +869,7 @@ def merge_validation(obj, combine_lines) -> list:
 
 
 class BZ_OT_combine_validate(bpy.types.Operator):
-    """Run the Quick combine tier on this creature as it is now: static precheck, 13 combines with 6 stock donors
-    (as torso and as donor) and coverage. Findings go to the Validate list under COMBINE"""
+    """Test how this creature combines with stock creatures; see the Validate list"""
     bl_idname = "bz.combine_validate"
     bl_label = "Validate Combines"
 
@@ -916,8 +899,7 @@ class BZ_OT_combine_validate(bpy.types.Operator):
 
 
 class BZ_OT_combine_extract_stock(bpy.types.Operator):
-    """Extract the base game's 61 stock creatures (.sgm, .ebp, .lua, .lsc) from Engine.sga into Blender's user data
-    and use them as the donor pool"""
+    """Extract the game's 61 stock creatures to use as combine donors"""
     bl_idname = "bz.combine_extract_stock"
     bl_label = "Extract Stock Creatures"
 
@@ -927,7 +909,8 @@ class BZ_OT_combine_extract_stock(bpy.types.Operator):
             self.report({"ERROR"}, "No user data directory to extract into")
             return {"CANCELLED"}
         try:
-            written = combocore.extract_stock(out)
+            from .sceneobj import prefs
+            written = combocore.extract_stock(out, root=prefs.resolve_game_dir(context)[0])
         except Exception as e:
             self.report({"ERROR"}, f"Extraction failed: {e}")
             return {"CANCELLED"}

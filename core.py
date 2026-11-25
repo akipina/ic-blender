@@ -1,20 +1,8 @@
-"""Pure (bpy-free) engine for native bicubic-Bezier patch editing.
+"""Bpy-free engine for bicubic-Bezier patch editing and the only module that talks to ICParse (keep bpy out of it).
 
-This module is the only place that talks to ICParse. It is deliberately free of any
-``bpy`` import so the lossless core can be unit-tested headlessly (see
-``tests/headless_identity.py``) and so the Blender layer stays a thin shell over it.
-
-The design contract (see DESIGN.md):
-
-  * A creature ``.sgm`` stores geometry as a *flat control-point pool* plus *patches*,
-    each patch holding 16 indices into that pool (a 4x4 bicubic Bezier control net).
-    Shared corners between adjacent patches are the *same pool index* -> C0 continuity
-    is structural, not enforced.
-  * We edit the pool DIRECTLY. The editable Blender object's vertices ARE the pool,
-    1:1 and in the same index order, so an untouched round-trip is the identity and any
-    edit is lossless (no cage, no Catmull-Clark, no regeneration).
-  * Control points are stored bone-LOCAL in the file; ``ICParse.codecs.reconstruct``
-    converts to/from bind-pose world (``world_vertices`` / ``local_from_world``).
+A creature ``.sgm`` is a flat control-point pool plus patches of 16 pool indices (a shared index is C0 continuity).
+The editable object's vertices ARE the pool, 1:1 and in order, so an untouched round trip is the identity: never
+reorder or regenerate it. Points are bone-local in the file (``ICParse.codecs.reconstruct`` converts to world).
 """
 from __future__ import annotations
 
@@ -35,7 +23,7 @@ from ICParse.sgm.creature import layout as LAYOUT
 
 try:
     from . import structure, boner, topology
-except ImportError:                      # imported top-level (tests put blender_native/ on sys.path)
+except ImportError:                      # imported top-level (tests put ic_blender/ on sys.path)
     import structure  # type: ignore[no-redef]
     import boner  # type: ignore[no-redef]
     import topology  # type: ignore[no-redef]
@@ -662,10 +650,6 @@ def extrude_patch(verts_blender, patch_cp, side=3):
     return new_rows, new_cp
 
 
-def _side_indices(side):
-    return list(_SIDE_CPS[side])
-
-
 def side_users(patches) -> dict:
     """ICParse's loader rule (``validate.side_users``): every patch side key -> the patches using it."""
     from ICParse import validate as ICval
@@ -927,14 +911,13 @@ class RingPicker:
         k = sum(frozenset((c[i], c[(i + 1) % len(c)])) in self.preferred for i in range(len(c)))
         if 2 * k >= len(c):
             return None
-        return (f"only {k} of its {len(c)} sides border the {self.slot_label} limb's patches (every stock ring runs "
-                "at least half its sides along the torso / limb boundary): it is probably inside the "
-                f"{attach_text(self.flags1)} or around another socket")
+        return (f"only {k} of its {len(c)} sides border the {self.slot_label} limb's patches (stock rings have at least "
+                f"half): it is probably inside the {attach_text(self.flags1)} or around another socket")
 
     def status_text(self) -> str:
         return (f"Pick ring {self.name}: {self.slot_label} (flags2 0x{self.flags2:x}, attached to "
-                f"{attach_text(self.flags1)}): {self.wanted_text()}. Click a highlighted corner; the ring closes at its "
-                "size (or click the first corner / Enter). Backspace undo, Esc cancel")
+                f"{attach_text(self.flags1)}): {self.wanted_text()}. Click a highlighted corner (Enter closes, Backspace "
+                "undo, Esc cancel)")
 
     # -- the modal's event rule
     def handle(self, event_type: str, value: str, hover) -> str:
@@ -1026,11 +1009,11 @@ def pool_error(ids, n_expected, patches, n_vert_owner=None, per_patch=None):
         return (f"the patch table indexes control point {int(p.max())} but the pool has {n} points (control points "
                 f"were removed): {POOL_UNDO_HINT}")
     if n_vert_owner is not None and n_vert_owner != n:
-        return (f"the per-point bone owners have {n_vert_owner} entries for {n} control points: the SGM tables and "
-                "the mesh disagree (re-import the creature)")
+        return (f"the per-point bone owners have {n_vert_owner} entries for {n} control points: the model's data and the "
+                "mesh disagree (re-import the creature)")
     for name, rows in (per_patch or {}).items():
         if rows is not None and rows != len(p):
-            return (f"the per-patch {name} table has {rows} rows for {len(p)} patches: the SGM tables disagree "
+            return (f"the per-patch {name} table has {rows} rows for {len(p)} patches: the model's data disagrees "
                     "(re-import the creature)")
     return None
 
@@ -1352,9 +1335,8 @@ def build_export(st: EditState) -> BuiltExport:
                                                 missing_ok=[src.bones[d].name for d in (topo.deleted if topo else ())])
     if topo is not None:
         ins.moved_points = [(str(src.bones[d].name), str(src.bones[t].name), int(k)) for d, t, k in moved_points]
-        twarns += [f"{k} control point{'s' if k != 1 else ''} of deleted bone '{d}' moved to its parent '{t}' (Blender "
-                   f"leaves them in the '{d}' vertex group, undeformed: Boner > Bones > Assign Selected / Auto Skin puts "
-                   "them where you want)" for d, t, k in ins.moved_points]
+        twarns += [f"{k} control point{'s' if k != 1 else ''} of deleted bone '{d}' moved to its parent '{t}' (to change "
+                   "that: Boner > Bones > Assign Selected / Auto Skin)" for d, t, k in ins.moved_points]
         ins.limbs = topology.drop_from_limbs(out.model, ins.deleted)
         ins.ik = topology.fix_ik_chains(out.model, ins.deleted, [r[0] for r in ins.reparented])
         twarns += ins.ik.warnings

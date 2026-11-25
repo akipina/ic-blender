@@ -1,6 +1,6 @@
 """Stitch the chapter fragments into index.html.
 
-    .venv/bin/python3 blender_native/docs/guide/build_guide.py
+    .venv/bin/python3 ic_blender/docs/guide/build_guide.py
 
 Chapters are HTML fragments in chapters/<name>.html (one <section id=name> each, h2 title, h3 subsections);
 the navigation rail and the title cards are generated from their headings. Missing chapters are skipped
@@ -20,7 +20,7 @@ ORDER = [("start", "Getting started"), ("edit", "Editing an existing animal"), (
          ("anim", "Animations"), ("boner", "Bones, limbs and connections"),
          ("scene", "Gatherers, characters, structures and props"), ("blueprint", "The Blueprint panel"),
          ("maps", "Maps and scenarios")]
-BLURB = {"start": "Install, import a stock creature, find your way around the SGM and Boner panels.",
+BLURB = {"start": "Install, import a stock creature, find your way around the IC and Boner panels.",
          "edit": "Reshape a stock animal: patch feel, control points, symmetrize, validate, export.",
          "topology": "Delete, grow, weld, fill, subdivide, extrude, mirror and attach -- and what a patch costs.",
          "sculpt": "Sculpt Mode brushes on the exact surface, refitted into the patches you touched.",

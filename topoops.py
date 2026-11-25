@@ -1,61 +1,8 @@
-"""Topology tools on the patch tables (B7): Weld, Attach, Mirror to Whole, Subdivide, Add Quad (extrude open
-sides), Fill Hole, Extrude Region (Max's Extrude & Bevel) and the drag macros.
+"""Topology tools: Weld, Attach, Mirror to Whole, Subdivide, Add Quad, Fill Hole, Extrude Region and the drag macros.
 
-Every tool is a PURE plan (bpy-free, numpy: ``weld_plan``, ``attach_plan``, ``mirror_plan``, ``subdivide_plan``,
-``fill_plan``, ``extrude_sides_plan``, ``extrude_region_plan``) that describes the new pool and patch table in
-terms of the old one -- which old points merge (``alias``), which are made (``new_points``), which move
-(``moved``), the new patch rows in virtual indices (old index, or ``n_old + j`` for new point ``j``), every
-per-patch table in full, and a refusal in words when the result would not be a loadable creature -- and ONE
-applier (``apply_plan``) that writes a plan into the object: the bmesh loses its corner quads and the merged /
-dropped points, the object leaves and re-enters Edit Mode so the mesh arrays are compacted in the old order (the
-BMesh slot-reuse trap of B6), the new points and the corner quads are appended through the mesh arrays (a second
-face over the same corners, a front / back fin, is only possible there), the per-point attributes travel with
-their vertex (owners, ``.bz_src``, ``.bz_coplanar``, deform weights: new points get the owner of the point they
-derive from and ``.bz_src`` -1), every per-patch table is written in full, every connection ring is remapped, one
-generation, one undo step. Watertightness is shared pool indices along a side (a side is 4 pool points), so the
-tools that close seams (Weld, Mirror, Fill Hole) share or merge all 4, never just the corners.
-
-Rules the plans follow (DESIGN.md "Topology tools"):
-
-* Weld: selected corners within the threshold merge (survivor = the lowest index, position = the mean; Target =
-  every selected corner into the active one, at its position); the merged corner's handles are carried by its
-  delta (the B5 carry rule); two OPEN sides whose corner pairs come together become one side by merging their
-  handle pairs too (mean), so the seam is watertight; a patch that would get two corners on one point, an edge
-  three patches would use, or a ring with a repeated corner is refused by name; touched interiors follow the rule.
-* Attach: the other native creature's pool is appended (its object transform applied), its patch rows offset,
-  its per-patch tables appended (limb: the limb you choose; material: the slot with the same name, else slot 0
-  with a warning; types and UVs as they are), its points skinned to the bone you choose, its connection rings
-  dropped (warned), the object and its rig removed. Refused: not native, a pool guard error on either, over
-  ``MAX_PATCHES`` (the display-vertex ceiling's best case).
-* Mirror to Whole: the selected patches (all when none) must lie on one side of the X = 0 plane (a corner beyond
-  the threshold on each side refuses; an unselected patch already on the far side refuses: delete it first);
-  every point within the threshold of the plane is SHARED between the original and the mirror (the weld: it is
-  snapped onto the plane when asked), every other point is mirrored to a new one; the mirrored patch is the
-  TRANSPOSED grid (rows <-> columns) of the mirrored points, which flips the parametrisation once so the surface
-  normal, flipped once by the mirror, points outward again (the corner quad's winding follows); owners go to the
-  mirror bone (``mirror_name``: the ``_l`` / ``_r`` suffix rule the stock skeletons use, else the same bone),
-  limbs to the mirror class (Left <-> Right bit, else the same limb); a patch lying entirely on the plane is not
-  mirrored (it would duplicate itself). Connections are not mirrored.
-* Subdivide: each selected patch is split into 4 by de Casteljau at u = v = 0.5 (exact: the surface does not
-  change); a neighbour across a split side would be left with a T-junction, which the format cannot bind, so it
-  is split in the matching direction (into 2), and its neighbours along that strip in turn (Max's Propagate,
-  always on here): a loop cut around the body per direction. The new points along a shared side are computed
-  once from the side's 4 old points and shared, so every seam stays 4 shared points. The old side handles and
-  interiors of a split patch are replaced (dropped). The sub-patches' exact interiors are generally OFF the Auto
-  Interior rule (the rule is zero twist at the corners; a subdivided corner sits where the twist is not zero),
-  so a sub-patch whose exact interiors leave the rule is flagged manual (the surface is what was asked for;
-  Modeling > Auto Interiors relaxes it). A split that would cut a connection ring's side is refused by name.
-* Add Quad: every selected open side gets a new patch continuing the surface by the side's own outward step
-  (``core.extrude_patch``'s rule); sides that meet at a corner share the corner's new column (mean step), so a
-  loop of open sides extrudes into a watertight collar. Extrude Patch (one side) is the same rule.
-* Fill Hole: a closed loop of open sides is filled with a strip of ``n - 1`` patches (``2n`` sides: one patch for
-  4, two for 6, ...), the strip's chords chosen shortest; the existing sides are used as they are (their 4 points),
-  traversed opposite to their patches (the stock seam rule); corner UVs, limb, material and type come from the
-  neighbours; interiors by the rule.
-* Extrude Region (Max Extrude & Bevel): the selected patches are lifted along their mean normal by ``amount`` and
-  scaled about their centre by ``outline``; the points they share with unselected patches are copied (the region
-  takes the copies), and a wall patch spans each boundary side from the old 4 points to the new 4 (two rows of
-  new handles between). ``bz.extrude_drag`` = Extrude Region at 0 then Blender's translate on the lifted points.
+Each is a pure bpy-free ``*_plan`` written by the one applier ``apply_plan`` (one generation, one undo step, every
+per-patch table and ring remapped). Seams are watertight only by shared pool indices: closing one must merge all 4
+side points. A plan refuses anything that would not load (collapsed patch, edge used three times, split ring).
 """
 from __future__ import annotations
 
@@ -69,7 +16,7 @@ from ICParse import validate as ICV
 
 try:
     from . import patchrules as PR
-except ImportError:                      # imported top-level (pure tests put blender_native/ on sys.path)
+except ImportError:                      # imported top-level (pure tests put ic_blender/ on sys.path)
     import patchrules as PR  # type: ignore[no-redef]
 
 # ICParse validate.MAX_PATCHES: one DirectX 8 vertex set holds the whole tessellated patch mesh
@@ -282,9 +229,8 @@ def weld_plan(V, patches, selected, threshold, target=None, rings=(), uv=None, m
     after = np.array([len(set(row)) for row in Pa[:, list(PR.CORNER_SLOTS)].tolist()])
     bad = np.nonzero(after < before)[0]
     if len(bad):
-        plan.refusal = (f"patch{'es' if len(bad) > 1 else ''} {[int(b) for b in bad[:8]]} would collapse (two of "
-                        f"{'their' if len(bad) > 1 else 'its'} corners on one point): weld only corners that no patch "
-                        "shares, or delete the patch first")
+        plan.refusal = (f"patch{'es' if len(bad) > 1 else ''} {[int(b) for b in bad[:8]]} would collapse (two corners on "
+                        "one point): weld only corners no patch shares, or delete the patch first")
         return plan
     # rings: a corner loop with a repeated corner after the weld
     for name, ring, enc in rings or ():
@@ -381,8 +327,7 @@ def attach_plan(V, patches, tables, V2, patches2, tables2, limb_index, owner, ma
         plan.new_coplanar = np.asarray(coplanar2, dtype=np.int64)
     if len(plan.patches) > MAX_PATCHES:
         plan.refusal = (f"attaching would make {len(plan.patches)} patches; the game's patch mesh holds at most "
-                        f"{MAX_PATCHES} ({ICV.MAX_DISPLAY_VERTICES} display vertices / 16 per patch at best; "
-                        f"Validate measures what this creature actually costs)")
+                        f"{MAX_PATCHES} (Validate shows what this creature costs)")
         return plan
     if unmatched:
         plan.warnings.append(f"{_plural(unmatched, 'attached patch')} used a material slot with no slot of that name "
@@ -465,8 +410,7 @@ def mirror_plan(V, patches, rows, threshold, tables, owners=None, owner_map=None
     pos, neg = int((x > thr).sum()), int((x < -thr).sum())
     if pos and neg:
         plan.refusal = (f"the patches to mirror straddle the plane: {pos} points beyond +{thr:.4g} and {neg} beyond "
-                        f"-{thr:.4g} on the {'XYZ'[axis]} axis. Select one half (Delete Patch the other, or select its "
-                        "patches only), or raise the threshold if the seam is just off the plane")
+                        f"-{thr:.4g} on the {'XYZ'[axis]} axis. Select one half, or raise the threshold")
         return plan
     if not pos and not neg:
         plan.refusal = "every point of the selection lies on the plane: nothing to mirror"
@@ -586,10 +530,8 @@ def propagate_splits(patches, rows, rings=()) -> Tuple[Dict[int, set], Optional[
                 nm = points.get(a) or points.get(b)
             if nm is not None:
                 how = "selected" if r in origin else "reached by the propagation"
-                return flags, (f"patch {r} ({how}) would be split across its side {a}-{b}, which is an edge of connection "
-                               f"ring '{nm}': the combiner welds a ring by its corner count along patch sides, so a ring "
-                               "side cannot be subdivided. Deselect the patches on the ring, or choose patches whose "
-                               "strips do not cross it"), sorted(propagated)
+                return flags, (f"patch {r} ({how}) would be split across side {a}-{b} of connection ring '{nm}', which "
+                               "cannot be subdivided: choose patches whose strips do not cross the ring"), sorted(propagated)
             key = side_key(cps, k)
             for q, kq in table.get(key, ()):
                 if q == r:
@@ -622,9 +564,8 @@ def subdivide_plan(V, patches, rows, tables, rings=(), max_patches=MAX_PATCHES, 
         return plan
     total = len(P) + sum(len(f) * 2 - 1 if len(f) == 2 else 1 for f in flags.values())
     if total > max_patches:
-        plan.refusal = (f"subdividing {len(rows)} patch{'es' if len(rows) != 1 else ''} propagates to "
-                        f"{len(propagated)} more and would make {total} patches (max {max_patches}): select fewer "
-                        "patches, or ones whose strips are shorter")
+        plan.refusal = (f"subdividing {len(rows)} patch{'es' if len(rows) != 1 else ''} propagates to {len(propagated)} "
+                        f"more, making {total} patches (max {max_patches}): select fewer patches or shorter strips")
         return plan
     new_pts, new_from = [], []
     side_pts: Dict[tuple, np.ndarray] = {}
@@ -1165,9 +1106,8 @@ def pole_refusal(patches_old, patches_new) -> Optional[str]:
     if worst <= ICval.MAX_CORNER_PATCHES or worst <= before:
         return None
     v = max(after, key=after.get)
-    return (f"{worst} patch corners would meet at control point {v}; the game's corner record holds "
-            f"{ICval.MAX_CORNER_PATCHES} (PatchMeshObject::Corner) and the release build writes past it while it builds "
-            f"the mesh. Split the pole into smaller fans (no stock creature has more than 10)")
+    return (f"{worst} patch corners would meet at control point {v}; the game holds at most {ICval.MAX_CORNER_PATCHES}. "
+            "Split the pole into smaller fans")
 
 
 def apply_plan(op, obj, plan: TopoPlan, patches_old, select="rows", keep_mode=True) -> bool:
@@ -1373,9 +1313,7 @@ if bpy is not None:
         return ops._guard_poll(cls, context, edit=edit)
 
     class BZ_OT_weld(bpy.types.Operator):
-        """Weld the selected corners: within the threshold into one (Selected), or all into the active corner (Target).
-        Two open sides whose corners come together become one shared side (their handles merged too), closing the
-        seam watertight; a patch that would collapse or a ring that would lose a corner is refused"""
+        """Weld the selected corners together, or into the active corner"""
         bl_idname = "bz.weld"
         bl_label = "Weld"
         bl_options = {"REGISTER", "UNDO"}
@@ -1436,9 +1374,7 @@ if bpy is not None:
         return items or [("0", "bone 0", "")]
 
     class BZ_OT_attach(bpy.types.Operator):
-        """Attach another native creature (selected, the active one stays) into this one: its points and patches are
-        appended, its patches go in the limb you choose, its points are skinned to the bone you choose, its material
-        slots are matched by name, its connection rings are dropped, and it is removed. Weld the seams afterwards"""
+        """Join another selected creature into the active one"""
         bl_idname = "bz.attach"
         bl_label = "Attach"
         bl_options = {"REGISTER", "UNDO"}
@@ -1458,8 +1394,7 @@ if bpy is not None:
                                      "skeleton)")
                 return False
             if not store.is_native(others[0]):
-                cls.poll_message_set(f"'{others[0].name}' is not a native creature: Convert Mesh to Creature or Fit "
-                                     "Patches to Mesh first")
+                cls.poll_message_set(f"'{others[0].name}' is not a creature: use Convert Mesh or Fit Patches to Mesh first")
                 return False
             return True
 
@@ -1480,7 +1415,7 @@ if bpy is not None:
             obj = context.active_object
             others = [o for o in context.selected_objects if o != obj and o.type == "MESH"]
             if len(others) != 1 or not store.is_native(others[0]):
-                self.report({"ERROR"}, "Attach: select exactly one other native creature with this one")
+                self.report({"ERROR"}, "Attach: select exactly one other creature with this one")
                 return {"CANCELLED"}
             other = others[0]
             if other.mode == "EDIT":
@@ -1527,9 +1462,7 @@ if bpy is not None:
             return {"FINISHED"}
 
     class BZ_OT_mirror_whole(bpy.types.Operator):
-        """Make a half creature whole: the selected patches (all when none) are mirrored across X = 0 with the points on
-        the plane shared (the seam welded), corner winding kept outward, skinning to the mirror bone (_l / _r) and
-        limbs to the mirror class. Refused when the half straddles the plane or the other side is already there"""
+        """Mirror half a creature across X to make it whole"""
         bl_idname = "bz.mirror_whole"
         bl_label = "Mirror to Whole"
         bl_options = {"REGISTER", "UNDO"}
@@ -1569,16 +1502,13 @@ if bpy is not None:
             return {"FINISHED"}
 
     class BZ_OT_subdivide(bpy.types.Operator):
-        """Subdivide the selected patches into 4 (exact de Casteljau: the surface does not change), propagating along
-        the strips through their neighbours so no T-junction is left (Max's Propagate). A patch on a connection ring
-        side is refused"""
+        """Split the selected patches into four without changing the surface"""
         bl_idname = "bz.subdivide"
         bl_label = "Subdivide"
         bl_options = {"REGISTER", "UNDO"}
 
         exact: BoolProperty(name="Exact", default=True,
-                            description="Keep the exact surface (sub-patches off the Auto Interior rule are flagged "
-                                        "manual); off: interiors on the rule, the surface changes slightly")
+                            description="Keep the exact surface; off resets interiors, changing the shape slightly")
         max_patches: IntProperty(name="Max Patches", default=MAX_PATCHES, min=1, max=MAX_PATCHES,
                                  description="Refuse when the propagation would exceed this many patches")
 
@@ -1606,8 +1536,7 @@ if bpy is not None:
             return {"FINISHED"}
 
     class BZ_OT_extrude_sides(bpy.types.Operator):
-        """Add a patch on every selected open side (an outline edge, a side's two corners, or a patch's open sides),
-        continuing the surface by the side's own step; sides meeting at a corner share their new column"""
+        """Add a patch on every selected open side"""
         bl_idname = "bz.extrude_sides"
         bl_label = "Add Quad"
         bl_options = {"REGISTER", "UNDO"}
@@ -1640,8 +1569,7 @@ if bpy is not None:
             return {"FINISHED"}
 
     class BZ_OT_fill_hole(bpy.types.Operator):
-        """Close a hole (a loop of open sides touching the selection, or the only hole) with a strip of patches: one
-        for 4 sides, two for 6, ...; the existing sides are used as they are, so the fill is watertight"""
+        """Fill a hole with patches"""
         bl_idname = "bz.fill_hole"
         bl_label = "Fill Hole"
         bl_options = {"REGISTER", "UNDO"}
@@ -1672,9 +1600,7 @@ if bpy is not None:
             return {"FINISHED"}
 
     class BZ_OT_extrude_region(bpy.types.Operator):
-        """Extrude the selected patches (Max Extrude & Bevel): they are lifted along their mean normal by Amount and
-        scaled about their centre by Outline; a wall patch spans each boundary side. The lifted points stay selected
-        (G to move them; the walls follow)"""
+        """Extrude the selected patches by Amount and scale them by Outline"""
         bl_idname = "bz.extrude_region"
         bl_label = "Extrude Region"
         bl_options = {"REGISTER", "UNDO"}
@@ -1704,7 +1630,7 @@ if bpy is not None:
             return {"FINISHED"}
 
     class BZ_OT_extrude_drag(bpy.types.Macro):
-        """Extrude the selected patches and drag them (Extrude Region at 0, then Blender's move on the lifted points)"""
+        """Extrude the selected patches and drag them"""
         bl_idname = "bz.extrude_drag"
         bl_label = "Extrude Region (Drag)"
         bl_options = {"REGISTER", "UNDO"}

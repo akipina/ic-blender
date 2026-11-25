@@ -574,22 +574,18 @@ def plan_export(arm_obj, renames=True, deleted=()):
         if lost:
             warnings.append(f"Action {act.name} keys bone{'s' if len(lost) > 1 else ''} "
                             f"{', '.join(repr(b) for b in lost[:4])}{', ...' if len(lost) > 4 else ''}, which the rig has "
-                            "no bone called: Export writes the clip without those keys (a bone deleted, or renamed with "
-                            "Blender's own rename again after the Action was last in use). Give the bone that name back "
-                            "and rename it with Boner > Bones > Rename Bone (it rewrites every Action), or delete those "
-                            "F-curves")
+                            "no bone called: Export writes the clip without those keys. Restore the name, then use Boner > "
+                            "Bones > Rename Bone, or delete those F-curves")
     for b, clips in gone_clips.items():
         warnings.append(f"deleted bone '{b}': its keys in {len(clips)} Action(s) ({', '.join(clips[:4])}"
                         f"{', ...' if len(clips) > 4 else ''}) are not written (kept clips lose its track too)")
     loose = unclaimed_actions(arm_obj, acts, old)
     if loose:
-        warnings.append(f"Action{'s' if len(loose) > 1 else ''} {', '.join(a.name for a in loose[:4])}"
-                        f"{', ...' if len(loose) > 4 else ''} key{'' if len(loose) > 1 else 's'} bones of rig "
-                        f"'{arm_obj.name}' but {'are' if len(loose) > 1 else 'is'} not exported: Export writes an Action "
-                        "as a clip when it is the rig's active Action, on one of the rig's NLA tracks, or stamped for "
-                        f"the rig (made by its import), and no object uses {'these' if len(loose) > 1 else 'this one'} "
-                        "(a fake user at most). To write one, make it the rig's active Action, or push it down onto the "
-                        "rig's NLA (and mute the track)")
+        warnings.append(f"Action{'s' if len(loose) > 1 else ''} "
+                        f"{', '.join(a.name for a in loose[:4])}{', ...' if len(loose) > 4 else ''} "
+                        f"key{'' if len(loose) > 1 else 's'} bones of rig '{arm_obj.name}' but "
+                        f"{'are' if len(loose) > 1 else 'is'} not exported: to export one, make it the rig's active Action "
+                        "or push it onto a muted NLA track")
     present = {str(a.get(KEY_CLIP)) for a in acts if a.get(KEY_CLIP) is not None}
     for clip in pairs:
         if clip not in present and clip not in kept and clip not in [c for _, c in encode]:

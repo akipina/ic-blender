@@ -22,19 +22,16 @@ from . import store
 
 
 class BZ_OT_import(bpy.types.Operator, ImportHelper):
-    """Import an Impossible Creatures creature as a native bicubic-patch control net: a .sgm, or a
-    .ebp blueprint (its same-named .sgm beside it, or the creature it embeds). The blueprint's own
-    data (motion tree, events, icon) stays with the .ebp; only the geometry is imported"""
+    """Import a creature from a .sgm file or its .ebp blueprint"""
     bl_idname = "bz.import_sgm"
-    bl_label = "Import SGM / EBP (Native Patches)"
+    bl_label = "Import Model"
     bl_options = {"REGISTER", "UNDO"}
 
     filename_ext = ".sgm"
     filter_glob: StringProperty(default="*.sgm;*.ebp", options={"HIDDEN"})
     clips_as_actions: bpy.props.BoolProperty(
         name="Clips as Actions", default=True,
-        description="Bake every animation clip into a named Action (editable in the Action Editor / "
-                    "Dope Sheet, stashed on the NLA); Export writes the Actions back as clips")
+        description="Bake every animation clip into a named Action on the rig")
 
     def execute(self, context):
         try:
@@ -90,8 +87,8 @@ class BZ_OT_import(bpy.types.Operator, ImportHelper):
         if data.bone_names:
             msg += f", rig {len(data.bone_names)} bones, {len(data.animations)} clips"
         if data.missing_textures:
-            self.report({"WARNING"}, f"{len(data.missing_textures)} texture(s) not found (set the Game folder in the add-on's "
-                                     f"preferences, or the IC_INSTALL environment variable, to the game's folder): "
+            self.report({"WARNING"}, f"{len(data.missing_textures)} texture(s) not found (set the Game folder in the "
+                                     "add-on's preferences, or IC_INSTALL): "
                                      f"{', '.join(os.path.basename(t) for t in data.missing_textures[:3])}")
         n_bad, first = bzscene.normals_errors(objs)
         if n_bad:
@@ -109,21 +106,48 @@ def _active_native(context):
     return obj if store.is_native(obj) else None
 
 
-# Template creature for Convert Mesh (skeleton/materials donor): $BZ_TEMPLATE, else the repo's
-# stock snail next to this add-on (blender_native/../Assets/stock).
-_DEFAULT_TEMPLATE = os.environ.get("BZ_TEMPLATE") or os.path.join(
+# Skeleton Template default: the repo checkout's local test creature when there is one; otherwise empty, which means
+# the game's wolf (see skeleton_template). $BZ_TEMPLATE overrides it.
+_LOCAL_TEMPLATE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Assets", "stock", "snail.sgm")
+_DEFAULT_TEMPLATE = os.environ.get("BZ_TEMPLATE", _LOCAL_TEMPLATE if os.path.exists(_LOCAL_TEMPLATE) else "")
+
+
+def skeleton_template(context, path: str) -> str:
+    """The template file to use: ``path``, or with none the game's wolf, taken out of the game's files the first time it
+    is needed. ``FileNotFoundError`` in plain words otherwise."""
+    if path.strip():
+        full = bpy.path.abspath(path)
+        if os.path.exists(full):
+            return full
+        raise FileNotFoundError(f"Skeleton template not found: {path}")
+    from . import stockextract
+    from .sceneobj import prefs
+    # its own folder: one creature in the stock folder would make Combine Preview take it for the whole stock
+    folder = bpy.utils.user_resource("DATAFILES", path=os.path.join("pyic", "skeleton_template"), create=True)
+    wolf = os.path.join(folder, "wolf.sgm")
+    if not os.path.exists(wolf):
+        game = prefs.resolve_game_dir(context)[0]
+        if not game:
+            raise FileNotFoundError("Game not found: set the Game folder in the add-on's preferences, or pick a "
+                                    "Skeleton Template")
+        stockextract.extract("Engine.sga", "art/ebps/stock/wolf.", folder, limit=True, exts=stockextract.STOCK_EXTS,
+                             root=game)
+        if not os.path.exists(wolf):
+            raise FileNotFoundError("The game's files have no wolf: pick a Skeleton Template")
+    return wolf
 
 
 class BZ_OT_convert_mesh(bpy.types.Operator):
-    """Convert the active standard mesh (e.g. imported .dae/.stl/.obj) into a bicubic-patch creature.
-    Quads become patches; it borrows a template creature's skeleton/materials. Re-rig and re-limb after"""
+    """Turn the active mesh into a creature using a template's skeleton and materials"""
     bl_idname = "bz.convert_mesh"
     bl_label = "Convert Mesh to Creature"
     bl_options = {"REGISTER", "UNDO"}
 
     template_path: StringProperty(name="Skeleton Template (.sgm)", subtype="FILE_PATH",
-                                  default=_DEFAULT_TEMPLATE)
+                                  default=_DEFAULT_TEMPLATE,
+                                  description="Creature whose skeleton and materials the result borrows. Empty: the "
+                                              "game's wolf")
 
     @classmethod
     def poll(cls, context):
@@ -149,7 +173,7 @@ class BZ_OT_convert_mesh(bpy.types.Operator):
             self.report({"ERROR"}, "No quad faces after tris-to-quads; need a quad-dominant mesh")
             return {"CANCELLED"}
         try:
-            data, N, F = core.mesh_to_creature(self.template_path, coords, quads)
+            data, N, F = core.mesh_to_creature(skeleton_template(context, self.template_path), coords, quads)
         except Exception as e:
             self.report({"ERROR"}, f"Conversion failed: {e}")
             return {"CANCELLED"}
@@ -225,9 +249,9 @@ def object_state_error(obj):
     for m in obj.modifiers:
         if m.type == "ARMATURE" and m.object is not None and m.object == arm and (not m.use_vertex_groups
                                                                                  or m.use_bone_envelopes):
-            return (f"the Armature modifier '{m.name}' deforms by {'bone envelopes' if m.use_bone_envelopes else 'no vertex groups'}"
-                    ": the .sgm skins each control point to one bone through its vertex group, so the viewport would "
-                    "not be what Export writes. Turn Vertex Groups on and Bone Envelopes off")
+            return (f"the Armature modifier '{m.name}' deforms by "
+                    f"{'bone envelopes' if m.use_bone_envelopes else 'no vertex groups'}, but Export uses vertex groups: "
+                    "turn Vertex Groups on and Bone Envelopes off")
     return None
 
 
@@ -337,8 +361,7 @@ def missing_added_owner_error(obj, owners, n_src, added):
     label = ", ".join(name_of(k) for k in who[:3])
     cnt = int(bad.sum())
     return (f"{cnt} control point{'s are' if cnt != 1 else ' is'} skinned to added bone {label}, which is not on the rig "
-            "any more (its Add Bone undone in the rig's Edit Mode, or the bone deleted): they show orange in By Bone. "
-            "Redo, or assign them to another bone (Boner > Bones > Select Unassigned)")
+            "any more (orange in By Bone): Redo, or assign another bone (Boner > Bones > Select Unassigned)")
 
 
 def _last_group_name(obj, points):
@@ -388,10 +411,8 @@ def stale_group_notes(obj, stored, unskinned, keys) -> tuple:
         cnt = len(pts)
         head = f"{cnt} control point{'s' if cnt != 1 else ''} skinned to added bone '{name}' {'are' if cnt != 1 else 'is'}"
         if stamp is not None and str(stamp) == group:
-            notes.append(f"{head} still in vertex group '{group}': '{name}' is a copy Duplicate / Symmetrize made of "
-                         f"'{group}' and took its place when '{group}' was deleted, but Blender deforms points by their "
-                         f"group's name and no bone is called '{group}', so they stay at rest. Rename '{name}' back to "
-                         f"'{group}', or select them and Assign Selected to Bone")
+            notes.append(f"{head} still in vertex group '{group}', but no bone has that name, so they stay at rest: rename "
+                         f"'{name}' back to '{group}', or select them and Assign Selected to Bone")
         else:
             notes.append(f"{head} in vertex group '{group}', which names no bone of the rig, so Blender leaves them at "
                          f"rest: rename the group or the bone so they match, or select them and Assign Selected to Bone")
@@ -460,9 +481,8 @@ def gather_export(obj, context, animations=True) -> ExportJob:
     for nb in new_bones:
         k = _group_point_count(obj, nb.name)
         if k:
-            raise ExportGatherError(f"{k} control point(s) are in the vertex group of stub bone '{nb.name}': a stub bone "
-                                    "owns no points (the file can't skin them to it). Remove them from that group or "
-                                    "skin them to another bone (Boner > Bones)")
+            raise ExportGatherError(f"{k} control point(s) are in the vertex group of stub bone '{nb.name}', which owns no "
+                                    "points: move them to another bone (Boner > Bones)")
     n_src = len(source.bones)
     vert_owner = store.vert_bone(obj) if store.has_vert_bone(obj) else None
     if vert_owner is not None:
@@ -623,10 +643,9 @@ def _atomic_write(path: str, data: bytes) -> None:
 
 
 class BZ_OT_export(bpy.types.Operator, ExportHelper):
-    """Export the active control net back to .sgm (lossless: only what you edited is rewritten; the rig's Actions
-    are the clips)"""
+    """Export the creature to .sgm, rewriting only what you edited"""
     bl_idname = "bz.export_sgm"
-    bl_label = "Export SGM (Native Patches)"
+    bl_label = "Export Model"
 
     filename_ext = ".sgm"
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
@@ -659,9 +678,8 @@ class BZ_OT_export(bpy.types.Operator, ExportHelper):
         in_place = _same_file(self.filepath, src)
         why = in_place_refusal(job) if (in_place and not identical) else None
         if why:
-            self.report({"ERROR"}, f"Export to {os.path.basename(src)} refused: it is this creature's own base file, "
-                                   f"which the export is built on, and {why} would be applied a second time to the "
-                                   "creature it wrote. Export under another name")
+            self.report({"ERROR"}, f"Export to {os.path.basename(src)} refused: it is this creature's own base file, so "
+                                   f"{why} would be applied twice. Export under another name")
             return {"CANCELLED"}
         try:
             _atomic_write(self.filepath, out)
@@ -710,8 +728,7 @@ class BZ_OT_bake(bpy.types.Operator):
 
     posed: bpy.props.BoolProperty(
         name="Posed", default=False,
-        description="Bake the surface as currently posed by the rig (armature modifier applied) "
-                    "instead of the rest pose")
+        description="Bake the surface in the rig's current pose instead of the rest pose")
 
     @classmethod
     def poll(cls, context):
@@ -851,8 +868,7 @@ class BZ_OT_select_kind(bpy.types.Operator):
 
 
 class BZ_OT_paint_skin(bpy.types.Operator):
-    """Bake the textured surface (if needed) and enter Texture Paint to repaint the skin;
-    Export then writes the painted textures back into the .sgm"""
+    """Paint the creature's skin in Texture Paint; Export writes the textures back"""
     bl_idname = "bz.paint_skin"
     bl_label = "Paint Skin"
 
@@ -932,8 +948,7 @@ def _sync_uvs_from_cage(obj):
 
 
 class BZ_OT_edit_uvs(bpy.types.Operator):
-    """Build a UV cage (one corner-quad per patch) so the creature's UVs can be edited with
-    Blender's native UV Editor; then Apply UVs (or just Export) writes them back"""
+    """Build a UV cage to edit the creature's UVs in Blender's UV Editor"""
     bl_idname = "bz.edit_uvs"
     bl_label = "Edit UVs"
     bl_options = {"REGISTER", "UNDO"}
@@ -1175,8 +1190,7 @@ def _open_sides(obj) -> int:
 
 
 class BZ_OT_extrude_patch(bpy.types.Operator):
-    """Grow new geometry: extrude an open patch side (select its two end corners, or all 4 corners of a patch with
-    one open side) into a new adjacent patch sharing that side. Build up shapes, then Validate"""
+    """Add a new patch along an open side (select its two corners)"""
     bl_idname = "bz.extrude_patch"
     bl_label = "Extrude Patch"
     bl_options = {"REGISTER", "UNDO"}
@@ -1186,8 +1200,7 @@ class BZ_OT_extrude_patch(bpy.types.Operator):
         if not _guard_poll(cls, context, edit=True):
             return False
         if _open_sides(context.active_object) == 0:
-            cls.poll_message_set("Extrude Patch needs an open side: this creature is closed (every patch side is "
-                                 "shared by two patches)")
+            cls.poll_message_set("Extrude Patch needs an open side: this creature is closed (every side is shared)")
             return False
         return True
 
@@ -1421,9 +1434,8 @@ def hidden_left_behind(obj, mask=None) -> int:
 
 def hidden_selection_note(n_hidden: int, what: str = "of the control points") -> str:
     """The plain-language line for points a skin edit cannot reach because they are hidden interiors."""
-    return (f"{n_hidden} {what} are hidden interior points, which Blender cannot select: Display > Show Interior "
-            "Points reveals them, or select their frame corner instead (a hidden interior skinned like its corner "
-            "follows it)")
+    return (f"{n_hidden} {what} are hidden interior points: show them with Display > Show Interior Points, or select their "
+            "frame corner instead")
 
 
 def active_bone(context, obj):
@@ -1565,8 +1577,7 @@ class BZ_OT_skin_select_points(bpy.types.Operator):
 
 
 class BZ_OT_skin_remove(bpy.types.Operator):
-    """Take the selected control points off the active bone: they get no bone (orange). Export refuses points a patch
-    uses with no bone, so assign them again or run Auto Skin (Boner: Remove Vertices from Bone)"""
+    """Remove the selected control points from the active bone, leaving them unassigned"""
     bl_idname = "bz.skin_remove"
     bl_label = "Remove from Bone"
     bl_options = {"REGISTER", "UNDO"}
@@ -1699,10 +1710,7 @@ def pending_added_bones(obj, arm) -> list:
 
 
 class BZ_OT_skin_auto(bpy.types.Operator):
-    """Skin control points to their nearest bone (Boner: Assign / Reset), added bones included, and (by default) each
-    handle to its nearest corner's bone. A quick first pass: stub, end-site and non-deforming bones are skipped, but the
-    nearest bone is often not the one Relic chose (about half of a stock creature's points), so check By Bone and fix
-    by hand"""
+    """Skin control points to their nearest bone, as a rough first pass"""
     bl_idname = "bz.skin_auto"
     bl_label = "Auto Skin"
     bl_options = {"REGISTER", "UNDO"}
@@ -1710,9 +1718,7 @@ class BZ_OT_skin_auto(bpy.types.Operator):
     target: bpy.props.EnumProperty(name="Points", items=boner.AUTO_TARGETS, default="AUTO")
     handles_follow_corners: BoolProperty(
         name="Handles Follow Corners", default=True,
-        description="Give every handle and interior point the bone of its patch's nearest corner, as every stock "
-                    "creature has it: a battle creature skins each patch with its four corner bones only, so a handle "
-                    "on another bone bends the patch in the army builder and the Object Editor but not in battle")
+        description="Give each handle and interior point its nearest corner's bone, as stock creatures do")
 
     @classmethod
     def poll(cls, context):
@@ -1795,8 +1801,7 @@ _PICKB_HOVER = (1.0, 1.0, 1.0, 1.0)
 
 
 class BZ_OT_pick_bone(bpy.types.Operator):
-    """Pick the active bone in the viewport: click a control point (its bone) or a bone of the rig (Boner's Bone
-    sub-mode). Esc cancels"""
+    """Pick the active bone in the viewport by clicking a control point or a bone"""
     bl_idname = "bz.pick_bone"
     bl_label = "Pick Bone"
     bl_options = set()               # UI state only (the panel's active bone): no undo step
@@ -2149,9 +2154,7 @@ def ring_status_cached(obj, context, verts_blender=None):
 
 
 class BZ_OT_set_connection_ring(bpy.types.Operator):
-    """Set a connection's graft ring from the corners selected IN ORDER (Shift+click around the ring): they must be
-    the slot's corner count, joined by patch sides; the ring is then wound into the torso and started where the stock
-    creatures start (the scriptable twin of Pick Ring)"""
+    """Set a connection's ring from the corners selected in order"""
     bl_idname = "bz.set_connection_ring"
     bl_label = "Set Connection Ring from Selection"
     bl_options = {"REGISTER", "UNDO"}
@@ -2230,9 +2233,7 @@ def view3d_window_region(context, event=None):
 
 
 class BZ_OT_pick_ring(bpy.types.Operator):
-    """Pick a connection's graft ring corner by corner in the viewport: only the torso's patch corners joined to the
-    last pick by a patch side are offered, the ring closes itself at the slot's size, and it is wound into the torso
-    and started where the stock creatures start"""
+    """Click the corners of a connection's ring in the viewport, one by one"""
     bl_idname = "bz.pick_ring"
     bl_label = "Pick Ring"
     bl_options = {"UNDO"}            # one undo step; no redo panel (re-running it is the interactive pick again)
@@ -2573,9 +2574,7 @@ def _dropped_text(geo) -> str:
 
 
 class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
-    """Write the scene object back to a .sgm: the parts you edited are rebuilt from their meshes (new or deleted faces,
-    UV seams, bone weights, materials), and the rig's Actions become the clips (untouched ones keep their bytes, edited /
-    renamed / new ones are re-encoded, deleted ones are dropped). Whatever you did not touch is copied byte-for-byte"""
+    """Export the object to .sgm with edited parts and clips; the rest is unchanged"""
     bl_idname = "bz.export_scene"
     bl_label = "Export Scene Object (.sgm)"
 
@@ -2583,17 +2582,11 @@ class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
     rebuild_lod: BoolProperty(
         name="Let the engine rebuild the detail ladder",
-        description="ON (default): rebuilt parts are written in the older v1.2 layout so the engine regenerates the "
-                    "model's distance detail levels itself -- the path that has been through the real game. "
-                    "OFF: v2.0 with a single full-detail level (loads in the Object Editor, not yet confirmed in the "
-                    "game, and never reduces detail at distance)",
+        description="Write the older, game-tested layout; the game rebuilds distance detail itself",
         default=True)
     drop_damage_states: BoolProperty(
         name="Drop the damage states of edited parts",
-        description="A part with damage states (stored shapes the game blends in: a building's damage, a character's "
-                    "face) cannot be edited yet without breaking them, so exporting an edited one is refused. ON: write "
-                    "such an edited part without its damage states (the export says how many it dropped). Parts you did "
-                    "not edit keep theirs byte for byte",
+        description="Export edited parts that have damage states, dropping those states",
         default=False)
 
     @classmethod
@@ -2637,10 +2630,7 @@ class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
 
 
 class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
-    """Write the scene object's edited geometry back to a .sgm: every part you changed is rebuilt from its mesh (move
-    vertices, add or delete faces, change UVs, bone weights or materials); parts you left alone and the skeleton, the
-    clips and every other chunk are carried over from the source untouched. (Export Scene Object does this and the
-    clips in one go)"""
+    """Export only the edited geometry to .sgm; clips and skeleton stay as in the source"""
     bl_idname = "bz.export_scene_geometry"
     bl_label = "Export Scene Geometry (.sgm)"
 
@@ -2648,17 +2638,11 @@ class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
     rebuild_lod: BoolProperty(
         name="Let the engine rebuild the detail ladder",
-        description="ON (default): write the older v1.2 layout so the engine regenerates the model's "
-                    "distance detail levels itself -- the path that has been through the real game. "
-                    "OFF: write v2.0 with a single full-detail level, which loads in the Object Editor "
-                    "but has not yet been confirmed in the game, and never reduces detail at distance",
+        description="Write the older, game-tested layout; the game rebuilds distance detail itself",
         default=True)
     drop_damage_states: BoolProperty(
         name="Drop the damage states of edited parts",
-        description="A part with damage states (stored shapes the game blends in: a building's damage, a character's "
-                    "face) cannot be edited yet without breaking them, so exporting an edited one is refused. ON: write "
-                    "such an edited part without its damage states (the export says how many it dropped). Parts you did "
-                    "not edit keep theirs byte for byte",
+        description="Export edited parts that have damage states, dropping those states",
         default=False)
 
     @classmethod
@@ -2691,8 +2675,7 @@ class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
 
 
 class BZ_OT_select_rig(bpy.types.Operator):
-    """Make the rig (armature) the active object: the Action Editor, Dope Sheet and NLA show ITS
-    keyframes, so select it to edit animation; select the model again to edit geometry"""
+    """Select the rig, so the animation editors show its keyframes"""
     bl_idname = "bz.select_rig"
     bl_label = "Select Rig"
     bl_options = {"REGISTER", "UNDO"}
@@ -2723,8 +2706,7 @@ class BZ_OT_select_rig(bpy.types.Operator):
 
 
 class BZ_OT_import_clips(bpy.types.Operator):
-    """Bake every animation clip of the source file into a named Action on the rig (editable in the
-    Action Editor / Dope Sheet; Export writes the Actions back as clips)"""
+    """Bake every clip of the source file into an Action on the rig"""
     bl_idname = "bz.import_clips"
     bl_label = "Clips to Actions"
     bl_options = {"REGISTER", "UNDO"}
@@ -2809,7 +2791,7 @@ def menu_import(self, context):
 
 
 def menu_export(self, context):
-    self.layout.operator(BZ_OT_export.bl_idname, text="Impossible Creatures Patch Mesh (.sgm)")
+    self.layout.operator(BZ_OT_export.bl_idname, text="Impossible Creatures Creature (.sgm)")
     self.layout.operator(BZ_OT_export_scene.bl_idname, text="Impossible Creatures Scene Object (.sgm)")
     self.layout.operator(BZ_OT_export_scene_geometry.bl_idname, text="Impossible Creatures Scene Geometry (.sgm)")
 

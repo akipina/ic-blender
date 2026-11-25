@@ -1,24 +1,8 @@
-"""Max Editable Patch rules on the control-point pool (bpy-free): corners carry their handles, interiors are automatic.
+"""3ds Max Editable Patch rules on the control-point pool (bpy-free). Slots 0..15 row-major: corners 0, 3, 12, 15,
+interiors 5, 6, 9, 10. Auto Interior is ``P11 = P01 + P10 - P00`` (true of 99.98 % of stock patches).
 
-A creature patch is a 4x4 bicubic Bezier net (row-major slots 0..15): the corners 0, 3, 12, 15 are the surface
-vertices, the eight edge slots are their tangent handles (vectors, in Max), and 5, 6, 9, 10 are the interior points.
-Measured on the 61 base-game creatures (17,048 patches, ``tests/patchrules_test.py``): every interior is Max's Auto
-Interior, the parallelogram of its corner and that corner's two handles, ``P11 = P01 + P10 - P00`` in the corner's
-frame, within 1e-5 of the patch's bounding diagonal on 99.977 % of patches (the four exceptions: lobster 98 / 251 at
-1.5e-5, musk_ox 306 / 327 at 7e-4). The midpoint, Coons and bilinear-corner candidates fit 0 %.
-
-In Blender the pool points are the mesh vertices, so a native transform moves exactly what is selected. This module
-turns that into the Max feel after the fact, from a before / after diff of the pool (:func:`carry_handles`):
-
-* a corner that moved drags every handle attached to it (in every patch that uses it) by its own delta, unless the
-  handle moved itself in the same step (a tangent edit is left alone); a handle two moved corners share gets the mean
-  of their deltas;
-* every patch whose corners or handles changed gets its interiors recomputed by the rule, unless the patch is flagged
-  manual; an interior point moved directly to somewhere the rule does not explain flags its patch manual.
-
-Nothing is written for a patch nobody touched, and an interior already within :data:`TOL` of the rule is not rewritten
-(so an Undo that puts a patch back leaves its bytes alone, and importing then exporting a stock creature stays
-byte-identical).
+After a move, :func:`carry_handles` drags a moved corner's handles and recomputes interiors unless the patch is manual.
+Never rewrite an untouched patch or an interior within :data:`TOL`: stock import / export must stay byte-identical.
 """
 from __future__ import annotations
 

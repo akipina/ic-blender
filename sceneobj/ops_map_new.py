@@ -73,7 +73,7 @@ class BZ_OT_new_map(bpy.types.Operator):
                                                ("1", "Single player", "A campaign or scripted map")], default="2")
     players: IntProperty(name="Players", min=1, max=6, default=2, description="How many players the map is made for")
     place_starts: BoolProperty(name="Give each player a start", default=True,
-                               description="Place a laboratory and three henchmen for every player, in a ring round the middle (multiplayer)")
+                               description="Give every player a lab and three henchmen, in a ring around the middle")
     load_models: BoolProperty(name="Show models", default=True, description="Show the placed objects as their models")
 
     def invoke(self, context, event):
@@ -97,7 +97,7 @@ class BZ_OT_new_map(bpy.types.Operator):
             self.report({"ERROR"}, str(exc))
             return {"CANCELLED"}
         self.report({"INFO"}, f"New map '{self.title.strip()}' made from the {self.ground} {self.size} template. Save it with File > Export, "
-                              "or from the Map panel (SGM tab).")
+                              "or from the Map panel (IC tab).")
         return {"FINISHED"}
 
 

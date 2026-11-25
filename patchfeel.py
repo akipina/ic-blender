@@ -1,21 +1,8 @@
-"""The Max patch feel, live in Blender: corners drag their handles, interiors are automatic, interior points hidden.
+"""3ds Max patch behaviour live in Blender (rules in ``patchrules``): corners drag their handles, interiors are automatic
+and interior points are hidden (mesh ``hide`` flag; ``bz_show_interiors`` reveals them).
 
-The rules are bpy-free in ``patchrules``; this module applies them to the live edit mesh:
-
-* :func:`settle` -- called by the overlay's per-redraw diff (``draw._sync``) with the control points as they were at
-  the last redraw and as they are now: the handles of moved corners are translated and the interiors of the touched
-  patches recomputed IN THE BMESH before this redraw's tessellation, so a G drag shows the carried surface. Only
-  points the rule owns are written (a handle or interior the transform moved itself is left alone), only patches with
-  a change are looked at, and an Undo restoring the mesh is recognised as no change (nothing is rewritten, so the
-  export stays byte-identical). Off for scene objects (they are not native creatures) and when the scene's
-  ``bz_patch_rules`` is off (raw control-point editing).
-* :func:`apply_interior_visibility` -- the interior points (interior in every patch that uses them: 4 per patch, 44 %
-  of a stock pool) get the mesh vertex ``hide`` flag: Blender neither draws, selects nor transforms them, which is
-  exactly Max, where interiors are not sub-objects. The flag lives in the mesh (edit-mode Undo and Tab keep it); the
-  scene's ``bz_show_interiors`` reveals them for manual interiors. A hidden interior follows its frame corner in every
-  selection the skin edits read (:func:`selection`).
-* ``BZ_OT_reset_interiors`` -- put the interiors of the selected patches (all when nothing is selected) back on the
-  rule and clear their manual flags (a journaled table edit).
+:func:`settle` writes only points the rule owns, only in changed patches, and must treat an Undo as no change so an
+untouched export stays byte-identical. It is off for scene objects and when ``bz_patch_rules`` is off.
 """
 from __future__ import annotations
 
@@ -213,8 +200,7 @@ def selection_note(obj):
 
 # ------------------------------------------------------------------------------------------- operator
 class BZ_OT_reset_interiors(bpy.types.Operator):
-    """Put the interior points of the selected patches (every patch touched by a selected point; all patches when
-    nothing is selected) back on the Auto Interior rule and clear their Manual flag"""
+    """Reset the interior points of the selected patches (all if none) to automatic"""
     bl_idname = "bz.reset_interiors"
     bl_label = "Auto Interiors"
     bl_options = {"REGISTER", "UNDO"}

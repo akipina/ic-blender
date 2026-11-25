@@ -1,155 +1,91 @@
 <section id="scene">
 <h2>Gatherers, characters, structures and props</h2>
 
-<p>Everything in the game that is not a combiner animal is a <em>scene object</em>: the henchmen who gather and build,
-the story characters, the buildings, the scenery. Its <code>.sgm</code> holds ordinary triangle meshes, one or more
-<em>parts</em>, each with its stored normals, UVs and materials, usually a skeleton (a character's vertices carry bone
-weights; each part of a structure follows one bone) and clips. Beside it lies its blueprint, the <code>.ebp</code>
-(next chapter). The add-on opens such a model as plain Blender meshes, lets you change them with any mesh tool, and
-writes back only the parts you changed. This chapter has no screenshots yet; the panel names and messages are quoted
-from the add-on itself.</p>
+<p>Anything that isn't a combiner animal is a <em>scene object</em>: henchmen, characters, buildings, scenery. Its
+<code>.sgm</code> holds mesh <em>parts</em>, usually with a skeleton and clips. Its <code>.ebp</code> blueprint sits
+beside it.</p>
 
 <h3>Starting a project</h3>
 
-<p>The game cannot load a scene object built from nothing, so a project always starts as a copy of one of the game's
-own, read from its archives. Its skeleton, materials, blueprint and clips come with it.</p>
+<p>The game can't load a scene object built from nothing, so you start from a copy.</p>
 
 <ol>
-  <li><strong>File &gt; New &gt; Impossible Creatures Project...</strong> (or <strong>New Impossible Creatures
-  Project</strong> in the SGM tab) opens a file browser with the project's options in its side panel.</li>
-  <li><strong>Type</strong>: <strong>Gatherer / character</strong> (on a Steam install: the henchmen and the 8 models
-  of the characters folder) or <strong>Structure / prop</strong> (196 buildings and pieces of scenery).</li>
-  <li><strong>Start from</strong>: the stock model, listed by name with its folder, for example <em>Lab
-  (structures)</em> or <em>Henchmen (gatherers)</em>, read from the game folder the dialog names. <strong>Another .sgm
-  file...</strong> starts from a scene <code>.sgm</code> on disk instead (pick it under <strong>File to start
-  from</strong>). If the list holds only that entry, the add-on did not find the game: set the <strong>Game
-  folder</strong> in the add-on's preferences (<strong>Edit &gt; Preferences &gt; Add-ons</strong>, expand SGM Native
-  Patches), or set the <code>IC_INSTALL</code> environment variable to the game folder and start Blender again.</li>
-  <li><strong>Animations</strong>: <em>Keep its own</em>, or <em>None</em> (the clips are removed, and the export
-  leaves them out of the file). Borrowing animations works only for creature projects.</li>
-  <li>Choose a folder of your own and a file name, and press <strong>New Impossible Creatures Project</strong>. The
-  stock <code>.sgm</code> is copied there under your name, its blueprint beside it as <code>&lt;name&gt;.ebp</code>, and
-  the copy is opened. The status bar says, for example, <code>Started the structure / prop project mylab in
-  mylab.sgm</code>.</li>
+  <li>Use <strong>File &gt; New &gt; Impossible Creatures Project...</strong>, or <strong>New Impossible Creatures
+  Project</strong> in the IC tab.</li>
+  <li>Set <strong>Type</strong> to <strong>Gatherer / character</strong> or <strong>Structure / prop</strong>.</li>
+  <li>In <strong>Start from</strong>, pick a stock model or <strong>Another .sgm file...</strong>. If no stock models
+  are listed, set the <strong>Game folder</strong> in the add-on's preferences, or set <code>IC_INSTALL</code> and
+  restart Blender.</li>
+  <li>Set <strong>Animations</strong> to <em>Keep its own</em> or <em>None</em>.</li>
+  <li>Choose a folder of your own and a file name, and confirm. The model and blueprint are copied there and
+  opened.</li>
 </ol>
-
-<div class="tablewrap">
-<table>
-<tr><th>Starting point</th><th>Parts</th><th>Vertices</th><th>Skeleton</th><th>Clips</th></tr>
-<tr><td>Henchmen (gatherers)</td><td>1</td><td>696</td><td>26 bones, skinned (bone weights)</td><td>32</td></tr>
-<tr><td>Lab (structures)</td><td>23</td><td>3,289 (the largest part 1,119)</td><td>19 bones, each part on one bone</td><td>9</td></tr>
-</table>
-</div>
-
-<p>A file of the wrong kind (a creature chosen as a structure) is refused with its reason, and nothing is left on
-disk.</p>
 
 <h3>Opening one</h3>
 
 <ol>
-  <li><strong>File &gt; Import &gt; Impossible Creatures Model (.sgm / .ebp)</strong>, or <strong>Import SGM / EBP
-  (Native Patches)</strong> in the SGM tab. Picking an <code>.ebp</code> opens the model it names.</li>
-  <li><strong>Clips as Actions</strong> (on by default) turns every clip into a named Action on the rig.</li>
-  <li>The status bar sums it up: <code>Imported scene object &lt;name&gt;: 23 part(s), 3289 vertices, ...
-  materials, ... textures, rig 19 bones, 9 clips</code>. If some textures were not found, a warning counts them and
-  asks you to set the Game folder in the add-on's preferences, or <code>IC_INSTALL</code>, to the game's folder.</li>
+  <li>Use <strong>File &gt; Import &gt; Impossible Creatures Model (.sgm / .ebp)</strong>, or <strong>Import
+  Model</strong> in the IC tab.</li>
+  <li>Keep <strong>Clips as Actions</strong> on to edit animations.</li>
+  <li>If textures are reported missing, set the <strong>Game folder</strong>.</li>
 </ol>
 
 <h3>What you are looking at</h3>
 
 <ul>
-  <li>One mesh object per part, at the game's full detail (the finest of the detail levels the file holds), with the
-  stored normals, the UVs and one material slot per material of the file, showing the game's own textures.</li>
-  <li>When the model has a skeleton, an armature called <code>&lt;name&gt;_rig</code>. A character's vertices sit in
-  vertex groups named after its bones, with their weights; each part of a structure sits in one group, its bone's, at
-  weight 1. A model with several parts and no skeleton has its parts under one empty.</li>
-  <li>The clips are Actions on the rig, as for creatures: <strong>Load Animation</strong>, <strong>Select Rig</strong>,
-  then edit the keys in the Dope Sheet or the Action Editor.</li>
-  <li>The <strong>SGM</strong> tab shows a short box instead of the creature tools: the model's name; the kind with its
-  number of parts and vertices (<code>structure / prop: 23 part(s), 3289 vertices</code> for a project; a model you
-  opened says <code>scene object</code>); the line <em>(triangle
-  mesh: edit it freely -- faces, UVs, weights -- then Export)</em>; the rig box when there is a skeleton (bone count,
-  <code>9 clips as Actions</code>, Load Animation, the active Action, Select Rig); and the export buttons. The
-  <strong>Blueprint</strong> panel is below it.</li>
+  <li>One mesh object per part, at full detail, with the game's textures.</li>
+  <li>A <code>&lt;name&gt;_rig</code> armature if there is a skeleton, with vertex groups named after its bones.</li>
+  <li>Clips as Actions: use <strong>Load Animation</strong> and <strong>Select Rig</strong>.</li>
+  <li>In the <strong>IC</strong> tab: model info, the rig box, export buttons and the <strong>Blueprint</strong>
+  panel.</li>
 </ul>
 
 <h3>Editing the mesh</h3>
 
-<p>Select a part, press <kbd>Tab</kbd> and change it the way you change any mesh. All of this is written back:</p>
+<p>Edit a part in Edit Mode with any mesh tool. These are exported:</p>
 
 <ul>
-  <li>moving vertices; adding and deleting faces; extruding; subdividing; any number of vertices and triangles, up to
-  12,288 vertices a part (see Exporting);</li>
-  <li>UV edits and new UV seams, and flat-shaded faces (the export splits a vertex where its faces disagree on UV or
-  shading, as the file needs);</li>
-  <li>a character's bone weights (weight paint, or the vertex groups); a vertex left with no weight is bound to the
-  root bone and the export says how many;</li>
-  <li>moving faces to another material slot, as long as it is one of the materials the model came with.</li>
+  <li>moved, added or deleted geometry, including extrude and subdivide;</li>
+  <li>UVs, seams and flat shading;</li>
+  <li>bone weights (an unweighted vertex goes to the root bone);</li>
+  <li>moving faces to another of the model's own materials.</li>
 </ul>
 
-<p>To add a new piece, model it as its own object and join it into one of the parts (<kbd>Ctrl</kbd>+<kbd>J</kbd>); a
-separate new object is not part of the model and is not exported. Do not delete a part object: the export then keeps
-that part's original shape (and says so). Make your changes in Edit Mode: moving, turning or scaling a whole part in
-Object Mode is not exported, because the export reads each mesh in its own coordinates.</p>
+<p>Warnings:</p>
+
+<ul>
+  <li>Join new pieces into a part (<kbd>Ctrl</kbd>+<kbd>J</kbd>). Separate objects aren't exported.</li>
+  <li>Don't delete a part object: its original shape is exported.</li>
+  <li>Moving, rotating or scaling a part in Object Mode isn't exported.</li>
+</ul>
 
 <h3>Exporting</h3>
 
 <ol>
-  <li>In the SGM tab press <strong>Export Scene Object (.sgm)</strong> to write the geometry and the clips (this button
-  needs the rig), or <strong>Export Scene Geometry (.sgm)</strong> to write the geometry alone. In the
-  <strong>File &gt; Export</strong> menu they are <em>Impossible Creatures Scene Object (.sgm)</em> and
-  <em>Impossible Creatures Scene Geometry (.sgm)</em>.</li>
-  <li>The option <strong>Let the engine rebuild the detail ladder</strong> (on) writes the rebuilt parts in the older
-  layout, so the game makes the lower detail levels itself. Off, a rebuilt part gets one full-detail level; that loads
-  in the game's Object Editor but has not been tried in the game.</li>
-  <li>Only the parts whose mesh changed are rebuilt; every other part, the skeleton and the clips you did not touch
-  keep their bytes. The report line says it:
-  <code>Wrote ... bytes to ...; geometry: 1 part(s) rebuilt, 22 unchanged; clips: 9 kept, 0 written</code>. Up to four
-  notes follow as warnings, such as how many vertices the seam splitting added.</li>
-  <li>An untouched model exports byte-identical to the file it came from. This is checked for all 205 stock
-  gatherers, characters, structures and props New Project offers: 203 come back identical, and the other 2 (the gyro
-  copters) cannot be opened at all, because their files hold a skeleton and clips but no mesh.</li>
-  <li>When a part was rebuilt, the result is checked before anything is written; a problem that would stop the model
-  loading refuses the export and says what it is.</li>
-  <li>A part may hold at most <strong>12,288 vertices</strong>, counted after the export's splitting at UV seams and
-  flat-shaded faces: the game draws no more in one part. A bigger part is refused before anything is written, and the
-  message says how many vertices it came to. Reduce its detail (apply a Decimate modifier, or use fewer seams and flat
-  faces).</li>
-  <li>Every rebuilt part gets its bounding volumes the way the game builds them: its own box, one box per bone its
-  vertices are weighted to, and the model's overall box.</li>
-  <li>A part with <strong>damage states</strong> (stored shapes the game blends into it, such as a building's damage:
-  the Lab's tent has 11) cannot be edited yet without breaking them, so exporting an edited one is refused. Tick
-  <strong>Drop the damage states of edited parts</strong> in the export to write it without them; the report then
-  says, for example, <code>11 damage states dropped from 1 edited part</code>. A part you did not edit keeps its damage
-  states byte for byte.</li>
+  <li>Press <strong>Export Scene Object (.sgm)</strong> for geometry and clips (needs a rig), or <strong>Export Scene
+  Geometry (.sgm)</strong> for geometry only.</li>
+  <li>Keep <strong>Let the engine rebuild the detail ladder</strong> on. Off is untested in game.</li>
+  <li>Only changed parts are rebuilt. Read the report and any warnings.</li>
 </ol>
 
-<p>In the check of the 0.3.0 release (2026-11-17) the henchman went from 696 to 2,142 vertices after a subdivision and
-exported with its skin and clips, and the Lab with one of its 23 parts edited came back with that part rebuilt and the
-other 22 byte-identical. In the check of the 0.4.0 release (2026-11-18, installed from the zip) the same subdivision
-exported again, a henchman subdivided until it came to 37,824 vertices was refused with nothing written, and the Lab's
-edited tent was refused and then, with the drop option, written without its 11 damage states.</p>
-
-<aside class="note">
-<p>The export writes a <code>.sgm</code> only. To get the model <em>and</em> its blueprint into a folder that is ready
-to copy into the game, use <strong>Export Entity Folder</strong> in the Blueprint panel (next chapter).</p>
-</aside>
+<ul>
+  <li>A part holds at most <strong>12,288 vertices</strong>, counted after splitting at UV seams and flat faces. If
+  refused, reduce detail (for example with a Decimate modifier, applied).</li>
+  <li>Editing a part with <strong>damage states</strong> is refused unless you tick <strong>Drop the damage states of
+  edited parts</strong>, which removes them.</li>
+  <li>This writes only the <code>.sgm</code>. For a folder with the blueprint too, use <strong>Export Entity
+  Folder</strong> (next chapter).</li>
+</ul>
 
 <aside class="limits">
 <ul>
-  <li><strong>Damage states cannot be edited yet.</strong> An edited part with damage states is refused, or written
-  without them when you tick the drop option.</li>
-  <li><strong>A part cannot be added</strong>, so a part above 12,288 vertices has to lose detail; splitting it in two
-  is not possible yet.</li>
-  <li>The vertex limit, the bounding volumes and the damage-state rule follow the game's own program, read from it, but
-  no exported model has been played in the game yet.</li>
-  <li>Material, texture and team-colour changes are not exported, and neither are bone edits (moving, renaming, adding
-  or deleting bones); the export does not warn about them. Renaming a bone of a character also renames its vertex
-  group, which the export then no longer matches to a bone of the file: a vertex weighted only to that bone goes to the
-  root bone.</li>
-  <li>Attachment points and damage states are not shown, and there is no checks panel yet.</li>
-  <li>The ten stock entries whose files hold no mesh (the 2 gyro copters, 4 AI map markers and 4 cut-scene objects)
-  cannot be opened, and a part stored the way projectiles and effects store theirs cannot be rebuilt.</li>
+  <li>No adding parts, or splitting a large one.</li>
+  <li>Material, texture, team-colour and bone changes are <em>not</em> exported, with no warning.</li>
+  <li>Don't rename a character's bones: vertices weighted only to a renamed bone go to the root bone.</li>
+  <li>Attachment points and damage states aren't shown.</li>
+  <li>No exported model has been played in the game yet.</li>
+  <li>Models without a mesh (such as the gyro copters) can't be opened. Projectile and effect parts can't be
+  rebuilt.</li>
 </ul>
 </aside>
 </section>

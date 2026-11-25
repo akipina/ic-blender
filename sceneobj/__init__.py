@@ -1,23 +1,9 @@
-"""sceneobj -- full support for gatherers, characters, structures and props in the Blender add-on (PLAN_FINAL contract C21).
+"""Gatherers, characters, structures and props. Modules here register themselves, so ``ic_blender/__init__.py``,
+``ui.py`` and the test runner need no edits.
 
-Everything the later slices add lives in this package and registers itself, so no slice ever edits ``blender_native/__init__.py``,
-``ui.py`` or the test runner again:
-
-* the **core modules** (``CORE``, in dependency order) are imported first: ``model`` (bpy-free: Issue, bundles, the Slice protocol,
-  the refs bus), ``subtype``, ``entity``, ``ui_kit`` (UIList / SubPanel / alert helpers), ``prefs`` (add-on preferences),
-  ``importer``, ``exporter``, ``compat``. A core module a later slice has not added yet is listed in ``MISSING_CORE`` and skipped;
-* every other module whose name starts with ``slice_``, ``ops_``, ``panels_``, ``props_``, ``guards_`` or ``map_`` is **discovered** and imported,
-  sorted by ``(ORDER, module name)``; a module may declare ``ORDER`` (int, default 50), ``CLASSES`` (tuple of Blender classes),
-  ``register()`` / ``unregister()`` (pointer properties, menus, handlers) and ``SLICE`` (an instance of the Slice protocol, or a tuple);
-* ``CLASSES`` is every module's ``CLASSES`` in a registration-safe order: property groups first (a group that points at another comes
-  after it), a child panel after its ``bl_parent_id`` parent. Blender refuses the other orders, and parallel modules would otherwise
-  register in whatever order their file names sort;
-* ``register()`` registers the classes, then runs every module's ``register()`` hook (so a hook may point a property at a class);
-  ``unregister()`` undoes exactly what ``register()`` did, in reverse; ``reload()`` reloads every module in that same order and
-  discovers again, so a module can never run stale code after an in-place update.
-
-Without Blender (the venv python of the pure tests) the package still imports: only modules that declare ``PURE = True`` are
-loaded, ``CLASSES`` is empty and ``register()`` refuses to run.
+``CORE`` modules import first; ``slice_``, ``ops_``, ``panels_``, ``props_``, ``guards_`` and ``map_`` modules are
+discovered, sorted by ``(ORDER, name)``. ``CLASSES`` is in Blender-safe order (property groups, then parent panels),
+and ``reload()`` keeps that order. Without Blender only modules declaring ``PURE = True`` load.
 """
 from __future__ import annotations
 

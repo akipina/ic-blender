@@ -1,35 +1,8 @@
-"""sceneobj.map_look -- an imported map looks the way the game draws it: the ground picture with its detail grain, the sun and the
-light, the sky, the fog, the water, the open sea, the border and the decals.
+"""The game's look for an imported map: ground picture, sun, sky, fog, water, sea, border and decals (rules from
+``ICParse.sgb.game_look``). Entry points: ``build_look``, ``remove_look``, ``redraw_water``, ``add_water``.
 
-``build_look(context, top, mv, ...)`` adds the collection ``<map> look`` (a sub-collection per piece) and dresses two things the map
-already has, the terrain's materials and the water; ``remove_look`` takes all of it off again.
-
-* **ground**: the map's own base picture ``<map>.tga`` (the image the stamp tool paints into) is the ground; the block's detail
-  texture is blended over it by its alpha where the view is within 450 m. The sun lamp and the world light it. Ground under water
-  loses the sun with depth, and near the map's edge it fades to the border colour (the map's ocean blend);
-* **sun and sky**: a sun lamp (the map's sun colour, shining the way the map's light travels), the world's colour (the ambient
-  light), and the sky: the game's flattened dome with the map's sky picture, drawn to the camera only. It follows the scene's
-  camera at 0.9 of its position, as the game's sky follows the eye (a viewport that is not the camera sees it centred on the map);
-* **sea**: the water past the map's edge (800 m at the water level, then a ring rising and fading out) and, on the map, the
-  water surface: both the sky's reflection x the game's brightness for the depth and distance x a ripple picture, added to what
-  lies behind (the first of the 15 ripple pictures: it does not move);
-* **border**: the sloped walls from the map's edge down to the sea's far ring, in the one colour the game uses for them;
-* **decals**: one object per picture, each decal the picture laid over the ground at its place, size (picture size / 8 m x scale)
-  and turn;
-* **fog**: set on the world when the map has fog (a few do);
-* the scene's view transform is "Standard" while the look is on, so colours are shown as made.
-
-What the game does that this does not: its own per-point terrain light and cast shadows (the Blender sun lights the ground), the
-moving water, and a finer water mesh in the shallows. Colours are added and blended in Blender's linear light (the water's sum is
-corrected for a typical sea floor), so tones differ a little.
-
-None of this is read by the save: the new objects carry no ``ic_water_level``, ``ic_blueprint`` or ``ic_map`` mark and sit in
-collections the save does not look in, and the dressed materials keep their ground-texture marks (tests/so_map_look_test.py proves a
-save with the look on is byte for byte the map that was opened). The rules are ``ICParse.sgb.game_look``'s, decompiled from IC.exe.
-
-``redraw_water(context, top, mv)`` rebuilds the water surface from the ground as it is now and the water level as it is now (the ground
-or the water object moved); ``add_water(context, top, mv, level)`` gives a map that has no water surface one. The operators
-``bz.map_redraw_water`` and ``bz.map_add_water`` call them. Saving writes the water level the water object stands at.
+The save must never read the look: new objects carry no ``ic_water_level`` / ``ic_blueprint`` / ``ic_map`` mark, sit in
+collections the save ignores, and dressed materials keep their marks (tests/so_map_look_test.py: byte-identical save).
 """
 from __future__ import annotations
 
@@ -1026,13 +999,13 @@ class BZ_OT_map_redraw_water(bpy.types.Operator):
 
 
 class BZ_OT_map_add_water(bpy.types.Operator):
-    """Give this map a water surface. Saving the map writes the water level"""
+    """Add a water surface to the map; saving writes the water level"""
     bl_idname = "bz.map_add_water"
     bl_label = "Add Water"
     bl_options = {"REGISTER", "UNDO"}
 
     level: FloatProperty(name="Water level (m)", default=-1.0, min=-1.0, soft_max=200.0,
-                         description="The height of the water surface in metres. Below 0: the map's own water level")
+                         description="Water height in metres; below 0 uses the map's own water level")
 
     @classmethod
     def poll(cls, context):
@@ -1051,7 +1024,7 @@ class BZ_OT_map_add_water(bpy.types.Operator):
 
 
 class BZ_OT_map_game_look(bpy.types.Operator):
-    """Give the map the look of the game: its ground picture, sun, sky, fog, water, border and decals (replaces the look it has)"""
+    """Give the map the game's look: ground, sky, light, fog, water and decals"""
     bl_idname = "bz.map_game_look"
     bl_label = "Show Game Look"
     bl_options = {"REGISTER", "UNDO"}
@@ -1209,15 +1182,12 @@ class BZ_PG_map_look(PropertyGroup):
     sun_colour: FloatVectorProperty(name="Sunlight colour", subtype="COLOR", size=3, min=0.0, max=1.0, default=(0.75, 0.75, 0.75),
                                     description="The colour of the sun's light", update=_u("sun_colour"))
     shadow_colour: FloatVectorProperty(name="Shadow colour", subtype="COLOR", size=3, min=0.0, max=1.0, default=(0.25, 0.25, 0.25),
-                                       description="The colour of the light in shadow (the map's ambient light). Each part should be darker "
-                                                   "than the sunlight's", update=_u("shadow_colour"))
+                                       description="Colour of the light in shadow; keep it darker than the sunlight", update=_u("shadow_colour"))
     time_hour: FloatProperty(name="Time of day", min=0.0, max=24.0, soft_min=6.0, soft_max=18.0, default=12.0, precision=2,
-                             description="Where the sun stands across the sky: 6 is one horizon, 12 straight overhead, 18 the other. The map "
-                                         "keeps the sun's direction", update=_u("time_hour"))
+                             description="Sun position: 6 is one horizon, 12 overhead, 18 the other", update=_u("time_hour"))
     sky: EnumProperty(name="Sky", items=_sky_items, description="The sky picture (from the game's data:islands folder)", update=_u("sky"))
     ocean_colour: FloatVectorProperty(name="Ocean colour", subtype="COLOR", size=3, min=0.0, max=1.0, default=(0.0, 0.5, 0.75),
-                                      description="Saved in the map for the Mission Editor; the game does not read it (its water reflects "
-                                                  "the sky)", update=_u("ocean_colour"))
+                                      description="Saved for the Mission Editor; the game ignores it", update=_u("ocean_colour"))
     ocean_min: IntProperty(name="Ocean opacity, min", min=0, max=255, default=192, description="How bright the water's reflection is in deep "
                            "water near the map (0 to 255)", update=_u("ocean_min"))
     ocean_max: IntProperty(name="Ocean opacity, max", min=0, max=255, default=255, description="How bright the water's reflection is far out "
@@ -1231,8 +1201,8 @@ class BZ_PG_map_look(PropertyGroup):
                            "the fog is thickest", update=_u("fog_end"))
     fog_colour: FloatVectorProperty(name="Fog colour", subtype="COLOR", size=3, min=0.0, max=1.0, default=(0.5, 0.5, 0.75),
                                     update=_u("fog_colour"))
-    detail_tiling: IntProperty(name="Detail texture repeat", min=1, max=16, default=3, description="How many times the detail texture "
-                               "repeats across each patch of ground: more is finer with more repeating. Stock maps use 2 to 4",
+    detail_tiling: IntProperty(name="Detail texture repeat", min=1, max=16, default=3, description="How often the detail texture repeats "
+                                                                                                   "across each patch of ground",
                                update=_u("detail_tiling"))
 
 
@@ -1428,7 +1398,7 @@ def check_look(cctx) -> list:
 
 
 class BZ_OT_map_look_reset(bpy.types.Operator):
-    """Put the Terrain look values back to what the map holds on disk (the changes made here are dropped)"""
+    """Reset the Terrain look values to those in the map file"""
     bl_idname = "bz.map_look_reset"
     bl_label = "Reset Terrain Look"
     bl_options = {"REGISTER", "UNDO"}

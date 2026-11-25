@@ -1,18 +1,8 @@
-"""Boner > Bones > IK Chains and Joint Limits (C8.4 / C8.5).
+"""Boner > Bones > IK Chains and Joint Limits.
 
-IK chains: the creature's ``IKCH`` table (``ICParse IKChain``: a name, a u16 flags bitmask -- one stock bit per chain:
-Head 1, Spine 2, Arm 4, Leg 8, Tail 16, Ear 64, Jaw 128, Antenna 256, TopWing 512, Foot 1024, Neck 2048 -- a u16
-enabled word and the bone names; no shipped Relic binary reads it, the Object Editor included, so its only job is to be
-consistent: every stock chain is one path of the hierarchy, 905 / 905). The table is edited as journaled rows
-(``store.ik_rows`` / ``set_ik_rows``: ``topology.IKRow``, source bones by their FILE names like the limb rows; absent =
-the source's chunk as it is) and written by ``topology.apply_ik_rows`` inside the builder, before the delete / re-parent
-fix and the renames, so a chain follows a renamed, deleted or re-parented bone like the source's chains do.
-
-Joint limits: each rig bone carries its BONE record's limit floats as the ``bz_joint_limits`` custom property (stamped
-at import, ``rig.stamp_joint_limits``: min x, y, z then max x, y, z in radians ON DISK -- the game and the editor both
-convert to degrees at load -- then the limit flag word where the file has one); the Bones tab shows the stock values and
-the editable copy, and Export writes a bone's limits only when they differ from its record
-(``topology.apply_bone_limits``). The engine-side rules, and what is still unimplemented, are ``ROADMAP_NATIVE.md`` C9.
+IK chains are journaled rows naming source bones by FILE names (``store.ik_rows``; absent = source chunk as is), applied
+by ``topology.apply_ik_rows`` before the delete / re-parent fix and renames. No shipped binary reads them; keep each one
+path of the hierarchy. Joint limits sit on rig bones (``bz_joint_limits``, radians) and are exported only when changed.
 """
 from __future__ import annotations
 
@@ -130,9 +120,7 @@ def _begin(op, obj) -> bool:
 
 
 class BZ_OT_ik_add_chain(bpy.types.Operator):
-    """Add an IK chain to the creature's IKCH table: every bone from the start bone down to the end bone (one path of the
-    hierarchy), with a stock flag bit and the enabled word. Export writes the table; renames, deletes and re-parents
-    keep it consistent"""
+    """Add an IK chain from a start bone down to an end bone"""
     bl_idname = "bz.ik_add_chain"
     bl_label = "Add IK Chain"
     bl_options = {"REGISTER", "UNDO"}
@@ -189,9 +177,8 @@ class BZ_OT_ik_add_chain(bpy.types.Operator):
         unknown = [b for b in path if b not in r2f]
         if unknown:
             self.report({"ERROR"}, f"Add IK Chain refused: bone{'s' if len(unknown) != 1 else ''} "
-                                   f"{', '.join(repr(b) for b in unknown[:3])} {'are' if len(unknown) != 1 else 'is'} no bone "
-                                   "the export writes (a copy, a stub bone Add Stub Socket created, or a bone the skeleton "
-                                   "guard refuses)")
+                                   f"{', '.join(repr(b) for b in unknown[:3])} {'are' if len(unknown) != 1 else 'is'} no "
+                                   "bone the export writes (a copy, a stub or a refused bone)")
             return {"CANCELLED"}
         if not _begin(self, obj):
             return {"CANCELLED"}
@@ -243,8 +230,7 @@ class BZ_OT_ik_edit_chain(bpy.types.Operator):
     index: bpy.props.IntProperty(name="Chain", default=-1, options={"SKIP_SAVE"})
     name: bpy.props.StringProperty(name="Name", default="", options={"SKIP_SAVE"})
     flags: bpy.props.IntProperty(name="Flags", default=1, min=0, max=65535,
-                                 description="The flags word (stock: one bit -- Head 1, Spine 2, Arm 4, Leg 8, Tail 16, "
-                                             "Ear 64, Jaw 128, Antenna 256, TopWing 512, Foot 1024, Neck 2048)")
+                                 description="Chain kind bit: Head 1, Spine 2, Arm 4, Leg 8, Tail 16, Ear 64, Jaw 128, ...")
     enabled: bpy.props.IntProperty(name="Enabled", default=1, min=0, max=65535, description="The enabled word (stock: 1)")
 
     @classmethod
@@ -296,7 +282,7 @@ class BZ_OT_ik_edit_chain(bpy.types.Operator):
 
 
 class BZ_OT_ik_reset_chains(bpy.types.Operator):
-    """Forget the IK chain edits: Export writes the source file's IKCH chunk as it is again"""
+    """Discard the IK chain edits and export the source file's chains"""
     bl_idname = "bz.ik_reset_chains"
     bl_label = "Reset IK Chains"
     bl_options = {"REGISTER", "UNDO"}

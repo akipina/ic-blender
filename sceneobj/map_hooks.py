@@ -1,26 +1,8 @@
-"""sceneobj.map_hooks -- the extension points of the map tools (no operators and no panels in this module).
+"""Extension points of the map tools (no operators or panels): import steps, save steps, checks, ``MAP_PANEL_ID`` and
+``import_map_bytes``.
 
-In plain words. The map import (``ops_map_import``) and the map save (``ops_map_export``) do the core work: the ground, the water,
-the ground textures and the placed objects. A feature that adds more to a map (triggers, regions, paths, a new map ...) lives in
-a module of its own and plugs into them here, so no feature has to edit the files of another:
-
-* ``register_import_step(name, fn, order=100)`` -- ``fn(ictx)`` runs after the core import of a map, in ``order`` (then in the
-  order registered). ``ictx`` is an :class:`ImportContext`.
-* ``register_save_step(name, fn, order=100)`` -- ``fn(sctx)`` runs during a save, after the core edits are made and before
-  anything is written. ``sctx`` is a :class:`SaveContext`: a step may replace the map's bytes, add or replace a file beside the
-  map, add lines to the save report, or refuse the save. A step whose feature was not touched must change nothing.
-* ``register_check(name, fn)`` -- ``fn(cctx)`` returns a list of problems (``problem(...)`` dicts); ``run_checks(context, top)``
-  runs every check and returns all the problems, for the user-facing list.
-* ``MAP_PANEL_ID`` -- the ``bl_idname`` of the Map panel: a sub-panel names it as its ``bl_parent_id``.
-* ``import_map_bytes(context, data, name, options)`` -- the map import from bytes in memory.
-
-Registering the same ``name`` twice replaces the first (so a reloaded module never runs twice). A step that raises is reported and
-skipped on import; on save it refuses the save (nothing is written).
-
-How a module gets loaded: any module in ``sceneobj`` whose file name starts with ``map_`` is imported when the add-on starts (the
-package registry discovers it, like ``ops_`` and ``panels_`` modules), so a feature file ``map_triggers.py`` registers its steps at
-the top level of the module, no other file needs to name it. This module's ORDER is 10, so it is (re)loaded before every feature
-module (their default ORDER is 50).
+A save step whose feature was not touched must change nothing. A step that raises is skipped on import and refuses the
+save. Re-registering a name replaces it. ``map_*`` modules are discovered; ORDER 10 loads this one first.
 """
 from __future__ import annotations
 

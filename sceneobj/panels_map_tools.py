@@ -20,8 +20,7 @@ def _hint(layout, text: str, icon: str = "NONE", width: int = 44) -> None:
 
 
 def draw_files(layout, context, top) -> None:
-    _hint(layout, "The Mission Editor's File menu entries. A height map is a grey TGA picture of the ground; a terrain file (.ter) holds the "
-                  "ground, water, textures, sky, light and decals; an entities file (.ent) copies placed objects between maps.", width=44)
+    _hint(layout, "Height map (.tga), terrain (.ter) and entity (.ent) files, as in the Mission Editor.", width=44)
     col = layout.column(align=True)
     col.label(text="Height map")
     row = col.row(align=True)
@@ -37,14 +36,12 @@ def draw_files(layout, context, top) -> None:
     row = col.row(align=True)
     row.operator("bz.map_import_entities", text="Import...", icon="IMPORT")
     row.operator("bz.map_export_entities", text="Export selected...", icon="EXPORT")
-    _hint(layout, "Importing a terrain builds the map again as a new map (the old one stays, hidden). Pictures and files are written into a "
-                  "folder you pick, never the game's own.", width=44)
+    _hint(layout, "Importing a terrain builds a new map; the old one is kept, hidden.", width=44)
 
 
 def draw_objects(layout, context, top) -> None:
     st = context.scene.bz_map_tools
-    _hint(layout, "Filters: with none of the toggles on every object is listed; with several on, the objects that match any of them. "
-                  "Then Refresh.", width=44)
+    _hint(layout, "Turn on filters (objects matching any are listed), then Refresh.", width=44)
     layout.prop(st, "owner", text="")
     grid = layout.grid_flow(row_major=True, columns=2, align=True)
     for _tag, prop in OP.TAG_PROPS:
@@ -55,7 +52,7 @@ def draw_objects(layout, context, top) -> None:
         total = st.rows_total
         layout.label(text=f"{total} objects" + (f" (first {len(st.rows)} shown)" if total > len(st.rows) else ""))
         layout.template_list("BZ_UL_map_objects", "", st, "rows", st, "row_index", rows=6)
-        _hint(layout, "Select and Hide work on the rows ticked (on every row when none is ticked). Delete works on the ticked rows only.", width=44)
+        _hint(layout, "Select and Hide use ticked rows (or all); Delete uses only ticked rows.", width=44)
     else:
         layout.label(text="Nothing listed yet.")
     col = layout.column(align=True)
@@ -69,8 +66,7 @@ def draw_objects(layout, context, top) -> None:
 
 def draw_blueprints(layout, context, top) -> None:
     st = context.scene.bz_map_tools
-    _hint(layout, "The blueprints the map lists: the number the map gives each, how many placed objects use it, and how many trigger "
-                  "arguments name it.", width=44)
+    _hint(layout, "Each blueprint's number and how many objects and trigger arguments use it.", width=44)
     layout.operator("bz.map_bplist_refresh", text="Refresh the list", icon="FILE_REFRESH")
     if len(st.bp_rows):
         layout.template_list("BZ_UL_map_blueprints", "", st, "bp_rows", st, "bp_index", rows=6)
@@ -79,8 +75,7 @@ def draw_blueprints(layout, context, top) -> None:
 
 def draw_crop(layout, context, top) -> None:
     st = context.scene.bz_map_tools
-    _hint(layout, "Cut the map down to a square part of itself. Validate first: it shows the square and lists the objects, triggers, "
-                  "dialogue and NISlet animations that would not survive. Crop builds a new, smaller map and keeps the old one, hidden.", width=44)
+    _hint(layout, "Validate shows what a crop would lose; Crop builds a new map and keeps the old.", width=44)
     layout.prop(st, "crop_ratio", expand=True)
     layout.prop(st, "crop_use_cursor")
     if not st.crop_use_cursor:
@@ -98,7 +93,7 @@ def draw_crop(layout, context, top) -> None:
 class _MapSection:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = H.MAP_PANEL_ID
     bl_options = {"DEFAULT_CLOSED"}
 

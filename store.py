@@ -1,21 +1,8 @@
-"""Persistence of native-patch data on a Blender object.
+"""Persistence of creature data on the object. Mesh vertices ARE the file's control-point pool; export re-reads the
+source file and rewrites only edited data.
 
-The editable object IS the control-point pool (verts 1:1 with the file's vertex pool). Everything else lossless
-export and live drawing need is stashed on the object, and re-read from the source file at export (only edited
-data is rewritten; see core.build_export). Two kinds of storage, chosen by what Blender's undo restores:
-
-* **Per-point data lives in hidden mesh point attributes** (edit-mesh undo restores those): ``.bz_cp`` (the pool
-  index each Blender vertex is supposed to be -- Blender carries it through Delete / Merge / Sort / Duplicate, so
-  the pool guard can tell what a native topology tool did), ``.bz_vert_bone`` (the bone that owns each point) and
-  ``.bz_gen`` (the generation of the SGM tables this mesh state belongs to).
-* **Per-patch and per-record tables are Object ID properties** (``bz_patches``, ``bz_patch_uv``, ``bz_conn_*`` ...),
-  which edit-mesh undo does NOT restore. So every write goes through a *generation journal*: an SGM operator starts a
-  new generation (:func:`begin_edit`), stamping it on every point, and each table write is mirrored into
-  ``bz_journal[generation]``. After an Undo / Redo in edit mode the mesh comes back with an older / newer ``.bz_gen``
-  and :func:`sync` (run from the undo / redo handlers and before every export) re-selects the tables recorded for
-  it. Object-mode (memfile) undo restores both sides together. Every journal entry is also kept in a session-side
-  copy outside the undo system: an Undo that crosses a Tab (a memfile step restores the object's journal from before
-  the edit session, the edit-mesh step the operator's generation) still finds its tables.
+Per-point data lives in hidden mesh attributes (undone with the mesh). Per-patch tables are ID properties, which
+edit-mode undo does NOT restore: write them only through the generation journal (:func:`begin_edit`, :func:`sync`).
 """
 from __future__ import annotations
 
@@ -313,15 +300,15 @@ def generation_error(obj):
     would restore them)."""
     mg, pg = mesh_generation(obj), obj.get(KEY_GEN)
     if pg is not None and mg is None:
-        return (f"the generation attribute '{ATTR_GEN}' was removed from the mesh: the SGM tables can't be matched to "
+        return (f"the generation attribute '{ATTR_GEN}' was removed from the mesh, so the model's data can't be matched to "
                 "it. Undo its removal or re-import the creature")
     if mg is None or pg is None or mg == pg:
         return None
     j = obj.get(KEY_JOURNAL)
     if (j is not None and str(mg) in j) or _cache_get(obj, mg) is not None:
         return None
-    return (f"the SGM tables on this object belong to another state of the mesh (generation {pg}, the mesh is at "
-            f"{mg}, which the journal no longer holds): Redo (Ctrl+Shift+Z) back to it, or re-import the creature")
+    return (f"the model's data on this object belongs to another state of the mesh (generation {pg}, mesh {mg}, which the "
+            "journal no longer holds): Redo (Ctrl+Shift+Z) back to it, or re-import")
 
 
 def sync(obj):
@@ -333,7 +320,7 @@ def sync(obj):
     upgrade_limb_tables(obj)
     upgrade_conn_tables(obj)
     if mg is None:
-        return (f"the generation attribute '{ATTR_GEN}' was removed from the mesh: the SGM tables can't be matched to "
+        return (f"the generation attribute '{ATTR_GEN}' was removed from the mesh, so the model's data can't be matched to "
                 "it. Undo its removal or re-import the creature")
     if mg == pg:
         return None
@@ -531,9 +518,8 @@ def source_error(obj):
         return None
     size, sha = file_sha1(src)
     if sha != str(want):
-        return (f"the source file {src} changed since import ({int(obj.get(KEY_SRC_SIZE, 0))} -> {size} bytes): the "
-                "export is built on it, so your edits would be rebased on a different creature. Restore the file or "
-                "re-import the creature")
+        return (f"the source file {src} changed since import ({int(obj.get(KEY_SRC_SIZE, 0))} -> {size} bytes), so Export "
+                "would build on a different creature: restore it or re-import the creature")
     return None
 
 
@@ -1154,7 +1140,7 @@ def limb_rows(obj):
     (see :func:`limb_store_error`)."""
     try:
         from . import structure
-    except ImportError:                  # imported top-level (pure tests put blender_native/ on sys.path)
+    except ImportError:                  # imported top-level (pure tests put ic_blender/ on sys.path)
         import structure  # type: ignore[no-redef]
     if obj.get(KEY_LIMB_NAMES) is None:
         return None
@@ -1290,7 +1276,7 @@ def upgrade_conn_tables(obj) -> bool:
 def _core():
     try:
         from . import core
-    except ImportError:                  # imported top-level (pure tests put blender_native/ on sys.path)
+    except ImportError:                  # imported top-level (pure tests put ic_blender/ on sys.path)
         import core  # type: ignore[no-redef]
     return core
 

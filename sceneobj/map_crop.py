@@ -138,8 +138,7 @@ def crop(context, top, ratio: int, centre: tuple | None = None, *, force: bool =
     lines = [f"Cropped {base} to 1/{ratio}: the new map {X.map_name(new)} is {region.new_cells} x {region.new_cells} cells "
              f"({region.new_cells * region.tile_scale:g} m) and has {rep['entities_kept']} placed objects ({rep['entities_deleted']} deleted).",
              f"The part kept: {region.words()}.",
-             "Ground, water, ground textures, the painted passability, decals and the water colours were cut to it; objects were moved so its "
-             "middle is the new origin; the pathfinding was rebuilt like the game does."]
+             "Ground, textures, water, passability and decals were cropped, objects recentred and pathfinding rebuilt."]
     if rep.get("files_dropped"):
         lines.append("Pictures made for the old size were left out (they are not part of the map): " + ", ".join(rep["files_dropped"]) + ".")
     if rep.get("na_shifted"):

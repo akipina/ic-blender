@@ -40,7 +40,7 @@ def _poll(cls, context):
 class BZ_OT_script_group_new(bpy.types.Operator):
     bl_idname = "bz.script_group_new"
     bl_label = "Create group from selected"
-    bl_description = "Make a named group of the selected placed objects (the Mission Editor's Create Group, Ctrl+G)"
+    bl_description = "Group the selected placed objects (the Mission Editor's Create Group)"
     bl_options = {"REGISTER", "UNDO"}
     name: StringProperty(name="Group name", default="")
 
@@ -75,7 +75,7 @@ class BZ_OT_script_group_new(bpy.types.Operator):
 class BZ_OT_script_group_delete(bpy.types.Operator):
     bl_idname = "bz.script_group_delete"
     bl_label = "Delete group"
-    bl_description = "Delete the group in the list. The objects stay; a trigger that names the group would find nothing (the check says so)"
+    bl_description = "Delete this group; its objects stay"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -151,7 +151,7 @@ def _fresh_trigger_id(top) -> int:
 class BZ_OT_script_trigger_new(bpy.types.Operator):
     bl_idname = "bz.script_trigger_new"
     bl_label = "New trigger"
-    bl_description = "Add a trigger. It starts with the condition 'Always' and no action; change them below"
+    bl_description = "Add a trigger with the condition 'Always' and no action"
     bl_options = {"REGISTER", "UNDO"}
     name: StringProperty(name="Name", default="New trigger")
     folder: StringProperty(name="Folder", default="", description="Letters, digits and underscores; a new name makes a new folder")
@@ -195,7 +195,7 @@ class BZ_OT_script_trigger_new(bpy.types.Operator):
 class BZ_OT_script_trigger_copy(bpy.types.Operator):
     bl_idname = "bz.script_trigger_copy"
     bl_label = "Copy trigger"
-    bl_description = "Make a copy of the trigger in the list (a new number, the same conditions and actions), right after it"
+    bl_description = "Duplicate this trigger, placing the copy right after it"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -381,8 +381,7 @@ class BZ_OT_script_pick_entity(bpy.types.Operator):
 class BZ_OT_script_text_new(bpy.types.Operator):
     bl_idname = "bz.script_text_new"
     bl_label = "New text"
-    bl_description = ("Add a text (a message, a speech line) to the map's text table and use it in this argument. Triggers refer to a text by "
-                      "its number")
+    bl_description = ("Add a text to the map's text table and use it here")
     bl_options = {"REGISTER", "UNDO"}
     path: StringProperty(options={"HIDDEN"})
     text: StringProperty(name="Text", default="")
@@ -428,7 +427,7 @@ def _bp_items(self, context):
 class BZ_OT_script_pick_blueprint(bpy.types.Operator):
     bl_idname = "bz.script_pick_blueprint"
     bl_label = "Another blueprint"
-    bl_description = "Use any blueprint of the game's files for this argument (type to search). The map's blueprint list gets it when the map is saved"
+    bl_description = "Pick any of the game's blueprints for this argument"
     bl_options = {"REGISTER", "UNDO"}
     path: StringProperty(options={"HIDDEN"})
     blueprint: EnumProperty(name="Blueprint", items=_bp_items)
@@ -547,7 +546,7 @@ class BZ_OT_script_dtrigger(bpy.types.Operator):
 class BZ_OT_script_check(bpy.types.Operator):
     bl_idname = "bz.script_check"
     bl_label = "Check the scripts"
-    bl_description = "Look for triggers that name an object, group or variable the map does not have, and for other mistakes in the scripts"
+    bl_description = "Check scripts for missing objects, groups, variables and other mistakes"
     bl_options = {"REGISTER"}
 
     poll = classmethod(_poll)

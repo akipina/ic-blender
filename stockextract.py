@@ -1,15 +1,10 @@
 """Pull creatures (and, optionally, scene objects) out of the game's .sga archives with ICParse.
 
-    .venv/bin/python3 blender_native/tools/extract_stock.py                 # Engine.sga stock -> Assets/engine_stock (+ .lua/.lsc)
-    .venv/bin/python3 blender_native/tools/extract_stock.py --scene         # + henchmen / structures / props -> Assets/engine_scene
-    .venv/bin/python3 blender_native/tools/extract_stock.py --archive telluriandata.sga --prefix art/ebps/stock/ --out Assets/tellurian_stock
+    .venv/bin/python3 ic_blender/stockextract.py            # Engine.sga stock -> Assets/engine_stock (+ .lua/.lsc)
+    .venv/bin/python3 ic_blender/stockextract.py --scene    # + henchmen / structures / props -> Assets/engine_scene
 
-Engine.sga's 61 base-game creatures are blueprints that EMBED their model (FORM BOBJ); the tool writes
-the .ebp as shipped plus the embedded creature as <name>.sgm (extracted by ICParse.ebp, byte-exact).
-telluriandata's creatures are proxy blueprints beside their .sgm, so both files are copied as-is.
-The stock creatures' .lua (limbattributes) and .lsc (limb-scale rules) companions come too: the combiner needs them
-(combotest.loader, the add-on's combine preview, whose Extract Stock Creatures button calls :func:`extract`).
-Assets/ is git-ignored: never commit what this writes.
+The add-on's Extract Stock Creatures button and its default skeleton template call :func:`extract`.
+Base-game creatures are blueprints with the model inside: it is written beside them as ``<name>.sgm``.
 """
 import argparse
 import os
@@ -18,7 +13,7 @@ import sys
 from ICParse import sga as SGA
 from ICParse import ebp as EBP
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IC = os.environ.get("IC_INSTALL", os.path.expanduser("~/.local/share/Steam/steamapps/common/Impossible Creatures"))
 
 SCENE_PICKS = (            # a henchman, two structures, a prop, a character: one of each scene-object flavour

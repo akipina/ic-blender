@@ -130,7 +130,7 @@ class BZ_OT_nis_select_key(_NisOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_new_anim(_NisOp, bpy.types.Operator):
-    """Add a new animation of this kind: two key frames, the first at the 3D cursor and the second 30 m beside it"""
+    """Add a new animation with two key frames at the 3D cursor"""
     bl_idname = "bz.nis_new_anim"
     bl_label = "New Animation"
     kind: EnumProperty(items=KIND_ITEMS, name="Kind", default="camera")
@@ -182,7 +182,7 @@ class BZ_OT_nis_delete_anim(_NisOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_add_key(_NisOp, bpy.types.Operator):
-    """Add a key frame: halfway between the selected key and the one before it, or at the 3D cursor after the selected key"""
+    """Add a key frame next to the selected one"""
     bl_idname = "bz.nis_add_key"
     bl_label = "Add Key Frame"
     where: EnumProperty(items=[("BEFORE", "Before", "Between the selected key and the one before it"),
@@ -281,8 +281,7 @@ class BZ_OT_nis_key_to_cursor(_KeyOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_key_from_view(_KeyOp, bpy.types.Operator):
-    """Copy a camera's view into the selected key frame: its direction and roll, and, for a camera animation, its place (the Mission
-    Editor's Copy POV and Copy Camera). Uses the selected camera, else the scene's camera"""
+    """Copy the selected or scene camera's view into the selected key frame"""
     bl_idname = "bz.nis_key_from_view"
     bl_label = "Copy View from Camera"
     place: BoolProperty(name="Also copy the place", default=True)
@@ -305,7 +304,7 @@ class BZ_OT_nis_key_from_view(_KeyOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_key_to_object(_KeyOp, bpy.types.Operator):
-    """Put the selected key frame on the placed object that is selected too (the Mission Editor's Copy Entity)"""
+    """Put the selected key frame on the other selected object"""
     bl_idname = "bz.nis_key_to_object"
     bl_label = "Key to Selected Object"
 
@@ -322,7 +321,7 @@ class BZ_OT_nis_key_to_object(_KeyOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_key_target(_KeyOp, bpy.types.Operator):
-    """Make the selected key frame of a camera animation look at the selected placed object, or at nothing"""
+    """Make a camera key frame look at the selected object, or at nothing"""
     bl_idname = "bz.nis_key_target"
     bl_label = "Set Look-at Target"
     clear: BoolProperty(default=False)
@@ -347,7 +346,7 @@ class BZ_OT_nis_key_target(_KeyOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_key_auto(_KeyOp, bpy.types.Operator):
-    """Let the path decide this angle (the game points the view along the path: the value 36000)"""
+    """Let the path set this angle, so the view points along it"""
     bl_idname = "bz.nis_key_auto"
     bl_label = "Angle from the Path"
     prop: EnumProperty(items=[("nis_rotation", "Rotation", ""), ("nis_declination", "Declination", "")])
@@ -360,7 +359,7 @@ class BZ_OT_nis_key_auto(_KeyOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_refresh(_NisOp, bpy.types.Operator):
-    """Draw the animation's path, speed line, key arrows and preview again from its key frames as they stand now"""
+    """Redraw the animation's path, arrows and preview from its key frames"""
     bl_idname = "bz.nis_refresh"
     bl_label = "Update Path"
 
@@ -376,7 +375,7 @@ class BZ_OT_nis_refresh(_NisOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_toggle_display(_NisOp, bpy.types.Operator):
-    """Show or hide the animation's path, or its speed line (higher where the animation is faster)"""
+    """Show or hide the animation's path or speed line"""
     bl_idname = "bz.nis_toggle_display"
     bl_label = "Show Path"
     which: EnumProperty(items=[("path", "Path", ""), ("speed", "Speed", "")])
@@ -392,7 +391,7 @@ class BZ_OT_nis_toggle_display(_NisOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_preview(_NisOp, bpy.types.Operator):
-    """Look through the animation's preview camera over its own frames: set the scene's camera and frame range to it"""
+    """Watch the animation through its preview camera"""
     bl_idname = "bz.nis_preview"
     bl_label = "Preview Animation"
 
@@ -418,7 +417,7 @@ class BZ_OT_nis_preview(_NisOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_aspect(_NisOp, bpy.types.Operator):
-    """Switch the picture shape between normal (4 : 3) and the cinematic 1.85 : 1 the game uses for cinematics (NISlets)"""
+    """Switch the picture shape between 4:3 and the cinematic 1.85:1"""
     bl_idname = "bz.nis_aspect"
     bl_label = "Cinematic 1.85 Picture"
 
@@ -437,7 +436,7 @@ class BZ_OT_nis_aspect(_NisOp, bpy.types.Operator):
 
 
 class BZ_OT_nis_check(_NisOp, bpy.types.Operator):
-    """Look for problems in the map's cinematics (a key looking at a deleted object, too few key frames, shared numbers)"""
+    """Check the map's cinematics for problems"""
     bl_idname = "bz.nis_check"
     bl_label = "Check Cinematics"
     bl_options = {"REGISTER"}

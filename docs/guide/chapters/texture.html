@@ -1,278 +1,182 @@
 <section id="texture">
 <h2>Re-texturing and texturing from scratch</h2>
 
-<p>This chapter re-skins the stock rhinoceros (<code>Assets/engine_stock/rhinoceros.sgm</code>) and then textures a
-creature made with <strong>New Creature (From Scratch)</strong>. Everything happens on a normal import: the textures
-come in as Blender images, you paint them or replace their pixels, you move the per-patch UVs in Blender's UV Editor,
-and <strong>Export</strong> writes only what you changed back into the <code>.sgm</code>.</p>
+<p>Paint a creature's textures or move its UVs, then export. The examples use the stock
+<code>rhinoceros.sgm</code>.</p>
 
 <h3>How textures live in the .sgm</h3>
 
-<p>A creature file embeds its own textures: one <code>TXMP</code> record per texture, each a palette of at most 256
-colours plus a full mip chain (the image, then every halving down to 1x1) of palette indices. The rhinoceros carries
-seven: <code>rhino01.bmp</code> 256x256 (body), <code>rhino02.bmp</code> 128x128 (head), <code>rhino03.bmp</code>
-64x128 (tail), <code>rhino04.bmp</code> 128x256 (legs), <code>rhino05.bmp</code> 64x64 (feet),
-<code>rhino08.bmp</code> 32x32 (ears) and <code>rhino09.bmp</code> 32x64 (mouth). Sizes are powers of two.</p>
-
-<p>Each <em>material</em> names the texture it draws with (its <code>TXTR</code> tag) and a base colour
-(<code>DIFC</code>); several materials may share one texture (the rhino's front and rear legs both use
-<code>rhino04.bmp</code>). Each <em>patch</em> stores a material index, so the material slots are positional: patch
-<em>n</em> draws with slot <code>material_index[n]</code>, and the slot order in the file is what Blender shows.</p>
-
-<p>On import every texture becomes a packed Blender image named <code>SGM_&lt;file&gt;</code> (for example
-<code>SGM_rhino02.bmp</code>), kept with a fake user so a saved <code>.blend</code> holds it. Pure magenta
-<strong>(255, 0, 255)</strong> is the engine's colour key: those texels are transparent in game (feathers, fins,
-cut-outs). The importer gives them alpha 0 and the overlay and the baked materials clip them, so they read as holes
-rather than pink.</p>
+<ul>
+  <li>Textures are inside the <code>.sgm</code>. Import makes each a Blender image named
+  <code>SGM_&lt;file&gt;</code>.</li>
+  <li>Keep sizes powers of two. A texture holds at most 256 colours.</li>
+  <li>Each patch uses one material, and each material names a texture.</li>
+  <li>Pure magenta (255, 0, 255) is transparent in game.</li>
+</ul>
 
 <h3>Seeing the textures: the live overlay</h3>
 
 <ol>
-  <li><strong>SGM Native Patches &gt; Import SGM / EBP (Native Patches)</strong>, pick <code>rhinoceros.sgm</code>.</li>
-  <li>In the <strong>Display</strong> box the shading selector is on <strong>Textured</strong> by default: the live
-      bicubic surface overlay draws the creature's real skins while you edit (Solid viewport shading is enough; the
-      overlay does its own texturing).</li>
-  <li>Switch the selector to <strong>Plain</strong>, <strong>By Limb</strong> or <strong>By Bone</strong> when you
-      need geometry or ownership colours instead; switch back to <strong>Textured</strong> to check the skin.</li>
+  <li>Use <strong>IC Blender &gt; Import Model</strong> and pick <code>rhinoceros.sgm</code>.</li>
+  <li>The shading selector in <strong>Display</strong> starts on <strong>Textured</strong>.</li>
+  <li>Choose <strong>Plain</strong>, <strong>By Limb</strong> or <strong>By Bone</strong> to check shape or
+  ownership.</li>
 </ol>
 
-<figure><img src="img/texture_overlay.jpg" alt="The rhinoceros imported, live surface overlay drawing its real textures"><figcaption>Right after Import: the overlay draws the rhinoceros with its own seven textures (Display &gt; Textured).</figcaption></figure>
-<figure><img src="img/texture_plain.jpg" alt="The same creature with Display set to Plain"><figcaption>Display &gt; Plain: the same surface without textures.</figcaption></figure>
+<figure><img src="img/texture_overlay.jpg" alt="Textured rhinoceros"><figcaption>Textured shows the creature's own
+skins.</figcaption></figure>
+<figure><img src="img/texture_plain.jpg" alt="Untextured rhinoceros"><figcaption>Plain shows the bare
+surface.</figcaption></figure>
 
-<p>To look at a texture itself, change any area to an <strong>Image Editor</strong> and pick the
-<code>SGM_…</code> image in its header.</p>
+<p>To view a texture, open an <strong>Image Editor</strong> and pick its <code>SGM_…</code> image.</p>
 
-<figure><img src="img/texture_images.jpg" alt="An Image Editor showing SGM_rhino01.bmp next to the 3D viewport"><figcaption>Every embedded texture is a Blender image: <code>SGM_rhino01.bmp</code>, the body skin, in an Image Editor.</figcaption></figure>
+<figure><img src="img/texture_images.jpg" alt="Body texture in the Image Editor"><figcaption>Each texture is a Blender
+image.</figcaption></figure>
 
 <h3>Paint Skin: repainting a texture</h3>
 
 <ol>
-  <li>With the creature active, press <strong>SGM Native Patches &gt; Paint Skin</strong>. It bakes the surface to a
-      real mesh named <code>&lt;creature&gt;_baked</code> (at the current <strong>Surface Density</strong>, with the
-      creature's materials, textures and UVs, and the engine's normals), makes that mesh active and enters
-      <strong>Texture Paint</strong> with the paint mode set to Material, so every brush stroke lands on the image
-      of the material under the brush. Bake switches the viewport to Material Preview; Solid shading with
-      <em>Color: Texture</em> (viewport shading popover) shows the same images faster.</li>
-  <li>Paint with Blender's brushes on the mesh, or in the Image Editor (set its mode to <strong>Paint</strong> and
-      pick the image). To make a region transparent in game, paint it pure magenta (255, 0, 255); to fill a hole,
-      paint any other colour over it.</li>
-  <li>Press <strong>Tab</strong> back to Object Mode when done. The baked mesh is a plain Blender mesh: it is only
-      the painting surface, never exported.</li>
+  <li>With the creature active, press <strong>IC Blender &gt; Paint Skin</strong>. It makes a
+  <code>&lt;creature&gt;_baked</code> mesh and enters <strong>Texture Paint</strong>.</li>
+  <li>Paint on the mesh, or in the Image Editor in <strong>Paint</strong> mode. Use pure magenta for
+  transparency.</li>
+  <li>Return to Object Mode. The baked mesh is only for painting and is never exported.</li>
 </ol>
 
-<figure><img src="img/texture_paintskin.jpg" alt="Texture Paint on the baked rhinoceros mesh with the head texture in the Image Editor"><figcaption>Paint Skin: the baked mesh in Texture Paint, the head skin <code>rhino02.bmp</code> open in the Image Editor's Paint mode.</figcaption></figure>
-<figure><img src="img/texture_painted.jpg" alt="A red band and a yellow spot painted on the head texture appear on the rhino's head"><figcaption>After painting a red band and a yellow spot on <code>rhino02.bmp</code>: the head shows them at once.</figcaption></figure>
+<figure><img src="img/texture_paintskin.jpg" alt="Texture Paint on the baked mesh"><figcaption>Paint Skin opens the
+baked mesh for painting.</figcaption></figure>
+<figure><img src="img/texture_painted.jpg" alt="Paint on the head"><figcaption>Paint appears on the creature at
+once.</figcaption></figure>
 
 <aside class="note">
-<p>Paint Skin reuses an existing <code>&lt;creature&gt;_baked</code> mesh. If you moved control points after the
-bake, delete that mesh first so the next Paint Skin bakes the new shape. The bake is a snapshot of the surface; it
-does not follow later edits.</p>
+<p>Paint Skin reuses an existing baked mesh. After moving control points, delete it first.</p>
 </aside>
 
 <h3>Export: only painted textures are re-encoded</h3>
 
 <ol>
-  <li>Select the <em>creature</em> again (the SGM panel says <em>Select a native patch object</em> while the baked
-      mesh is active), then <strong>SGM Native Patches &gt; Export SGM (Native Patches)</strong>.</li>
-  <li>Read the report line (status bar and Info editor). It ends with what changed, for example
-      <code>textures: 1 edited (rhino02.bmp: 3812 texels)</code>. An untouched creature reports
-      <code>byte-identical to the source</code>.</li>
+  <li>Select the <em>creature</em>, then press <strong>IC Blender &gt; Export Model</strong>.</li>
+  <li>The report lists what changed, for example <code>textures: 1 edited (rhino02.bmp: 3812 texels)</code>.</li>
 </ol>
 
-<figure><img src="img/texture_export.jpg" alt="Export report line naming the re-encoded head texture"><figcaption>Export with the creature selected: the report names the one re-encoded texture; the six untouched textures stay byte-identical.</figcaption></figure>
+<figure><img src="img/texture_export.jpg" alt="Export report for a painted texture"><figcaption>The report names the
+changed texture.</figcaption></figure>
 
-<p>The add-on compares each image's pixels with a snapshot taken at import, so an image you never painted keeps its
-source bytes exactly. A painted image is re-encoded with its <em>source palette</em>: unchanged texels keep their
-palette index in every mip, a painted colour takes an existing entry or a free one (up to 256; entries no texel of any
-mip uses are recycled), and only the lower-mip texels over painted areas are recomputed. The rhino head above went
-from 183 to 185 palette entries. An image that changed size or is no longer a power of two is re-quantised whole
-(a fresh median-cut palette), and the report counts every texel.</p>
+<p>Unpainted textures are unchanged. A painted one keeps its palette where possible. An image whose size changed gets a
+new palette.</p>
 
 <h3>UV editing: the UV cage</h3>
 
-<p>The file stores four texture coordinates per patch, one per corner control point; the engine interpolates across
-the patch. <strong>Edit UVs</strong> turns that table into a mesh you can edit with Blender's own UV tools.</p>
+<p>Each patch has one UV point per corner.</p>
 
 <ol>
-  <li>With the creature active (Object or Edit Mode), press <strong>SGM Native Patches &gt; Edit UVs</strong>. A
-      mesh named <code>&lt;creature&gt;_UVcage</code> appears with one quad per patch (288 for the rhino) and a UV
-      layer <code>SGM_UV</code> holding the corner UVs. The cage becomes the active object.</li>
-  <li>Press <strong>Tab</strong> on the cage, select faces (<strong>A</strong> for all), and turn an area into the
-      <strong>UV Editor</strong>: the selected quads show there. Pick the texture in the UV Editor's header to see
-      them over the skin. Move, rotate and scale the UVs as on any mesh (<strong>G</strong>, <strong>R</strong>,
-      <strong>S</strong>; <strong>R 90</strong> for a quarter turn).</li>
-  <li><strong>Tab</strong> back to Object Mode and press <strong>Apply UVs</strong> (shown in the SGM panel while a
-      cage exists; works with the cage or the creature active). The overlay redraws with the new mapping.
-      <strong>Export</strong> reads the cage on its own too, so Apply UVs is optional before an export.</li>
-  <li>Export reports <code>UVs: 62 patches</code>: only patches whose corner UVs differ are rewritten; untouched
-      patches keep their bytes.</li>
+  <li>With the creature active, press <strong>IC Blender &gt; Edit UVs</strong>. It makes a
+  <code>&lt;creature&gt;_UVcage</code> mesh with one quad per patch.</li>
+  <li>In Edit Mode on the cage, select faces and open the <strong>UV Editor</strong>. Pick the texture, then move,
+  rotate or scale the UVs.</li>
+  <li>Return to Object Mode, select the creature and press <strong>Apply UVs</strong>. This is optional before Export,
+  which reads the cage too.</li>
+  <li>Export reports the changed patches, for example <code>UVs: 62 patches</code>.</li>
 </ol>
 
-<figure><img src="img/texture_uvcage.jpg" alt="The UV cage in Edit Mode with all patches selected and its UVs in the UV Editor"><figcaption>Edit UVs: the cage in Edit Mode, all 288 patch quads selected and shown in the UV Editor.</figcaption></figure>
-<figure><img src="img/texture_uvedit.jpg" alt="Only the head patches selected, their UVs rotated a quarter turn"><figcaption>Only the head patches selected, their UVs rotated a quarter turn (R 90). The cage quads move; the texture itself does not change.</figcaption></figure>
-<figure><img src="img/texture_uvapplied.jpg" alt="After Apply UVs the painted red band runs the other way across the head"><figcaption>Apply UVs: the head now samples the texture rotated (the red band runs the other way); Export reports <code>UVs: 62 patches</code> together with the earlier paint.</figcaption></figure>
+<figure><img src="img/texture_uvcage.jpg" alt="UV cage and UV Editor"><figcaption>The cage shows its UVs in the UV
+Editor.</figcaption></figure>
+<figure><img src="img/texture_uvedit.jpg" alt="Head UVs rotated"><figcaption>The head UVs are rotated a quarter
+turn.</figcaption></figure>
+<figure><img src="img/texture_uvapplied.jpg" alt="Head after Apply UVs"><figcaption>Apply UVs updates the
+creature.</figcaption></figure>
 
 <aside class="note">
-<p>Which patches belong to which material is fixed by the file's patch table (Extrude Patch gives a new patch its
-neighbour's slot). The UV Editor shows every selected quad over whatever image you pick, so select only the cage quads of one
-material before you judge the layout against its texture.</p>
+<p>The UV Editor shows selected quads over any image, so select only one material's quads when judging a layout.</p>
 </aside>
 
 <h3>Texturing from scratch</h3>
 
-<p>A creature needs one texture per material it draws with, each a power-of-two image (256x256 is the usual body
-size; smaller for small parts). The add-on cannot add material slots or textures to a file, so start from a creature
-that already has the slots you need and paint or replace their images.</p>
+<p>You can't add materials or textures by hand, so start from a creature with the slots you need.</p>
 
 <ol>
-  <li><strong>SGM Native Patches &gt; New Creature (From Scratch)</strong> (also <strong>Add &gt; Impossible
-      Creatures Creature (From Scratch)</strong>). Set <strong>Name</strong>, keep <strong>Standard Clips</strong>,
-      <strong>IK Chains</strong> and <strong>Clips as Actions</strong> on, pick where to write the <code>.sgm</code>
-      (that file is the creature's source, like an import).</li>
-  <li>The new creature ships one 256x256 texture, <code>&lt;name&gt;01.bmp</code>, used by every material slot: a
-      blue/orange checker (with the name written across it when Pillow is available to Blender's Python), so you can
-      see where each patch lands before you paint.</li>
-  <li><strong>Paint Skin</strong> and paint it over, as above. Export re-encodes it.</li>
+  <li>Press <strong>IC Blender &gt; New Creature (From Scratch)</strong>. Set <strong>Name</strong>, keep
+  <strong>Standard Clips</strong>, <strong>IK Chains</strong> and <strong>Clips as Actions</strong> on, and choose
+  where to save the <code>.sgm</code>.</li>
+  <li>It has one 256x256 checker texture, <code>&lt;name&gt;01.bmp</code>, on every slot.</li>
+  <li>Paint over it with <strong>Paint Skin</strong>.</li>
 </ol>
 
-<figure><img src="img/texture_newcreature.jpg" alt="The from-scratch creature wearing its checker texture, the image in the Image Editor"><figcaption>New Creature (From Scratch): the scaffold wears <code>guidezilla01.bmp</code>, a checker that shows where the UVs land.</figcaption></figure>
+<figure><img src="img/texture_newcreature.jpg" alt="New creature with checker texture"><figcaption>The checker shows
+where the UVs land.</figcaption></figure>
 
-<p><strong>Replacing the image with an external PNG.</strong> Export only knows the images it stamped at import (one
-per texture index), so a file you open becomes a new image that nothing exports. Copy its pixels into the creature's
-image instead:</p>
+<p><strong>To use your own PNG</strong>, copy its pixels into the creature's image; a newly opened image isn't
+exported.</p>
 
 <ol>
-  <li>In an Image Editor, <strong>Image &gt; Open</strong> your PNG (or run
-      <code>bpy.data.images.load(path)</code>).</li>
-  <li>Make it the creature image's size if it is not already (the Image Editor's <strong>Image &gt; Resize</strong>,
-      or <code>img.scale(w, h)</code>). Keeping the size lets Export keep the palette-preserving path; a different
-      power-of-two size is re-quantised whole.</li>
-  <li>Copy the pixels in the Python Console:
-      <code>src = bpy.data.images["skin.png"]; dst = bpy.data.images["SGM_guidezilla01.bmp"]; dst.pixels = src.pixels[:]</code>
-      (for large images <code>foreach_get</code> / <code>foreach_set</code> on a float buffer is faster). Only the
-      RGB channels are exported; paint magenta where you want transparency.</li>
-  <li>Export. The report counts every texel (<code>guidezilla01.bmp: 65536 texels</code>) and the texture gets a
-      fresh 256-colour palette.</li>
+  <li>Use <strong>Image &gt; Open</strong> in an Image Editor.</li>
+  <li>Resize it to match the creature's image (<strong>Image &gt; Resize</strong>).</li>
+  <li>In the Python Console:
+      <code>src = bpy.data.images["skin.png"]; dst = bpy.data.images["SGM_guidezilla01.bmp"]; dst.pixels = src.pixels[:]</code></li>
+  <li>Export. Only colour is exported, so use magenta for transparency.</li>
 </ol>
 
-<figure><img src="img/texture_pngswap.jpg" alt="An external PNG copied into the creature's own image: the scaffold shows the new skin"><figcaption>An external PNG loaded and copied into <code>SGM_guidezilla01.bmp</code>: the scaffold wears it at once.</figcaption></figure>
-<figure><img src="img/texture_pngexport.jpg" alt="Export report counting all 65536 texels of the replaced texture"><figcaption>Export re-encodes the replaced texture whole and says so.</figcaption></figure>
+<figure><img src="img/texture_pngswap.jpg" alt="Scaffold wearing the copied PNG"><figcaption>The creature shows the
+copied picture.</figcaption></figure>
+<figure><img src="img/texture_pngexport.jpg" alt="Export report for the replaced texture"><figcaption>Export reports
+the whole texture as changed.</figcaption></figure>
 
 <h3>Transfer Texture: a source mesh's own skin</h3>
 
-<p>A creature <strong>fitted</strong> or <strong>retargeted</strong> from a textured scan has the scan's shape and the
-template's skin. <strong>Transfer Texture</strong> (next to Paint Skin) gives it the scan's skin instead, with nothing
-to unwrap.</p>
+<p>A <strong>fitted</strong> or <strong>retargeted</strong> creature wears the template's skin. <strong>Transfer
+Texture</strong> gives it the source mesh's skin, with no unwrapping. The source needs a UV layer and an image
+texture.</p>
 
 <ol>
-  <li>Bring the textured source into the file &mdash; the mesh you fitted from, an imported <code>.glb</code>, or (as
-  here) the creature's own <strong>Bake Textured Mesh</strong>. It needs a UV layer and an image texture.</li>
-  <li>Select the creature, press <strong>Transfer Texture</strong>, and set <strong>Source Mesh</strong> in the redo
-  panel. Fit and Retarget record the mesh they used, so the field is usually already right.</li>
-  <li>The tool lays out <strong>one atlas cell per patch</strong> &mdash; an N &times; N grid, N = &lceil;&radic;patches&rceil;,
-  each cell inset by a <strong>Gutter</strong> of a few texels &mdash; and writes the four corner UVs the file stores.
-  The engine interpolates those bilinearly across the patch, so a cell per patch is an <em>exact</em> mapping and a seam
-  between patches is just a seam between cells.</li>
-  <li>It then tessellates the creature's exact surface with those UVs as a bake target and bakes the source's image onto
-  it with Cycles (CPU), <strong>EMIT</strong>, selected-to-active &mdash; emission only, so neither the source's own
-  lighting nor the scene's plays any part &mdash; from a cage pushed <strong>Cage Extrusion</strong> (2 % of the
-  creature's size) out along the surface, looking <strong>Ray Distance</strong> (4 %) in for the source.</li>
-  <li>The atlas becomes the creature's <strong>one</strong> texture: every material slot points at it, and Export
-  re-encodes it through the same codec as any other skin (a 256-colour TXMP with its mip chain).</li>
+  <li>Keep the textured source mesh in the file.</li>
+  <li>Select the creature and press <strong>Transfer Texture</strong>. It uses the mesh that Fit or Retarget recorded.
+  To use another, change <strong>Source Mesh</strong> in the redo panel.</li>
+  <li>It bakes the source onto one new texture, with a separate square for each patch.</li>
+  <li>All materials now use that texture. Export writes it.</li>
 </ol>
 
-<figure><img src="img/texture_transfer.jpg" alt="The per-patch atlas open in an Image Editor beside the textured rhinoceros"><figcaption><strong>Transfer Texture</strong> on the rhinoceros from its own bake: <em>1024x1024, 288 patches (17x17 cells of 60 px), bake 0.7 s; source coverage 100.0 %</em>. Every cell in the atlas is one patch.</figcaption></figure>
+<figure><img src="img/texture_transfer.jpg" alt="Per-patch texture beside the rhinoceros"><figcaption>Each square of
+the new texture is one patch.</figcaption></figure>
 
-<figure><img src="img/texture_transfer_export.jpg" alt="The export report: UVs 288 patches, textures 1 edited, 1048576 texels"><figcaption>Export: <em>UVs: 288 patches; textures: 1 edited (rhinoceros_skin.bmp: 1048576 texels)</em>. The creature's seven skins have become one.</figcaption></figure>
+<figure><img src="img/texture_transfer_export.jpg" alt="Export report after a transfer"><figcaption>One new texture
+replaces the old ones.</figcaption></figure>
 
-<h4>Coverage is the honest number</h4>
-
-<p>A texel whose ray found nothing stays at alpha 0, and <strong>source coverage</strong> is measured on that raw bake,
-before the misses are filled (a dilation carries the cell edges outward so the gutters hold the cell's own colour and
-bilinear or mip sampling never reads black; whatever is still unhit takes the mean hit colour). So coverage tells you
-<em>how much of the creature is actually on the source</em>. A creature transferred from its own mesh reaches 100 %.
-A retarget whose donor has legs where the scan has none reached 51 % at the default ray distance and 84 % at 24 % &mdash;
-the rest takes its neighbours' colour, and the report says so and names Ray Distance.</p>
-
-<h4>And the honest cost</h4>
-
-<p>A per-patch atlas is exactly the case in which <strong>no seam welds</strong>. The engine puts the whole tessellated
-patch mesh in one vertex set of at most <strong>12,288 display vertices</strong>, counted as
-<code>V = 9&middot;P + 3&middot;E_owned + C_owned</code>, and a seam has one owner only when the two patches share a
-material, have overlapping smoothing groups <em>and</em> have both endpoint UVs within 1/16. Per-patch islands break
-the last condition everywhere, so:</p>
-
-<div class="tablewrap">
-<table>
-<tr><th>UVs</th><th>Cost per patch</th><th>Patches that fit</th></tr>
-<tr><td>continuous across seams (stock creatures)</td><td>16 display vertices</td><td>767 &mdash; measured: 754 load, 758 crash</td></tr>
-<tr><td>one texture island per patch (this tool)</td><td>25 display vertices</td><td>491 &mdash; measured: 490 load, 492 crash</td></tr>
-</table>
-</div>
-
-<p>On one fixed 754-patch cage, V = 12,287 loads and V = 12,291 crashes &mdash; identical geometry, only the UVs differ.
-So Transfer Texture raises the price of every patch from 16 to 25 and cuts the loadable patch count by about a third,
-and the combine budget (about 263 patches for a torso; <em>corrected 2026-11-17 from 266</em>) by the same proportion. It is the right tool for a fitted scan of
-a few hundred patches; it is not free. <strong>Validate</strong> reads out what your creature actually costs.</p>
-
-<aside class="note">
-<p><strong>Size.</strong> Powers of two from 64 to 2048; the default is 1024, because a scan deserves more than 256.
-Measured 2026-09-16: the 61 base-game creatures (444 textures) top out at <strong>256 x 256</strong>, the wider stock
-folder reaches 512 x 512 and 256 x 1024, and the only 1024 x 1024 textures are on three hand-made creatures. The Object
-Editor loaded a 2048 atlas, but nothing the game ships is that big, so the in-game side of a large atlas is yours to
-test.</p>
-<p>Since the new table replaces the creature's textures, a material's other stages (<code>TXRF</code> reflection,
-<code>TXSP</code> specular) that named the old ones would dangle: Export takes them off and the warning names how many
-went. Transfer Texture refuses, with the reason: no source (and none recorded by Fit or Retarget), a source with no UV
-layer or no image texture, another patch creature as the source (bake it first), a sculpt in progress (the bake must be
-made on the final surface), no material table, a size that is not a power of two in range.</p>
-</aside>
+<ul>
+  <li>With no recorded mesh it stops with <em>Choose a source mesh</em>, and the button offers no field to choose
+  one.</li>
+  <li>Low <em>source coverage</em> means parts of the creature found no source and took nearby colours. Raise
+  <strong>Ray Distance</strong>.</li>
+  <li><strong>Size</strong> is 256, 512, 1024 (default) or 2048. Large textures are untested in game.</li>
+  <li>The most patches a creature can load with drops from about 760 to about 490, and the combine budget by about a
+  third. Check with <strong>Validate</strong>.</li>
+  <li>Reflection and specular textures are dropped, with a warning.</li>
+  <li>It refuses during a sculpt. A patch creature can't be the source: use its <strong>Bake Textured Mesh</strong>
+  result.</li>
+</ul>
 
 <h3>Refusals and gotchas</h3>
 
-<p>Export refuses, with the reason and the fix, rather than write a creature that lost an edit:</p>
-
 <ul>
-  <li><strong>Missing painted image.</strong> Deleting a <code>SGM_…</code> image, or renaming it after its stamp was
-      lost, gives <em>texture N's image '…' is missing (renamed without its stamp, or deleted): its paint can't be
-      read. Rename it back, undo the deletion or re-import the creature</em>. A renamed image that still carries its
-      stamp is found and exported. An image whose pixel data is gone (<em>has no pixels</em>) refuses the same way.</li>
-  <li><strong>Stale UV cage.</strong> A cage built before the patch table changed (an Extrude Patch since) no longer
-      has one face per patch: <em>the UV cage '…' has N faces for M patches: press Edit UVs to rebuild it, or delete
-      the cage</em>. Edit UVs rebuilds it, keeping the old cage's edits when they still fit.</li>
-  <li><strong>Extra modifiers.</strong> Any modifier on the creature other than its own Armature (a Subdivision, a
-      Mirror, a Displace…) refuses: <em>Export writes the control points, not a modifier's result. Apply or remove
-      them</em>. The same goes for an object transform (clear it with Alt+G / Alt+R / Alt+S) and shape keys.</li>
-  <li><strong>Wrong object active.</strong> The baked paint mesh and the UV cage are plain meshes: with one of them
-      active the SGM panel shows <em>Select a native patch object</em> and there is no Export button (Apply UVs still
-      works from the cage). Select the creature.</li>
-  <li><strong>Magenta is transparent.</strong> A brush stroke of any other colour over a keyed (transparent) region
-      makes it solid in game; only pure (255, 0, 255) keys out. Painting near a cut-out edge with a soft brush leaves
-      near-magenta fringe texels that are <em>not</em> keyed.</li>
-  <li><strong>Hidden creatures still draw.</strong> The overlay draws a creature's surface even when its mesh is
-      hidden (that is what Surface Only relies on). To get a creature out of the view, move it to another collection
-      and exclude that, or delete it.</li>
-  <li><strong>Saving the .blend.</strong> Painted images are re-packed before the file is written and every skin
-      image keeps a fake user, so a reopened <code>.blend</code> exports the paint. Do not unpack or purge them.</li>
+  <li><strong>Missing image.</strong> Don't delete <code>SGM_…</code> images: Export refuses. Undo or re-import.</li>
+  <li><strong>Old UV cage.</strong> After Extrude Patch, press <strong>Edit UVs</strong> to rebuild it.</li>
+  <li><strong>Modifiers and transforms.</strong> Extra modifiers, shape keys or an object transform block Export.
+  Apply or remove modifiers; clear transforms with <kbd>Alt</kbd>+<kbd>G</kbd> / <kbd>R</kbd> / <kbd>S</kbd>.</li>
+  <li><strong>Wrong object.</strong> With the baked mesh or UV cage active there's no Export button.</li>
+  <li><strong>Soft brushes.</strong> Only exact magenta is transparent; soft edges leave near-magenta fringes that
+  show.</li>
+  <li><strong>Hidden creatures still draw.</strong> Exclude their collection, or delete them.</li>
+  <li><strong>Saving the .blend.</strong> Don't unpack or purge the skin images.</li>
 </ul>
 
-<figure><img src="img/texture_refused.jpg" alt="Export refused after the skin image was deleted, with the reason in the report"><figcaption>The skin image deleted: Export refuses rather than write the creature without its paint, and names the image and the fix.</figcaption></figure>
+<figure><img src="img/texture_refused.jpg" alt="Export refused: missing image"><figcaption>Export refuses when a skin
+image is missing.</figcaption></figure>
 
 <aside class="limits">
-<h4>Not possible yet</h4>
 <ul>
-  <li>Adding a material slot or a new texture to a creature by hand, or changing which texture a material uses: the
-      material table is whatever the file has. (<strong>Transfer Texture</strong> is the one thing that rewrites it,
-      and it replaces the whole table with a single atlas.) Relic's 18-slot naming and default sizes are not
-      modelled.</li>
-  <li>Reassigning a patch to another material slot from the UI (a grown patch takes its neighbour's slot).</li>
-  <li>Editing a material's base colour (<code>DIFC</code>); it is imported for display only.</li>
-  <li>Changing a texture's size through the UI; a resized image is re-quantised whole on export, and that path has
-      not been checked in the engine.</li>
-  <li>Editing the per-patch smoothing groups &mdash; which, with the material and the seam UVs, is one of the three
-      things that decide whether a seam welds and therefore what a patch costs in display vertices.</li>
-  <li>Transfer Texture bakes <strong>one</strong> image: no normal, specular or reflection stage is produced, and the
-      old ones are dropped.</li>
+  <li>No adding materials or textures, or reassigning them (only <strong>Transfer Texture</strong> replaces them).</li>
+  <li>No editing of base colours or smoothing groups.</li>
+  <li>Exporting a resized texture is untested in game.</li>
+  <li>Transfer Texture makes only a colour texture.</li>
 </ul>
 </aside>
 </section>

@@ -109,11 +109,11 @@ def _added_bones_cached(arm, obj=None):
 
 
 class BZ_PT_panel(bpy.types.Panel):
-    bl_label = "SGM Native Patches"
+    bl_label = "IC Blender"
     bl_idname = "BZ_PT_panel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
 
     @staticmethod
     def _rig_box(layout, obj):
@@ -303,17 +303,16 @@ class BZ_PT_panel(bpy.types.Panel):
             r.operator(sculptops.BZ_OT_refit_patches.bl_idname, icon="CHECKMARK")
             r.operator(sculptops.BZ_OT_discard_sculpt.bl_idname, text="", icon="X")
         elif not scene_obj:
-            layout.label(text="Select a native patch object", icon="INFO")
+            layout.label(text="Select a creature", icon="INFO")
 
 
 class BZ_PT_boner(bpy.types.Panel):
-    """Relic Boner's sub-modes for a native creature: Bones (skin control points to bones), Limbs, Connections. UI
-    state lives in scene.bz_boner; every creature edit is an operator writing through the store (undo-safe)."""
+    """Boner: skin control points to bones and edit limbs and connections"""
     bl_label = "Boner"
     bl_idname = "BZ_PT_boner"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = "BZ_PT_panel"
 
     @classmethod
@@ -610,12 +609,12 @@ def _fmt(x) -> str:
 
 
 class BZ_PT_combine(bpy.types.Panel):
-    """Combine the active creature with another one (the game's combiner) and preview it beside the creature."""
+    """Combine the creature with another one and preview the result"""
     bl_label = "Combine Preview"
     bl_idname = "BZ_PT_combine"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "SGM"
+    bl_category = "IC"
     bl_parent_id = "BZ_PT_panel"
     bl_options = {"DEFAULT_CLOSED"}
 

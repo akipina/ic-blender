@@ -1,23 +1,8 @@
-"""sceneobj.map_tools -- the Mission Editor's conveniences for an imported map: height map pictures, terrain files (.ter), entity files (.ent),
-the Object List with its filters, and the Blueprint List. (The Terrain Crop is in ``map_crop``; the buttons and panels are in
-``ops_map_tools`` / ``panels_map_tools``; this module has no operators.)
+"""Mission Editor conveniences, without operators: height map pictures, terrain (.ter) and entity (.ent) files, Object
+and Blueprint Lists (crop is in ``map_crop``).
 
-In plain words
-* Height map: the ground of the map in the scene is written as a grey TGA picture (one pixel per ground point, the grey value is the height
-  the map stores), or a picture is read and the ground's points are set to it. The ground in the scene changes, the map file only when you
-  save (the save reads each point's height, as for any sculpt).
-* Terrain file (.ter): the ground, water, ground textures, sky, light and decals of the map, as the Mission Editor's File > Export Terrain
-  writes them; another map's of the same size can replace it. The scene is built again from the changed map (the old one stays, hidden).
-* Entity file (.ent): the selected placed objects, as File > Export Selected Entities writes them; File > Import Entities adds the objects
-  of such a file to the map (they are written into the map when you save).
-* Object List and Blueprint List: what the Mission Editor's two dialogs show, for the scene.
-
-Every change goes through what the map save already reads (the ground's points, the placed objects' positions, owners and blueprints), or
-through the map's bytes (``current_map``): the same bytes and side files a save would write (the core edits and every feature's save step,
-unsaved paint and script edits included), with the same ``ICParse.sgb.edit`` rules.
-
-Files beside a map made in memory (a cropped map, or one with another terrain): the files of the map it came from (triggers, dialogue ...)
-are kept in the .blend (a text named ``Map files <collection>``) and a save step puts them beside the new map, as the first map's save would.
+Every change goes through what the save already reads, or the map's current bytes (``current_map``, unsaved edits
+included). A map built in memory keeps its source's side files in the .blend, and a save step puts them beside it.
 """
 from __future__ import annotations
 

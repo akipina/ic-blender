@@ -1,20 +1,9 @@
-"""Fit Patches to Mesh (roadmap A1): any Blender mesh + a patch budget -> a fitted native creature.
+"""Fit Patches to Mesh: any mesh plus a patch budget gives a fitted creature (quad layout, ``codecs.acc``, ``codecs.fit``,
+``core.patches_to_creature``), imported through the normal path.
 
-The pipeline is the proven recipe of ``tools/fit_experiment.py``: a quad layout (a QuadriFlow remesh of the
-target at about the budget, or the mesh's own quads as Convert Mesh uses them) -> ``ICParse.codecs.acc``
-(the Catmull-Clark-style initial patches) -> ``ICParse.codecs.fit.fit_points`` against the target's vertices
-(normal-aware, soft C1 seams) -> ``core.patches_to_creature`` (the template creature's skeleton and
-materials, like Convert Mesh) -> imported through the normal path, so editing, Validate and Export work
-unchanged. The errors reported are target-vertex-to-surface distances after the fit (rms / p95 / max, absolute
-and as % of the target's bounding diagonal); the optional heat map paints them on the target mesh.
-
-**The import contract** (:class:`Topology` / :func:`target_topology`): a target is judged on a positionally
-welded copy of itself, never on its index buffer. Vertices split at UV or normal seams -- every atlased glTF,
-our own Bake Surface -- are not damage; only parts that survive the weld are real floaters, and boundary edges
-(one face) are not non-manifold edges (more than two faces). The target mesh is never modified.
-
-The bpy-free part (``fit_cage`` and its helpers) is what ``tests/fit_mesh_test.py`` runs without Blender
-(``blender_native/`` on sys.path, like the other pure tests); the operator below it needs ``bpy``.
+A target is judged on a positionally welded copy of itself (:func:`target_topology`), never on its index buffer: seam
+splits are not damage and open edges are not non-manifold edges. The target mesh is never modified.
+``fit_cage`` and its helpers must stay bpy-free (``tests/fit_mesh_test.py``).
 """
 from __future__ import annotations
 
@@ -30,7 +19,7 @@ from ICParse.codecs import acc, fit
 
 try:
     from . import core
-except ImportError:                      # imported top-level (the pure test puts blender_native/ on sys.path)
+except ImportError:                      # imported top-level (the pure test puts ic_blender/ on sys.path)
     import core  # type: ignore[no-redef]
 
 try:
@@ -57,24 +46,17 @@ def budget_advice(budget: int):
     as an ERROR (cancelling) and the warning as a WARNING (the fit goes ahead)."""
     budget = int(budget)
     if budget > MAX_PATCHES:
-        return (f"Patch budget {budget} cannot load: one patch mesh may have {ICV.MAX_DISPLAY_VERTICES} display "
-                f"vertices and a patch costs at least 16, so {MAX_PATCHES} patches is the ceiling even with every "
-                f"seam welded (dx8vertexset.c: Size too large for VertexSet::Create()). "
-                f"About {SPLIT_UV_PATCHES} patches load once each has its own texture island, and about "
-                f"{COMBINABLE_PATCHES} still combine with a stock creature", None)
+        return (f"Patch budget {budget} cannot load: {MAX_PATCHES} patches is the ceiling ({ICV.MAX_DISPLAY_VERTICES} "
+                f"display vertices; Size too large for VertexSet::Create()). About {SPLIT_UV_PATCHES} patches load with "
+                f"split UVs, about {COMBINABLE_PATCHES} still combine", None)
     if budget > SPLIT_UV_PATCHES:
         return (None,
-                f"Patch budget {budget} is over {SPLIT_UV_PATCHES}: a fitted creature whose patches each get their "
-                f"own texture island costs 25 display vertices a patch, so it would need more than the "
-                f"{ICV.MAX_DISPLAY_VERTICES} one patch mesh may have. It only loads if its seams weld (shared "
-                f"material, smoothing group and UVs) -- Validate says what it actually costs -- and a combine needs "
-                f"far less (about {COMBINABLE_PATCHES} patches)")
+                f"Patch budget {budget} is over {SPLIT_UV_PATCHES}: at up to 25 display vertices a patch it can pass the "
+                f"{ICV.MAX_DISPLAY_VERTICES} limit unless the seams weld (see Validate)")
     if budget > COMBINABLE_PATCHES:
         return (None,
-                f"Patch budget {budget} is over {COMBINABLE_PATCHES}: the creature will load, but the combiner adds "
-                f"a donor's limbs to the same patch mesh (the dearest stock limb set costs "
-                f"{ICV.WORST_STOCK_LIMB_SET} of the {ICV.MAX_DISPLAY_VERTICES} display vertices), so it may not "
-                f"survive a graft")
+                f"Patch budget {budget} is over {COMBINABLE_PATCHES}: it will load, but may not combine, as the combiner "
+                f"adds a donor's limbs (up to {ICV.WORST_STOCK_LIMB_SET} display vertices)")
     return (None, None)
 SYMMETRY_EPS = 1e-3         # of the bounding diagonal: a point pairs with its mirror image within this
 SYMMETRIC_FRACTION = 0.99   # a target is X-symmetric when this fraction of its vertices has a mirror partner
@@ -271,10 +253,9 @@ def fit_cage(cage_coords, cage_quads, points, normals=None, smooth: float = 0.02
     if not quads:
         raise FitError("the layout has no faces")
     if len(quads) > MAX_PATCHES:
-        raise FitError(f"the layout has {len(quads)} quads: even with every seam welded that needs "
-                       f"{16 * len(quads) + 2} display vertices, over the {ICV.MAX_DISPLAY_VERTICES} one patch "
-                       f"mesh may have, so no creature with more than {MAX_PATCHES} patches can load "
-                       f"(dx8vertexset.c: Size too large for VertexSet::Create())")
+        raise FitError(f"the layout has {len(quads)} quads, needing {16 * len(quads) + 2} display vertices, over "
+                       f"{ICV.MAX_DISPLAY_VERTICES}: at most {MAX_PATCHES} patches can load (dx8vertexset.c: Size too large "
+                       "for VertexSet::Create())")
     pts = np.asarray(points, dtype=np.float64).reshape(-1, 3)
     if not len(pts):
         raise FitError("the target has no vertices")
@@ -335,11 +316,9 @@ if bpy is not None:
     from . import ops, store
 
     _LAYOUTS = (("QUADRIFLOW", "QuadriFlow",
-                 "Remesh a copy of the mesh to about the budget of quads (Blender's QuadriFlow, symmetric when the "
-                 "mesh is X-symmetric) and use those quads as the patch layout"),
+                 "Remesh a copy of the mesh to quads (QuadriFlow) and use them as patches"),
                 ("OWN_QUADS", "Own Quads",
-                 "Use the mesh's own faces (after tris-to-quads) as the patch layout, as Convert Mesh does; every "
-                 "face must become a quad"))
+                 "Use the mesh's own faces (made into quads) as patches"))
 
 
 def _bm_parts(bm) -> int:
@@ -554,10 +533,8 @@ def _remesh_once(context, obj, me_eval, budget: int, symmetric: bool, seed: int,
             if scale is not None:
                 scale[0] = k
             return got
-    raise FitError(f"QuadriFlow did not remesh {obj.name} (CANCELLED) at its own size (diagonal {diag:.3g}) or "
-                   f"scaled up to {ladder[-1]:g}x it: it needs a closed, manifold mesh, so size is not the cause "
-                   "here (Blender's QuadriFlow also cancels on a mesh that is merely small, which the fit "
-                   "normalises away). Use the Own Quads layout, or repair the mesh")
+    raise FitError(f"QuadriFlow did not remesh {obj.name} (CANCELLED), even scaled up to {ladder[-1]:g}x: it needs a "
+                   "closed, manifold mesh. Repair the mesh or use the Own Quads layout")
 
 
 def _quadriflow_layout(context, obj, me_eval, budget: int, symmetric: bool, diag: float, pts,
@@ -621,7 +598,7 @@ def rig_split(model, pool_blender, patches) -> Optional[RigSplit]:
     from ICParse.codecs import reconstruct as R
     try:
         from . import boner
-    except ImportError:                  # imported top-level (the pure test puts blender_native/ on sys.path)
+    except ImportError:                  # imported top-level (the pure test puts ic_blender/ on sys.path)
         import boner  # type: ignore[no-redef]
     P = np.asarray(pool_blender, dtype=np.float64).reshape(-1, 3)
     F = np.asarray(patches, dtype=np.int64).reshape(-1, 16)
@@ -695,48 +672,30 @@ def _paint_heat(me, residual, diag: float) -> None:
 
 
 class BZ_OT_fit_mesh(_Operator):
-    """Fit a bicubic-patch creature to the active mesh: a patch layout (QuadriFlow at the budget, or the mesh's own
-    quads) is fitted to the mesh's vertices (ICParse.codecs.fit) and imported as a native creature borrowing the
-    template's skeleton and materials, with the fit error reported (and painted on the mesh). The mesh itself is
-    not changed; the fit is in its local space"""
+    """Fit a new patch creature to the active mesh, borrowing a template's skeleton"""
     bl_idname = "bz.fit_mesh"
     bl_label = "Fit Patches to Mesh"
     bl_options = {"REGISTER", "UNDO"}
 
     if bpy is not None:
         budget: IntProperty(name="Patch Budget", default=300, min=1, soft_max=SPLIT_UV_PATCHES, max=100000,
-                            description=f"Quads the layout aims for (patches of the creature). More patches follow "
-                                        f"the mesh more closely and take longer to fit (about 30 s for 300). The "
-                                        f"ceiling is display VERTICES, not patches: one patch mesh may have "
-                                        f"{ICV.MAX_DISPLAY_VERTICES}, and a fitted patch costs up to 25 of them "
-                                        f"(16 only where neighbouring patches share a material, a smoothing group "
-                                        f"and their seam UVs), so about {SPLIT_UV_PATCHES} patches load and about "
-                                        f"{COMBINABLE_PATCHES} still survive being combined with a stock creature; "
-                                        f"over {MAX_PATCHES} nothing can load")
+                            description=f"Target patch count; more fit closer but take longer, and over {MAX_PATCHES} none load")
         layout: EnumProperty(name="Layout", items=_LAYOUTS, default="QUADRIFLOW")
         smooth: FloatProperty(name="Seam Smoothness", default=0.02, min=0.0, soft_max=1.0, precision=3,
-                              description="Weight of the soft C1 term across patch seams (0 = seams only meet, "
-                                          "larger = smoother seams at the cost of fidelity)")
+                              description="How strongly seams are smoothed (0 = seams only meet)")
         iterations: IntProperty(name="Iterations", default=10, min=1, max=50,
                                 description="Project-and-solve rounds of the fit")
         template_path: StringProperty(name="Skeleton Template (.sgm)", subtype="FILE_PATH",
                                       default=ops._DEFAULT_TEMPLATE,
-                                      description="The creature whose skeleton and materials the result borrows "
-                                                  "(as Convert Mesh)")
+                                      description="Creature whose skeleton and materials the result borrows. Empty: the "
+                                                  "game's wolf")
         output_path: StringProperty(name="Output .sgm", subtype="FILE_PATH", default="",
-                                    description="Where the fitted creature is written (it becomes the imported "
-                                                "creature's source file); empty = next to the .blend, or /tmp for "
-                                                "an unsaved file")
+                                    description="Where to write the fitted creature; empty = next to the .blend, else /tmp")
         heat_map: BoolProperty(name="Error Heat Map", default=True,
-                               description="Paint the fit error on the mesh as the 'fit_error' colour attribute "
-                                           "(blue 0 to red 1 % of the mesh's size; Viewport Shading > Attribute)")
+                               description="Paint the fit error on the mesh as the 'fit_error' colour attribute")
         split_limbs: BoolProperty(name="Split into Limbs", default=True,
-                                  description="Give the fitted creature the template's own limb and skin split: the "
-                                              "net is brought into the template's frame, every control point takes "
-                                              "its nearest bone there and every patch the limb of its points' bones. "
-                                              "Off puts every patch in the Torso and every point on the root bone, "
-                                              "which makes every other limb's bones count as stub bones and the "
-                                              "bone operators refuse them")
+                                  description="Copy the template's limbs and skinning; off puts all on the Torso and root "
+                                              "bone")
 
     @classmethod
     def poll(cls, context):
@@ -749,7 +708,7 @@ class BZ_OT_fit_mesh(_Operator):
             self.report({"ERROR"}, "Select a mesh object to fit patches to")
             return {"CANCELLED"}
         if store.is_native(obj):
-            self.report({"ERROR"}, f"{obj.name} is already a native patch creature")
+            self.report({"ERROR"}, f"{obj.name} is already a patch creature")
             return {"CANCELLED"}
         refusal, warning = budget_advice(self.budget)
         if refusal:
@@ -760,8 +719,10 @@ class BZ_OT_fit_mesh(_Operator):
         if obj.mode != "OBJECT":
             self.report({"ERROR"}, f"{obj.name} is in {obj.mode.title()} mode: switch to Object Mode first")
             return {"CANCELLED"}
-        if not os.path.exists(bpy.path.abspath(self.template_path)):
-            self.report({"ERROR"}, f"Skeleton template not found: {self.template_path}")
+        try:
+            ops.skeleton_template(context, self.template_path)
+        except (OSError, ValueError) as exc:
+            self.report({"ERROR"}, str(exc))
             return {"CANCELLED"}
         t_all = time.perf_counter()
         deps = context.evaluated_depsgraph_get()
@@ -775,9 +736,8 @@ class BZ_OT_fit_mesh(_Operator):
         # not damage, and welding them is what tells a UV seam from a real floater. The mesh is untouched.
         topo = target_topology(me_eval, diag)
         if topo.parts != 1:
-            self.report({"ERROR"}, f"{parts_reason(obj.name, topo)}: a creature is one closed skin, and inner "
-                                   "shells (eyes inside sockets) pull the surface inwards. Separate them (Edit Mode: "
-                                   "P > By Loose Parts) and delete or hide what is not the skin, then fit the skin alone")
+            self.report({"ERROR"}, f"{parts_reason(obj.name, topo)}: a creature is one closed skin. Separate inner shells "
+                                   "such as eyes inside sockets (Edit Mode: P > By Loose Parts) and fit the skin alone")
             return {"CANCELLED"}
         symmetric = is_x_symmetric(pts, diag)
         open_edges = topo.boundary
@@ -800,10 +760,9 @@ class BZ_OT_fit_mesh(_Operator):
             if crowded:                                  # a layout vertex where more faces meet than the game holds
                 v, k = max(crowded, key=lambda c: c[1])
                 raise FitError(f"the layout has {len(crowded)} pole(s) where more than {ICV.MAX_CORNER_PATCHES} patches "
-                               f"meet (up to {k}, at control point {v}): the game's corner record holds "
-                               f"{ICV.MAX_CORNER_PATCHES} (the Object Editor 16) and the release build writes past it. "
-                               "Use the QuadriFlow layout, or give the mesh smaller fans")
-            tpl_path = bpy.path.abspath(self.template_path)
+                               f"meet (up to {k}, at control point {v}), which the game can't hold: use QuadriFlow or "
+                               "smaller fans")
+            tpl_path = ops.skeleton_template(context, self.template_path)
             split = rig_split(core.read_source(tpl_path), result.pool, result.patches) if self.split_limbs else None
             data, n_points, n_patches = core.patches_to_creature(
                 tpl_path, result.pool, result.patches,
@@ -841,17 +800,14 @@ class BZ_OT_fit_mesh(_Operator):
         creature["bz_last_fit"] = line
         creature["bz_fit_source"] = obj.name           # Transfer Texture's default source
         if split is not None:
-            self.report({"INFO"}, "The limbs and the skin are the TEMPLATE's body plan mapped onto the mesh's box, "
-                                  "and the skeleton is the template's, unmoved: move the bones into the shape "
-                                  "(Boner > Bones, or Retarget) before you animate it")
+            self.report({"INFO"}, "The limbs, skin and skeleton are the TEMPLATE's: move the bones into the shape (Boner > "
+                                  "Bones, or Retarget) before animating")
         if topo.seam_split:
-            self.report({"INFO"}, f"{obj.name} is modelled as {topo.parts_raw} parts, but {topo.welded} of its "
-                                  "vertices are seam duplicates (UV islands): it is one closed surface, and the "
-                                  "layout was built from a welded copy (the mesh itself is untouched)")
+            self.report({"INFO"}, f"{obj.name} is modelled as {topo.parts_raw} parts, but {topo.welded} vertices are seam "
+                                  "duplicates (UV islands): the layout used a welded copy (your mesh is untouched)")
         if open_edges and self.layout == "OWN_QUADS":
-            self.report({"WARNING"}, f"{obj.name} is not closed ({open_edges} open edges after welding, "
-                                     f"{topo.nonmanifold} true non-manifold edges), so neither is the creature: "
-                                     "the Object Editor rejects open patch meshes (Validate names the dangling edges)")
+            self.report({"WARNING"}, f"{obj.name} is not closed ({open_edges} open edges after welding, {topo.nonmanifold} "
+                                     "true non-manifold edges): the Object Editor rejects open meshes (see Validate)")
         elif open_edges:
             self.report({"INFO"}, f"{obj.name} is not closed ({open_edges} open edges after welding); the QuadriFlow "
                                   "layout is")
@@ -859,9 +815,9 @@ class BZ_OT_fit_mesh(_Operator):
             self.report({"WARNING"}, f"{obj.name}'s object transform was ignored (the fit is in its local space): "
                                      "apply the transform first to fit the mesh at that size and place")
         if result.points_per_patch < FEW_SAMPLES:
-            self.report({"WARNING"}, f"only {len(pts)} target vertices for {n_patches} patches ({result.points_per_patch:.1f} "
-                                     f"per patch): between the vertices the surface is the fairness term's guess, not "
-                                     "the mesh (subdivide the mesh, or lower the budget, for a decided fit)")
+            self.report({"WARNING"}, f"only {len(pts)} target vertices for {n_patches} patches "
+                                     f"({result.points_per_patch:.1f} per patch), so the surface between them is a guess: "
+                                     "subdivide the mesh or lower the budget")
         if result.coverage.max_pct > 2.0:
             self.report({"WARNING"}, f"parts of the fitted surface are up to {result.coverage.max_pct:.1f} % of the "
                                      "size away from any target vertex (the mesh has no vertices there)")

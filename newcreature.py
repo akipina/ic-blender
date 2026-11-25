@@ -18,9 +18,7 @@ from bpy_extras.io_utils import ExportHelper
 
 
 class BZ_OT_new_creature(bpy.types.Operator, ExportHelper):
-    """Start a creature from scratch: the canonical 48-bone skeleton, a connected scaffold body
-    (torso, head, tail, four legs) joined at stock-layout connection rings, a labelled texture, the
-    standard clip set and the base-game IK chains. The .sgm you choose becomes the object's source"""
+    """Create a new creature: skeleton, simple body, texture and stock animations"""
     bl_idname = "bz.new_creature"
     bl_label = "New Creature (From Scratch)"
     bl_options = {"REGISTER", "UNDO"}
@@ -35,8 +33,7 @@ class BZ_OT_new_creature(bpy.types.Operator, ExportHelper):
         description="Sections per body span (1 = the coarsest scaffold, 3 = three times the patches)")
     with_clips: BoolProperty(
         name="Standard Clips", default=True,
-        description="Add idle1, walk, run, melee1, meleelow1, oattack1, crouch, stumbledie and "
-                    "stumblegetup as simple procedural motions (every stock creature has them)")
+        description="Add simple placeholder animations (idle, walk, run, attacks and more)")
     with_ik: BoolProperty(name="IK Chains", default=True, description="Add the base-game IK chain set")
     clips_as_actions: BoolProperty(
         name="Clips as Actions", default=True,

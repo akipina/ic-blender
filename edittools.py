@@ -50,9 +50,7 @@ def _selected_mask(obj) -> np.ndarray:
 
 
 class BZ_OT_validate(bpy.types.Operator):
-    """Check whether the current creature would load in the Object Editor (errors), whether it has
-    everything every base-game creature has (STOCK: clips, bones, rings, IK chains...), advisories, and (Combine
-    Checks: Quick) whether it combines right with stock creatures (COMBINE)"""
+    """Check whether the creature will load, matches stock creatures and combines"""
     bl_idname = "bz.validate"
     bl_label = "Validate (will it load?)"
 
@@ -168,8 +166,7 @@ class BZ_OT_symmetrize(bpy.types.Operator):
 
 
 class BZ_OT_seam_smooth(bpy.types.Operator):
-    """Relax interior tangent handles toward C1 across patch seams (local & safe; repeat to
-    strengthen). Selected seams only (select all 4 of a seam's points), or all if none selected"""
+    """Smooth the handles across patch seams (the selected seams, or all)"""
     bl_idname = "bz.seam_smooth"
     bl_label = "Relax Seam Tangents"
     bl_options = {"REGISTER", "UNDO"}

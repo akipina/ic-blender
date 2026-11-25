@@ -1,27 +1,8 @@
-"""Action-time refusals: what Export would refuse, shown the moment the edit happens (D10 Half A).
+"""Action-time refusals: show what Export would refuse as soon as the edit happens.
 
-Blender lets a modder do things the `.sgm` cannot hold -- move the object, add a Subdivision Surface, add shape keys,
-delete a control point, blend a vertex weight, replace the file the creature was imported from. Every one of those was
-already refused, but only at **Export**, which can be a long session later. This module runs the same refusals as a
-READ of the object's state and shows them where the edit happened.
-
-Three rules, in this order:
-
-1. **Never fight the edit.** Nothing here writes, fixes, undoes or cancels anything. It reads, and it says what it
-   read. The Export refusal stays exactly as it was and is still the backstop -- every message below IS the export's
-   own message, produced by the export's own function (`store.pool_error`, `store.source_error`,
-   `ops.object_state_error`, `ops.uv_cage_error`, `rig.skeleton_error`, `core.skin_group_state`), never a second
-   wording that could drift from it.
-2. **Off the hot path.** :func:`state_key` is a cheap tuple of what the checks actually depend on (counts, mode,
-   generation, whether the transforms are identity, the modifier stack, the source file's stat, the rig's bone key).
-   The depsgraph handler computes only that; the checks run only when it changes, so a vertex drag in Edit Mode --
-   where nothing in the key moves -- costs one tuple per update. The B5/B6 caches are the pattern.
-3. **One place to look.** :func:`issues` is the whole list; the SGM panel draws it as the Problems box and the
-   viewport overlay draws it as red text, so a mistake shows with the sidebar closed too.
-
-What is NOT here, and why: the Actions plan (`actions.plan_export`) hashes every Action, and the added-bone /
-stub-bone owner checks need the export's bone insert -- both too dear to run per update, so they stay Export-time
-(the Bones tab already shows the added-bone refusals from its own cached read-out).
+1. Never fight the edit: only read, never write, fix or undo. Messages come from the export's own check functions.
+2. Stay off the hot path: the depsgraph handler computes only :func:`state_key`; checks run when it changes.
+3. :func:`issues` is the one list (Problems box, viewport text). Costly checks (Actions, added bones) stay at Export.
 """
 from __future__ import annotations
 
@@ -341,7 +322,7 @@ def text_lines():
 
 # ------------------------------------------------------------------------------------------- the panel
 def draw_problems(layout, obj, skip=()) -> int:
-    """The Problems box of the SGM panel: every issue, in words, with nothing offered that would change the mesh.
+    """The Problems box of the IC panel: every issue, in words, with nothing offered that would change the mesh.
     ``skip``: codes another box of the panel already draws (the rig box draws ``skeleton``). Returns how many were
     drawn."""
     from .ui import _alert

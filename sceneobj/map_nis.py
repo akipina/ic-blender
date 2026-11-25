@@ -1,31 +1,8 @@
-"""sceneobj.map_nis -- the stand-in of a cut-scene (NIS) object placed in a map, for the cinematic replay.
+"""Stand-in for a placed cut-scene (NIS) object, for the replay (how the game reads it: ``ICParse.sgm.nis_scene``).
 
-A map places an NIS object (``art/ebps/nis/nis_N.ebp``, 8 stock ones) and the trigger action "NIS start" plays it: the object's
-own animation tells the whole scene (``ICParse.sgm.nis_scene`` says how the game reads it, with the code it was read from), and
-"UseAnimationCamera" / "NIS start" put the game camera on a camera that lives inside the model. :func:`build_nis` builds that for
-Blender WITHOUT touching the placed object:
-
-* a collection ``<map> NIS <object>`` (a child of the map's collection) holding an empty at the placed object's transform (the
-  root: everything below sits in the model's own space, so moving the root moves the scene), the model's armature, its meshes
-  (the model's own, and the parts it borrows from other models by ``XREF``: the characters, the labs, the props), and one
-  Blender camera;
-* every clip the motion node ``Master`` starts becomes an Action that keys only the bones the clip animates, laid on its own NLA
-  track as a strip at the clip's start delay (later clips on higher tracks, hold after the end): Blender's NLA then gives the
-  game's layering -- per bone, the latest clip that has started and animates it;
-* the camera follows the model camera the game looks through: it cuts where the clips' ``setcamera("...")`` text keys say, and
-  its position, rotation and field of view are the clip's own, one key per frame; the camera object is flipped left to right, so
-  its picture is the game's (``ops_map_import.show_game_picture``);
-* ``duration_s``, the sounds, fades, "exclusive mode" intervals and subtitles of the scene as a list of timed events, and notes.
-
-Times are seconds after "NIS start"; frames are ``start_frame + seconds * fps`` with the scene's own frame rate.
-
-Also here: ``NisBuild.show_between`` (lay the whole stand-in between two frames of the replay), ``transition_weight`` / ``blend_camera``
-(the eased hand-over of the view to the cut-scene camera) and ``build_entity_camera`` ("UseAnimationCamera" on an ordinary entity: the
-stock maps use it on Rex and the lab in their Win / Lose triggers).
-
-What is NOT played (said in ``notes``): the clips' morph-weight, shader and light-value channels, the model's lights and effect
-markers, and the engine's slight over-scale of blended bone rotations (parts shown and hidden, and the lens, ARE played). The placed object
-itself is never changed, and nothing here is read by the map save (no ``ic_*`` key is written).
+:func:`build_nis` makes a separate collection (armature, meshes, NLA-layered clips, mirrored camera, timed events);
+times are seconds after "NIS start", and unplayed channels are listed in ``notes``. Never change the placed object or
+write ``ic_*`` keys: the map save must not see any of this.
 """
 from __future__ import annotations
 
@@ -734,8 +711,8 @@ def _events(model, ebp, sched, subtitles):
         ev.append(row)
     for s in subtitles:
         ev.append({"t": s["start"], "kind": "subtitle", "text_id": s["locid"], "until": s["finish"], "quality": "approximate",
-                   "why": "the timing of the dialogue lines comes from the scene's .subtitles file; the only code found that reads a "
-                          "<name>.subtitles file is the movie player's, so whether the game shows them for a cut-scene is not shown"})
+                   "why": "dialogue timing comes from the scene's .subtitles file; it is not shown that the game displays "
+                          "these lines in cut-scenes"})
     for e in sched:
         ev.append({"t": e.delay, "kind": "clip_start", "clip": e.clip, "duration_s": e.duration, "quality": "exact"})
     ev.sort(key=lambda r: (r["t"], r["kind"]))

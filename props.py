@@ -45,17 +45,13 @@ PROPS = {
         name="Surface Density", description="Samples per patch edge (n x n grid per patch)",
         default=4, min=2, max=16, update=_on_density),
     "bz_surface_only": bpy.props.BoolProperty(
-        name="Surface Only", description="Hide the control points + armature and show only the "
-        "creature surface (turn off to edit again)",
+        name="Surface Only", description="Show only the creature surface, hiding the control points and rig",
         default=False, update=lambda s, c: _apply_surface_only(c)),
     "bz_show_surface": bpy.props.BoolProperty(
         name="Show Surface", description="Draw the live bicubic surface overlay",
         default=True, update=lambda s, c: _redraw(c)),
     "bz_gn_surface": bpy.props.BoolProperty(
-        name="Evaluated Surface", description="Build the bicubic surface as REAL geometry with a Geometry "
-        "Nodes modifier instead of drawing it as an overlay: it then renders in Eevee/Cycles with the "
-        "creature's materials and UVs, and modifiers, snapping and click-select see it. Costs a full "
-        "re-evaluation on every control-point move, so the overlay stays the default for editing",
+        name="Evaluated Surface", description="Show the surface as real, renderable geometry; slower while editing",
         default=False, update=_on_gn_surface),
     "bz_show_controlnet": bpy.props.BoolProperty(
         name="Show Control Net", description="Draw the patch control-net wireframe overlay",
@@ -64,8 +60,7 @@ PROPS = {
         name="Shading", description="How to colour the live surface",
         items=[("TEXTURED", "Textured", "Real creature textures"),
                ("LIMB", "By Limb", "Colour each patch by its limb / body part"),
-               ("BONE", "By Bone", "Colour the surface and the control points by the bone that owns them (the active "
-                "Boner bone bright, the others dimmed, points with no bone orange)"),
+               ("BONE", "By Bone", "Colour the surface and points by owning bone (orange: no bone)"),
                ("PLAIN", "Plain", "Flat shaded grey")],
         default="TEXTURED", update=lambda s, c: _redraw(c)),
     "bz_show_connections": bpy.props.BoolProperty(
@@ -80,31 +75,19 @@ PROPS = {
         default=0.6, min=0.05, max=1.0, update=lambda s, c: (draw.invalidate(), _redraw(c))),
     "bz_patch_rules": bpy.props.BoolProperty(
         name="Patch Rules (Max feel)",
-        description="Edit patches the way 3ds Max / gmax Editable Patch does: a corner you move drags its tangent "
-                    "handles with it (a handle moved on its own is a tangent edit and stays), and the four interior "
-                    "points of every touched patch are recomputed by Max's Auto Interior rule (interior = row handle "
-                    "+ column handle - corner; every stock creature obeys it). Off: raw control-point editing, every "
-                    "point moves alone",
+        description="Edit patches like 3ds Max: corners carry handles and interiors update",
         default=True, update=lambda s, c: _redraw(c)),
     "bz_show_interiors": bpy.props.BoolProperty(
         name="Show Interior Points",
-        description="Reveal the interior control points (4 per patch, automatic and hidden by default, like Max). "
-                    "Shown, they can be moved by hand, which flags their patch Manual Interior so the rule leaves "
-                    "it; Auto Interiors (Modeling) puts a patch back on the rule. Hidden, an interior follows the "
-                    "corner of its frame in the skin edits when it is skinned to the same bone (every stock one is)",
+        description="Show the interior control points so you can move them by hand",
         default=False, update=lambda s, c: _apply_interiors(c)),
     "bz_lock_handles": bpy.props.BoolProperty(
         name="Lock Handles",
-        description="3ds Max Lock Handles: a handle you move by itself turns the corner's other handles by the same "
-                    "rotation (their lengths kept). Off: a handle moved alone is a tangent edit of that handle only "
-                    "(a Coplanar corner still keeps its handles in one plane)",
+        description="Moving one handle rotates the corner's other handles with it",
         default=False, update=lambda s, c: _redraw(c)),
     "bz_live_checks": bpy.props.BoolProperty(
         name="Live Checks",
-        description="Run Export's refusals as you edit (D10): an object transform, shape keys, an extra modifier, a "
-                    "deleted or merged control point, a blended weight, a base file that changed -- each is shown in "
-                    "the Problems box and in the viewport the moment it happens, instead of first at Export. Nothing "
-                    "is fixed or undone; Export refuses exactly as before. Off: the checks run only at Export",
+        description="Show problems that would block Export as you edit",
         default=True, update=lambda s, c: (_forget_checks(), _redraw(c))),
 }
 
@@ -148,8 +131,7 @@ class BZBonerSettings(bpy.types.PropertyGroup):
                ("CONNECTIONS", "Connections", "The connection rings limbs graft at")],
         default="BONES", update=_on_boner_mode)
     bone: bpy.props.StringProperty(
-        name="Bone", description="The active bone: Assign, Select Points and Remove work on it (pick it in the viewport "
-        "with the eyedropper)", default="", update=_on_boner_bone)
+        name="Bone", description="The bone that Assign, Select Points and Remove work on", default="", update=_on_boner_bone)
     follow_shading: bpy.props.BoolProperty(
         name="Follow Shading", description="Switch the overlay with the Boner sub-mode (Bones: By Bone, Limbs: By "
         "Limb)", default=True)
@@ -157,8 +139,8 @@ class BZBonerSettings(bpy.types.PropertyGroup):
         name="Active Limb", description="The limb Rename, Delete and the classification boxes work on (Boner > Limbs)",
         default=0, min=0, update=_on_boner_bone)
     active_conn: bpy.props.IntProperty(
-        name="Active Connection", description="The connection Rename, Delete, the classification boxes, the host bone "
-        "and the ring work on (Boner > Connections)", default=0, min=0, update=_on_boner_bone)
+        name="Active Connection", description="The connection the Connections tools work on", default=0, min=0,
+        update=_on_boner_bone)
     conn_target: bpy.props.EnumProperty(
         name="Classification", description="Which class of the active connection the boxes edit (Boner's Parent / Child "
         "radio buttons)",
@@ -166,11 +148,10 @@ class BZBonerSettings(bpy.types.PropertyGroup):
                ("CHILD", "Child", "flags2: the class of the limb attached through it")],
         default="CHILD", update=_on_boner_bone)
     conn_bone: bpy.props.StringProperty(
-        name="Host Bone", description="The bone to attach the active connection to (Set applies it; Default picks the "
-        "parent of the limb's root bone)", default="", update=_on_boner_bone)
+        name="Host Bone", description="The bone to attach the active connection to", default="", update=_on_boner_bone)
     show_points: bpy.props.BoolProperty(
-        name="Bone Points", description="By Bone: draw the control points in their bone's colour (orange: no bone; "
-        "a white ring marks a selected point in Edit Mode)", default=True, update=_on_boner_bone)
+        name="Bone Points", description="Draw control points in their bone's colour (orange: no bone)", default=True,
+        update=_on_boner_bone)
 
 
 def register():
