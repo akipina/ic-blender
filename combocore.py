@@ -92,8 +92,15 @@ def lua_info() -> dict:
     return _LUA_INFO
 
 
+def set_game_dir_provider(provider) -> None:
+    """Tell the combiner where the game is: ``provider()`` returns the folder, or None for its default search."""
+    if combotest is not None:
+        from combotest import installdata
+        installdata.set_root_provider(provider)
+
+
 def install_root() -> Optional[str]:
-    """The game install the combiner reads its tables from (``$IC_INSTALL`` or ICParse's default), or None."""
+    """The game install the combiner reads its tables from, or None."""
     if combotest is None:
         return None
     from combotest import installdata
@@ -123,7 +130,8 @@ def status(stock_setting: str = "", extra_stock_dirs: Sequence[str] = (), paths_
         probs.append("lupa missing: ratings, cost and rank are not computed" + (f" ({note})" if note else ""))
     out["install"] = install_root()
     if not out["install"]:
-        probs.append("game install not found (set IC_INSTALL): combines are unscaled and the combine tier can't run")
+        probs.append("game not found (set the Game folder in the add-on's preferences): combines are unscaled and "
+                     "the combine tier can't run")
     d = stock_dir(stock_setting, extra_stock_dirs)
     out["stock_dir"] = d
     if d:
@@ -700,7 +708,7 @@ def run_preview(edited, other, role: str, groups: Sequence[str], opts: Optional[
         pr.notes.append("attrcombiner.lua off: ratings, cost and rank not computed")
     tables = size_tables() if opts.body_scale else None
     if opts.body_scale and tables is None:
-        pr.notes.append("unscaled: game install not found (set IC_INSTALL)")
+        pr.notes.append("unscaled: game not found (set the Game folder in the add-on's preferences)")
     elif not opts.body_scale:
         pr.notes.append("body scale off: the combine is not scaled to its size")
     pr.lua, pr.scaled = lua, tables is not None

@@ -10,6 +10,7 @@ object back (``export_scene_object``: any topology, per part, through ICParse's 
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 
@@ -47,6 +48,84 @@ def _images(data):
         img.pixels.foreach_set(np.ascontiguousarray(arr[::-1]).reshape(-1))
         img.pack()
         out[key] = img
+    return out
+
+
+# ------------------------------------------------------------------------------------ edits that export cannot save yet
+KEY_SCENE_LOOK = "bz_scene_look"       # on an imported material: [its slot, what it showed]
+KEY_SCENE_HASH = "bz_scene_hash"       # on an imported texture image: its pixels
+
+
+def _value(v):
+    if isinstance(v, (bool, int, str)):
+        return v
+    if isinstance(v, float):
+        return round(v, 4)
+    if hasattr(v, "__len__"):
+        return [_value(x) for x in v]
+    return getattr(v, "name", None)
+
+
+def _look(mat) -> str:
+    """What a material shows: its nodes, their images and unlinked values, and the links (node positions don't count)."""
+    seen = [_value(mat.diffuse_color)]
+    tree = mat.node_tree
+    if tree is not None:
+        for node in sorted(tree.nodes, key=lambda n: n.name):
+            image = getattr(node, "image", None)
+            seen.append([node.bl_idname, image.name if image else "",
+                         [_value(s.default_value) for s in node.inputs if not s.is_linked and hasattr(s, "default_value")]])
+        seen += sorted([k.from_node.name, k.from_socket.identifier, k.to_node.name, k.to_socket.identifier] for k in tree.links)
+    return json.dumps(seen)
+
+
+def _remember_looks(mats, images):
+    for img in images:
+        img[KEY_SCENE_HASH] = str(material.pixel_crc(img))
+    for slot, mat in enumerate(mats):
+        mat[KEY_SCENE_LOOK] = [str(slot), _look(mat)]
+
+
+def unsaved_looks(objs) -> list:
+    """The material and texture edits on the parts ``objs`` since import, in words; export keeps the file's own."""
+    found = {}
+    for obj in objs:
+        mats = [s.material for s in obj.material_slots]
+        if not any(m is not None and m.get(KEY_SCENE_LOOK) for m in mats):
+            continue                                        # imported by an earlier version: nothing to compare with
+        for slot, mat in enumerate(mats):
+            record = mat.get(KEY_SCENE_LOOK) if mat is not None else None
+            if record is None or str(record[0]) != str(slot):
+                found[f"material slot {slot + 1} of '{obj.name}' was given another material"] = True
+                continue
+            if _look(mat) != str(record[1]):
+                found[f"material '{mat.name}' was edited"] = True
+            for node in (mat.node_tree.nodes if mat.node_tree else ()):
+                img = getattr(node, "image", None)
+                if img is not None and img.get(KEY_SCENE_HASH) and str(material.pixel_crc(img)) != str(img[KEY_SCENE_HASH]):
+                    found[f"texture '{img.name}' was painted"] = True
+    return list(found)
+
+
+def bone_changes(obj) -> list:
+    """How the skeleton of ``obj`` differs from the imported one, in words (empty without a rig)."""
+    arm = next((m.object for m in obj.modifiers if m.type == "ARMATURE" and m.object), None) \
+        or bpy.data.objects.get(obj.get("bz_rig", ""))
+    if arm is None or arm.type != "ARMATURE":
+        return []
+    if arm.mode == "EDIT":
+        arm.update_from_editmode()
+    read = rig.rig_skeleton(arm)
+    if read is None:
+        return []
+    out = read.resolution.changes()
+    rest, names = list(arm.get(rig.KEY_BONE_REST, [])), read.resolution.current
+    if len(rest) == 16 * len(names):
+        for i, name in enumerate(names):
+            bone = arm.data.bones.get(name) if name else None
+            if bone is not None and not np.allclose([bone.matrix_local[r][c] for r in range(4) for c in range(4)],
+                                                    rest[16 * i:16 * i + 16], atol=1e-5):
+                out.append(f"bone '{name}' was moved")
     return out
 
 
@@ -122,6 +201,7 @@ def build_scene(context, data, source_path=None, clips_as_actions=True):
         except Exception as e:
             arm_obj["bz_actions_error"] = str(e)
 
+    _remember_looks(mats, images.values())
     objs.sort(key=lambda o: -len(o.data.vertices))
     if len(objs) > 1 and arm_obj is None:
         group = bpy.data.objects.new(data.name, None)
@@ -373,9 +453,17 @@ def export_scene_object(obj, legacy: bool = True, only=None, force: bool = False
     data = core.load_scene(src)
     raw = open(core.resolve_source(src), "rb").read()
     objs = part_objects(obj)
+    bones = bone_changes(obj)
+    if bones:
+        raise ValueError("bone changes can't be saved yet, so nothing was written. Undo these first: " + "; ".join(bones[:4])
+                         + (f" (and {len(bones) - 4} more)" if len(bones) > 4 else ""))
     src_forms = SM.scene_pmsh_forms(SM.IffDocument.from_bytes(raw))
     n_forms = len(src_forms)
     rebuilt, kept, notes, present, dropped = [], [], [], set(), {}
+    lost = unsaved_looks(objs)
+    if lost:
+        notes.append("NOT SAVED, because materials and textures can't be saved yet: " + "; ".join(lost[:6])
+                     + (f" (and {len(lost) - 6} more)" if len(lost) > 6 else ""))
     for o in objs:
         pi = int(o[KEY_SCENE_PART])
         if pi >= len(data.parts):

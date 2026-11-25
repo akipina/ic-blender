@@ -345,7 +345,7 @@ def object_digest(obj) -> str:
             continue
         h.update(f"{name}{tuple(img.size)}{img.is_dirty}".encode())
         if img.is_dirty and img.size[0]:
-            h.update(str(material._pixel_crc(img)).encode())
+            h.update(str(material.pixel_crc(img)).encode())
     arm = store.rig(obj)
     if arm is not None and arm.type == "ARMATURE":
         for b in arm.data.bones:
@@ -1090,8 +1090,14 @@ def _on_load_post(*_args):
     clear_ghost()
 
 
+def _game_dir():
+    from .sceneobj import prefs
+    return prefs.resolve_game_dir()[0]
+
+
 def register_handlers():
     global _handler
+    combocore.set_game_dir_provider(_game_dir)
     if _handler is None:
         _handler = bpy.types.SpaceView3D.draw_handler_add(_draw_ghost, (), "WINDOW", "POST_VIEW")
     if _on_load_post not in bpy.app.handlers.load_post:
@@ -1102,6 +1108,7 @@ def register_handlers():
 
 def unregister_handlers():
     global _handler
+    combocore.set_game_dir_provider(None)
     if _handler is not None:
         bpy.types.SpaceView3D.draw_handler_remove(_handler, "WINDOW")
         _handler = None

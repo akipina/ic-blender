@@ -17,18 +17,10 @@ the stock rhinoceros, <code>rhinoceros.sgm</code>.</p>
   <li>In the 3D viewport press <kbd>N</kbd> and open the <strong>IC</strong> tab.</li>
 </ol>
 
-<aside class="note">
 <ul>
-  <li>Uninstall the old <em>SGM Native Patches</em> add-on first.</li>
-  <li>A newer zip installs over an older one. If it then fails to load, uninstall it, restart Blender and install
-  again.</li>
-  <li>Combine Preview ignores the Game folder setting. It looks at <code>IC_INSTALL</code>, then the usual Steam
-  folders.</li>
-  <li>Stock creature files are not included: press <strong>Extract Stock Creatures</strong> in Combine Preview to copy
-  them out of your game.</li>
-  <li>Intel Macs and ARM Windows get no ratings, cost or rank in Combine Preview.</li>
+  <li>Press <strong>Extract Stock Creatures</strong>
+  in Combine Preview to copy the stock creatures from your game.</li>
 </ul>
-</aside>
 
 <figure><img src="img/start_empty.jpg" alt="Empty scene with the add-on sidebar open">
 <figcaption>The IC tab also offers <strong>New Impossible Creatures Project</strong>.</figcaption></figure>
@@ -186,7 +178,7 @@ the Bones tab), the Limbs and Bones tabs switch the shading to match.</p>
 <figure><img src="img/start_validate.jpg" alt="Info editor showing a Valid verdict">
 <figcaption>The verdict appears in the Info editor and status bar.</figcaption></figure>
 
-<h3>Export: untouched means byte-identical</h3>
+<h3>Exporting</h3>
 
 <ol>
   <li>Press <strong>Export Model</strong>, or use <strong>File &gt; Export &gt; Impossible Creatures Creature
@@ -197,17 +189,10 @@ the Bones tab), the Limbs and Bones tabs switch the shading to match.</p>
 <figcaption>Choose the <code>.sgm</code> to write.</figcaption></figure>
 
 <ol start="2">
-  <li>Read the report. It lists what changed; an untouched creature comes out identical to its source.</li>
+  <li>Read the report. It lists what changed.</li>
 </ol>
 
-<aside class="note">
-<ul>
-  <li>You may overwrite the creature's own source file, except after adding, deleting, re-parenting or renaming bones, or
-  creating a stub bone. Then use another name.</li>
-  <li>Export refuses broken control points, object transforms, shape keys, extra modifiers, a deleted rig or skin image,
-  a source file changed since import, and unsupported skeleton edits. The message gives the fix.</li>
-</ul>
-</aside>
+<p>Export checks the model first, and its message says how to fix anything it refuses.</p>
 
 <figure><img src="img/start_export.jpg" alt="Export report for an unchanged creature">
 <figcaption>The report after exporting an untouched creature.</figcaption></figure>
@@ -240,20 +225,7 @@ change the creature.</p>
 <figure><img src="img/start_bake.jpg" alt="Baked textured rhinoceros mesh">
 <figcaption>The baked copy in Material Preview.</figcaption></figure>
 
-<aside class="note">
-<ul>
-  <li>Keep the creature at the origin with no transform, modifiers or shape keys.</li>
-  <li>Never delete, merge, duplicate or sort vertices with Blender's mesh tools. Undo if you do.</li>
-  <li>A saved <code>.blend</code> can still export only while the source <code>.sgm</code> stays where it was.</li>
-</ul>
-</aside>
+<p>Keep the creature at the origin without transforms, modifiers or shape keys, and keep the source <code>.sgm</code> where it
+was: export reads it again.</p>
 
-<aside class="limits">
-<ul>
-  <li>Eevee and Cycles need <strong>Bake Textured Mesh</strong> or <strong>Evaluated Surface</strong>.</li>
-  <li>A creature's <code>.ebp</code> (motion tree, events) cannot be generated or edited.</li>
-  <li>Combine Preview shows no animations.</li>
-  <li>Only Linux is tested. Treat Windows and macOS as unverified.</li>
-</ul>
-</aside>
 </section>

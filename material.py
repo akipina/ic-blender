@@ -51,7 +51,7 @@ def decode_textures(model) -> list:
         # nothing links a skin image at import (materials may be rebuilt, the bake is optional): without a fake user
         # Blender drops it when the .blend is saved, and Export can no longer read its paint
         img.use_fake_user = True
-        img["bz_hash"] = str(_pixel_crc(img))   # import-time snapshot -> detect real paint edits
+        img["bz_hash"] = str(pixel_crc(img))   # import-time snapshot -> detect real paint edits
         out.append(img)
     return out
 
@@ -82,7 +82,7 @@ def first_image_by_name(model, images) -> dict:
     return out
 
 
-def _pixel_crc(img) -> int:
+def pixel_crc(img) -> int:
     """CRC of an image's current pixels (stable read), to detect paint edits regardless of any
     Blender image-storage quirks -- compared import-vs-export, not against the source decode."""
     import zlib

@@ -46,13 +46,7 @@ part; proportional editing (<kbd>O</kbd>) keeps it smooth.</li>
 <figcaption>After shaping; the bones have not moved.</figcaption></figure>
 <figure><img src="img/scratch_shape_persp.jpg" alt="Reshaped rhino in perspective">
 <figcaption>The rough rhino.</figcaption></figure>
-<aside class="note">
-<ul>
-<li>Moving points does not move bones. To move them, edit the armature. The clips still play either way.</li>
-<li>After reshaping, edit or re-key each clip to update its bounds, or the game may hide the creature at the screen
-edge.</li>
-</ul>
-</aside>
+<p>Moving points does not move bones: edit the armature, then re-key the clips so their bounds update.</p>
 
 <h3>3. A horn: pull it out, give it a bone, skin it</h3>
 <p><strong>Extrude Patch</strong> needs an open side and the scaffold is closed, so pull the horn from existing
@@ -73,10 +67,6 @@ Bone</em>). Click <strong>Add Bone under Active</strong>, set <em>Name</em> <cod
 <figcaption>The new <code>horn</code> bone, with no points yet.</figcaption></figure>
 <figure><img src="img/scratch_horn_skinned.jpg" alt="Horn points assigned to the bone">
 <figcaption>The points now belong to <code>horn</code>.</figcaption></figure>
-<aside class="note">
-<p><em>Offset</em> is measured from the parent bone's tail along the parent's axes. The head bone points down, so you may
-need a negative value. You can move the new bone in the rig's Edit Mode.</p>
-</aside>
 
 <h3>4. Limbs and connections</h3>
 <p>The scaffold already has these, so just check them in <strong>Boner</strong>.</p>
@@ -116,10 +106,7 @@ frames 1, 11 and 21, head down at 11.</li>
 <figcaption>The <em>Idle1</em> clip.</figcaption></figure>
 <figure><img src="img/scratch_headbob.jpg" alt="Head pitched down in headbob">
 <figcaption>The new <code>headbob</code> clip.</figcaption></figure>
-<aside class="note">
-<p>Only the rig's active Action, Actions on its NLA tracks and imported ones are exported. A new Action you set aside is
-not; Export warns you.</p>
-</aside>
+<p>Only the rig's active Action, Actions on its NLA tracks and imported ones are exported.</p>
 
 <h3>7. Validate, Combine Preview, Export</h3>
 <ol>
@@ -141,14 +128,4 @@ tick only <em>Head</em> and click <strong>Preview</strong>.</li>
 <p>Open <code>rhino_done.sgm</code> in the game's Object Editor. To play it, the creature also needs <code>.ebp</code>,
 <code>.lua</code> and <code>.lsc</code> files.</p>
 
-<aside class="limits">
-<ul>
-<li>No primitives. Start from this scaffold, a stock creature, <strong>Convert Mesh to Creature</strong> or <strong>Fit
-Patches to Mesh</strong>, then use the <em>Topology</em> tools.</li>
-<li>Material IDs cannot be edited or selected by.</li>
-<li>There is only one scaffold template.</li>
-<li>No mirrored half-cycle or loop-closing helpers. To copy another creature's animations, start with <strong>New
-Impossible Creatures Project</strong> and choose to borrow them.</li>
-</ul>
-</aside>
 </section>

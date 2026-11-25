@@ -18,12 +18,7 @@ the rig.</figcaption></figure>
 <figure><img src="img/anim_nla.jpg" alt="NLA editor with muted tracks"><figcaption>The NLA editor lists one track per
 clip.</figcaption></figure>
 
-<aside class="note">
-<ul>
-<li>A 24-frame clip runs from frame 1 to 25.</li>
-<li>If you imported with the option off, press <strong>Clips to Actions</strong>.</li>
-</ul>
-</aside>
+<p>If you imported with that option off, press <strong>Clips to Actions</strong>.</p>
 
 <h3>Playing and scrubbing a clip</h3>
 
@@ -57,7 +52,7 @@ on every bone.</figcaption></figure>
 <figure><img src="img/anim_head_edit.jpg" alt="Edited head keys and curves"><figcaption>The head is re-keyed at frames
 9, 12 and 15.</figcaption></figure>
 
-<h3>Export: untouched clips keep their bytes, edited ones are re-encoded</h3>
+<h3>Exporting animations</h3>
 
 <ol>
 <li>Select the creature and press <strong>Export Model</strong>. Save under a new name, not over the stock file.</li>
@@ -70,15 +65,7 @@ write.</figcaption></figure>
 <figure><img src="img/anim_export_info.jpg" alt="Export report"><figcaption>Only the edited clip was
 re-encoded.</figcaption></figure>
 
-<aside class="note">
-<ul>
-<li>Changing keys or renaming an Action re-encodes that clip. Playing, scrubbing and unkeyed posing don't.</li>
-<li>A re-encoded clip stores what Blender plays, one key per frame. It can differ slightly from the original between the
-original's keys.</li>
-<li>F-curve modifiers and muted F-curves are baked in, with a warning.</li>
-<li>Enabled rig constraints or drivers re-encode <em>every</em> clip. Remove them to keep clips unchanged.</li>
-</ul>
-</aside>
+<p>Only clips whose keys or names you change are rewritten. Rigs with active constraints or drivers rewrite every clip.</p>
 
 <h3>Creating a new clip</h3>
 
@@ -94,17 +81,8 @@ name and frame range.</li>
 <figure><img src="img/anim_new_clip.jpg" alt="New Action named Taunt"><figcaption>A new clip, <em>Taunt</em>, with
 three key poses.</figcaption></figure>
 
-<aside class="note">
-<ul>
-<li>The game finds clips by name. A new name plays only if the creature's <code>.ebp</code> blueprint refers to it.</li>
-<li>To replace a stock clip, delete or rename it and give yours its exact name. Two Actions with one clip name block
-Export.</li>
-<li>Validate expects <em>idle1</em>, <em>melee1</em>, <em>stumbledie</em>, <em>stumblegetup</em> and <em>walk</em>,
-and warns about clip rates outside 20-60 fps.</li>
-<li>To keep several new clips, use <strong>Push Down</strong> on each and mute its NLA track. An Action that is neither
-active nor on the rig's NLA is <em>not</em> exported, and Export warns. Imported clips are kept without this.</li>
-</ul>
-</aside>
+<p>The game finds clips by name, so a new name plays only if the creature's blueprint uses it. To replace a stock clip, give
+yours the same name. To keep several new clips, use <strong>Push Down</strong> on each and mute its NLA track.</p>
 
 <h3>Renaming and deleting clips</h3>
 
@@ -136,12 +114,4 @@ Bone</strong>, which updates Actions.</li>
 <li>Actions left over from an earlier rig are ignored, with a warning.</li>
 </ul>
 
-<aside class="limits">
-<ul>
-<li>No per-clip frame rate setting: new Actions use the scene's.</li>
-<li>The blueprint's motion tree (which clip plays when) can't be edited.</li>
-<li>Clips aren't retargeted: after changing proportions, you may need to re-key them.</li>
-<li>Scene objects export clips with <strong>Export Scene Object (.sgm)</strong>; their bone edits aren't saved.</li>
-</ul>
-</aside>
 </section>

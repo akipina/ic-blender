@@ -57,6 +57,8 @@ beside it.</p>
   <li>Join new pieces into a part (<kbd>Ctrl</kbd>+<kbd>J</kbd>). Separate objects aren't exported.</li>
   <li>Don't delete a part object: its original shape is exported.</li>
   <li>Moving, rotating or scaling a part in Object Mode isn't exported.</li>
+  <li>Material and texture changes aren't saved; export warns you. The skeleton can't be changed: export stops until
+  you undo bone changes.</li>
 </ul>
 
 <h3>Exporting</h3>
@@ -64,7 +66,7 @@ beside it.</p>
 <ol>
   <li>Press <strong>Export Scene Object (.sgm)</strong> for geometry and clips (needs a rig), or <strong>Export Scene
   Geometry (.sgm)</strong> for geometry only.</li>
-  <li>Keep <strong>Let the engine rebuild the detail ladder</strong> on. Off is untested in game.</li>
+  <li>Keep <strong>Let the engine rebuild the detail ladder</strong> on.</li>
   <li>Only changed parts are rebuilt. Read the report and any warnings.</li>
 </ol>
 
@@ -77,15 +79,4 @@ beside it.</p>
   Folder</strong> (next chapter).</li>
 </ul>
 
-<aside class="limits">
-<ul>
-  <li>No adding parts, or splitting a large one.</li>
-  <li>Material, texture, team-colour and bone changes are <em>not</em> exported, with no warning.</li>
-  <li>Don't rename a character's bones: vertices weighted only to a renamed bone go to the root bone.</li>
-  <li>Attachment points and damage states aren't shown.</li>
-  <li>No exported model has been played in the game yet.</li>
-  <li>Models without a mesh (such as the gyro copters) can't be opened. Projectile and effect parts can't be
-  rebuilt.</li>
-</ul>
-</aside>
 </section>

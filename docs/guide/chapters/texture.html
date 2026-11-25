@@ -48,9 +48,7 @@ baked mesh for painting.</figcaption></figure>
 <figure><img src="img/texture_painted.jpg" alt="Paint on the head"><figcaption>Paint appears on the creature at
 once.</figcaption></figure>
 
-<aside class="note">
-<p>Paint Skin reuses an existing baked mesh. After moving control points, delete it first.</p>
-</aside>
+<p><strong>Paint Skin</strong> reuses an existing baked mesh; delete it after moving control points.</p>
 
 <h3>Export: only painted textures are re-encoded</h3>
 
@@ -86,9 +84,6 @@ turn.</figcaption></figure>
 <figure><img src="img/texture_uvapplied.jpg" alt="Head after Apply UVs"><figcaption>Apply UVs updates the
 creature.</figcaption></figure>
 
-<aside class="note">
-<p>The UV Editor shows selected quads over any image, so select only one material's quads when judging a layout.</p>
-</aside>
 
 <h3>Texturing from scratch</h3>
 
@@ -146,7 +141,7 @@ replaces the old ones.</figcaption></figure>
   one.</li>
   <li>Low <em>source coverage</em> means parts of the creature found no source and took nearby colours. Raise
   <strong>Ray Distance</strong>.</li>
-  <li><strong>Size</strong> is 256, 512, 1024 (default) or 2048. Large textures are untested in game.</li>
+  <li><strong>Size</strong> is 256, 512, 1024 (default) or 2048.</li>
   <li>The most patches a creature can load with drops from about 760 to about 490, and the combine budget by about a
   third. Check with <strong>Validate</strong>.</li>
   <li>Reflection and specular textures are dropped, with a warning.</li>
@@ -171,12 +166,4 @@ replaces the old ones.</figcaption></figure>
 <figure><img src="img/texture_refused.jpg" alt="Export refused: missing image"><figcaption>Export refuses when a skin
 image is missing.</figcaption></figure>
 
-<aside class="limits">
-<ul>
-  <li>No adding materials or textures, or reassigning them (only <strong>Transfer Texture</strong> replaces them).</li>
-  <li>No editing of base colours or smoothing groups.</li>
-  <li>Exporting a resized texture is untested in game.</li>
-  <li>Transfer Texture makes only a colour texture.</li>
-</ul>
-</aside>
 </section>

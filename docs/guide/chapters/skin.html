@@ -79,9 +79,7 @@
 <figure><img src="img/skin_pose_after.jpg" alt="Same head pose after re-skinning">
 <figcaption>The same pose now pulls the lower neck along.</figcaption></figure>
 
-<aside class="note">
-<p>You can't assign points to a bone whose <em>Deform</em> checkbox is off.</p>
-</aside>
+<p>Points can be assigned only to bones with <strong>Deform</strong> ticked.</p>
 
 <h3>Taking points off a bone: Remove from Bone, Select Unassigned, and the export refusal</h3>
 
@@ -160,8 +158,7 @@ Keep <strong>Handles Follow Corners</strong> (redo panel) on: otherwise patches 
 <h3>Export: the summary line</h3>
 
 <p>Press <strong>Export Model</strong>. The report names what changed, for example
-<code>skinning: 35 bone range(s) rebuilt</code>. A high count is normal after a small edit. An untouched creature
-reports <em>byte-identical to the source</em>.</p>
+<code>skinning: 35 bone range(s) rebuilt</code>. A high count is normal after a small edit.</p>
 
 <h3>Skinning and combining (ComboTest)</h3>
 
@@ -184,24 +181,8 @@ reports <em>byte-identical to the source</em>.</p>
   combine like a stock one.</li>
 </ul>
 
-<aside class="note">
-<p>Interior points are hidden, so selections can miss them. If a tool says points were left behind, tick
-<strong>Display &gt; Show Interior Points</strong>, or select their corner.</p>
-</aside>
+<p>To select interior points, tick <strong>Display &gt; Show Interior Points</strong>.</p>
 
-<aside class="note">
-<p>Blender's Delete, Merge, Sort or Duplicate on control points disables the skin tools and Export until you Undo. Use
-the <strong>Modeling</strong> and <strong>Topology</strong> tools instead.</p>
-</aside>
+<p>Add and remove patches with the Modeling and Topology tools, not Blender's delete, merge or sort.</p>
 
-<aside class="limits">
-<ul>
-  <li>No blended weights.</li>
-  <li>No copying a skin between creatures of the same topology.</li>
-  <li>Pick Bone needs the interactive viewport.</li>
-  <li>Auto Skin has no smoothing or mirroring.</li>
-  <li>A fitted creature's skin (<strong>Split into Limbs</strong>) is only a guess: position the bones, then fix the
-  skin here.</li>
-</ul>
-</aside>
 </section>

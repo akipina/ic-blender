@@ -217,7 +217,7 @@ def _painted_textures(obj):
             raise ExportGatherError(f"texture {i}'s image '{img.name}' has no pixels (its data is missing): its paint "
                                     "can't be read")
         snap = img.get("bz_hash")
-        if snap is not None and material._pixel_crc(img) == int(snap):
+        if snap is not None and material.pixel_crc(img) == int(snap):
             continue                                          # unpainted -> keep source bytes
         out[i] = _img_topdown_rgba(img)
     return out

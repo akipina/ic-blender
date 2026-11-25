@@ -85,7 +85,7 @@ creatures.</li>
 <li>An already good ring is refused. <strong>All Rings</strong> does the whole creature in one undo step.</li>
 <li>It never reverses a ring, but reports when a reversed one would weld better.</li>
 </ol>
-<aside class="note"><p>A badly started ring still loads in the Object Editor; only the graft is wrong.</p></aside>
+<p>Check the ring's start: a wrong start only shows in combinations.</p>
 <figure><img src="img/boner_conn_list.jpg" alt="Connections tab with head ring"><figcaption>The head connection and its
 ring are selected.</figcaption></figure>
 <figure><img src="img/boner_conn_deleted.jpg" alt="Missing connection alert"><figcaption>Deleting a connection raises
@@ -94,7 +94,6 @@ an alert.</figcaption></figure>
 ring.</figcaption></figure>
 <figure><img src="img/boner_conn_ring_set.jpg" alt="Neck ring re-picked"><figcaption>From Selection orders the ring for
 you.</figcaption></figure>
-<aside class="note"><p>A ring warning here or in Validate can mean the ring is on the wrong patches.</p></aside>
 
 <h3>Add Stub Socket: a class the creature does not model</h3>
 <p>Without arm stubs, for example, a creature can't take arms, and the Object Editor warns <em>Required limb class not
@@ -110,8 +109,6 @@ set up for you.</li>
 patch.</figcaption></figure>
 <figure><img src="img/boner_stub_after.jpg" alt="New arm socket"><figcaption>The new socket sits on that
 patch.</figcaption></figure>
-<aside class="note"><p>A new stub bone sits at the patch centre, so combinations come out slightly (about 0.8 %)
-smaller.</p></aside>
 
 <h3>Boner &gt; Bones: renaming, adding, deleting and re-parenting bones</h3>
 <p>This tab also holds the skinning tools (see the skinning chapter).</p>
@@ -186,25 +183,6 @@ line.</figcaption></figure>
 <figure><img src="img/boner_combine_refused.jpg" alt="Combine failed popup"><figcaption>Preview explains why combining
 fails.</figcaption></figure>
 
-<aside class="note">
-<ul>
-<li>Re-class both Left and Right partners; a one-sided change is refused by ComboTest.exe.</li>
-<li>Moving one bone can strand skin points outside their limb. Re-skin them or move the bone back.</li>
-<li>Don't rename <code>tail1</code>: combinations that replace the tail tear at the seam.</li>
-<li>Shift+D copies of original bones are refused. Copies of added bones need <strong>Adopt Added Bones</strong>.</li>
-</ul>
-</aside>
+<p>Change the class of left and right partners together, and keep the name of the <code>tail1</code> bone.</p>
 
-<aside class="limits">
-<ul>
-<li>An added bone can't be moved to another limb on its own, or host a connection.</li>
-<li><strong>Add Standard</strong> can't create root bones: for mid legs, add the <code>mid_leg1_*</code> bone
-first.</li>
-<li>Stub bones can't be placed or re-ordered by a tool.</li>
-<li><strong>Pick Ring</strong> needs the 3D Viewport.</li>
-<li>No button resets the Torso, and the overlay doesn't highlight a limb's bones.</li>
-<li>Creature <code>.ebp</code> blueprints can't be edited.</li>
-<li>Scene objects have none of these tools.</li>
-</ul>
-</aside>
 </section>

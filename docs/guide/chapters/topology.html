@@ -58,18 +58,12 @@ and <strong>Weld</strong>.</p>
 
 <figure><img src="img/topology_welded.jpg" alt="Seam closed after Weld"><figcaption><strong>Weld</strong> closes the seam.</figcaption></figure>
 
-<aside class="note">
-<p>Weld refuses to collapse a patch, give a side three patches, or merge two corners of one ring.</p>
-</aside>
 
 <h3>Subdivide: more patches where you need them</h3>
 
 <p><strong>Subdivide</strong> splits each selected patch into four without changing the shape. The split carries on
 through neighbouring patches so no gaps form.</p>
 
-<aside class="note">
-<p>It refuses if the split would cross a connection ring. On the cheetah, no torso patch can be subdivided.</p>
-</aside>
 
 <figure><img src="img/topology_subdiv_before.jpg" alt="Rear-leg patch selected"><figcaption>One rear-leg patch selected.</figcaption></figure>
 
@@ -100,24 +94,13 @@ X = 0, joins the centre seam, and uses the matching left or right bones and limb
 
 <figure><img src="img/topology_mirrored.jpg" alt="Whole cheetah after mirroring"><figcaption><strong>Mirror to Whole</strong> rebuilds the other half.</figcaption></figure>
 
-<aside class="note">
-<p>It is refused if the half crosses X = 0 or the other side exists. For a finished creature use
-<strong>Symmetrize (X)</strong>.</p>
-</aside>
 
 <h3>Attach: two creatures into one</h3>
 
 <p>In Object Mode, select the other creature, make yours active and press <strong>Tools &gt; Attach</strong>. Choose the
 <strong>Limb</strong> and <strong>Bone</strong> for the new parts.</p>
 
-<aside class="note">
-<ul>
-  <li>The other object and its rig are removed.</li>
-  <li>Its connection rings are dropped.</li>
-  <li>Materials are matched by name.</li>
-  <li>Seams are not joined. Weld them yourself.</li>
-</ul>
-</aside>
+<p>Attach removes the other object, its rig and its connection rings, and matches materials by name. Weld the seams afterwards.</p>
 
 <figure><img src="img/topology_attach_before.jpg" alt="Cheetah and rhinoceros both selected"><figcaption>Two creatures selected, the cheetah active.</figcaption></figure>
 
@@ -135,14 +118,4 @@ where its seams weld and <strong>25</strong> where it has its own texture island
   <li>Attach refuses to exceed 767 patches.</li>
 </ul>
 
-<aside class="limits">
-<ul>
-  <li>No bevel or chamfer; <strong>Outline</strong> is the only taper.</li>
-  <li>No bridge, and no way to cap a loop except Fill Hole.</li>
-  <li>No primitives. Start from a stock creature, <strong>New Creature (From Scratch)</strong>, <strong>Convert Mesh to
-  Creature</strong> or <strong>Fit Patches to Mesh</strong>.</li>
-  <li>Subdivide cannot cut a ring side. Deleting the connection and re-picking it changes the socket.</li>
-  <li>Smoothing groups and material IDs cannot be edited.</li>
-</ul>
-</aside>
 </section>

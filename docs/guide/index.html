@@ -49,10 +49,8 @@ aside { padding: .9rem 1.1rem; border-radius: 4px; margin: 1.2rem 0; max-width: 
 aside p:first-child, aside ul:first-child { margin-top: 0; }
 aside p:last-child, aside ul:last-child { margin-bottom: 0; }
 aside.note { background: var(--note); color: var(--note-ink); }
-aside.limits { background: var(--limits); color: var(--limits-ink); }
 aside::before { display: block; font: 500 .74rem/1 "JetBrains Mono", monospace; letter-spacing: .1em; text-transform: uppercase; margin-bottom: .5rem; opacity: .85; }
 aside.note::before { content: "Note"; }
-aside.limits::before { content: "Not possible yet"; }
 table { border-collapse: collapse; font-size: .95rem; }
 th, td { text-align: left; padding: .35rem .7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
 th { font-weight: 600; }
@@ -97,7 +95,7 @@ footer.end { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--ru
   <div class="brand">Creature Workshop Guide</div>
   <div class="sub">IC Blender for Impossible Creatures</div>
   <ol>
-  <li class="chapter"><a href="#start" data-n="1">Getting started and the UI tour</a><ol><li><a href="#start-installing-and-launching">Installing and launching</a></li><li><a href="#start-importing-a-stock-creature">Importing a stock creature</a></li><li><a href="#start-what-you-are-looking-at">What you are looking at</a></li><li><a href="#start-the-ic-panel-top-to-bottom">The IC panel, top to bottom</a></li><li><a href="#start-boner-bones-limbs-connections">Boner: Bones, Limbs, Connections</a></li><li><a href="#start-playing-a-clip">Playing a clip</a></li><li><a href="#start-validate-three-tiers">Validate: three tiers</a></li><li><a href="#start-export-untouched-means-byte-identical">Export: untouched means byte-identical</a></li><li><a href="#start-combine-preview">Combine Preview</a></li><li><a href="#start-bake-textured-mesh">Bake Textured Mesh</a></li></ol></li>
+  <li class="chapter"><a href="#start" data-n="1">Getting started and the UI tour</a><ol><li><a href="#start-installing-and-launching">Installing and launching</a></li><li><a href="#start-importing-a-stock-creature">Importing a stock creature</a></li><li><a href="#start-what-you-are-looking-at">What you are looking at</a></li><li><a href="#start-the-ic-panel-top-to-bottom">The IC panel, top to bottom</a></li><li><a href="#start-boner-bones-limbs-connections">Boner: Bones, Limbs, Connections</a></li><li><a href="#start-playing-a-clip">Playing a clip</a></li><li><a href="#start-validate-three-tiers">Validate: three tiers</a></li><li><a href="#start-exporting">Exporting</a></li><li><a href="#start-combine-preview">Combine Preview</a></li><li><a href="#start-bake-textured-mesh">Bake Textured Mesh</a></li></ol></li>
 <li class="chapter"><a href="#edit" data-n="2">Editing an existing animal</a><ol><li><a href="#edit-into-edit-mode-what-the-points-are">Into Edit Mode: what the points are</a></li><li><a href="#edit-it-edits-like-an-editable-patch">It edits like an Editable Patch</a></li><li><a href="#edit-moving-points-lengthen-the-horn">Moving points: lengthen the horn</a></li><li><a href="#edit-undo-also-across-tab">Undo, also across Tab</a></li><li><a href="#edit-symmetry-symmetrize-x-and-x-mirror">Symmetry: Symmetrize (X) and X-Mirror</a></li><li><a href="#edit-proportional-editing-raise-the-back">Proportional editing: raise the back</a></li><li><a href="#edit-relax-seam-tangents">Relax Seam Tangents</a></li><li><a href="#edit-extrude-patch-growing-geometry">Extrude Patch: growing geometry</a></li><li><a href="#edit-validate-will-it-load">Validate: will it load?</a></li><li><a href="#edit-export-and-the-export-summary">Export and the export summary</a></li></ol></li>
 <li class="chapter"><a href="#topology" data-n="3">Topology: making geometry, not just moving it</a><ol><li><a href="#topology-patches-are-selectable">Patches are selectable</a></li><li><a href="#topology-delete-patch-and-fill-hole">Delete Patch and Fill Hole</a></li><li><a href="#topology-add-quad-and-weld">Add Quad and Weld</a></li><li><a href="#topology-subdivide-more-patches-where-you-need-them">Subdivide: more patches where you need them</a></li><li><a href="#topology-extrude-region">Extrude Region</a></li><li><a href="#topology-mirror-to-whole">Mirror to Whole</a></li><li><a href="#topology-attach-two-creatures-into-one">Attach: two creatures into one</a></li><li><a href="#topology-what-it-costs-the-display-vertex-ceiling">What it costs: the display-vertex ceiling</a></li></ol></li>
 <li class="chapter"><a href="#sculpt" data-n="4">Sculpting: brushes instead of control points</a><ol><li><a href="#sculpt-sculpt-surface">Sculpt Surface</a></li><li><a href="#sculpt-sculpt-it">Sculpt it</a></li><li><a href="#sculpt-refit-patches">Refit Patches</a></li><li><a href="#sculpt-reading-the-residual">Reading the residual</a></li></ol></li>
@@ -106,7 +104,7 @@ footer.end { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--ru
 <li class="chapter"><a href="#retarget" data-n="7">Retargeting: an existing creature takes another shape</a><ol><li><a href="#retarget-retarget-creature-to-mesh">Retarget Creature to Mesh</a></li><li><a href="#retarget-the-limit-a-closest-point-fit-has">The limit a closest-point fit has</a></li><li><a href="#retarget-create-landmarks-and-landmark-retarget">Create Landmarks and Landmark Retarget</a></li><li><a href="#retarget-trim-stray-surface">Trim Stray Surface</a></li></ol></li>
 <li class="chapter"><a href="#skin" data-n="8">Skinning and re-skinning</a><ol><li><a href="#skin-the-model-one-bone-per-point-no-weights">The model: one bone per point, no weights</a></li><li><a href="#skin-seeing-the-skin-by-bone">Seeing the skin: By Bone</a></li><li><a href="#skin-selecting-a-bone-s-points-and-pick-bone">Selecting a bone&#x27;s points, and Pick Bone</a></li><li><a href="#skin-moving-points-to-a-neighbouring-bone">Moving points to a neighbouring bone</a></li><li><a href="#skin-taking-points-off-a-bone-remove-from-bone-select-unassigned-and-the-export-refusal">Taking points off a bone: Remove from Bone, Select Unassigned, and the export refusal</a></li><li><a href="#skin-auto-skin">Auto Skin</a></li><li><a href="#skin-blender-s-own-way-vertex-groups-and-weight-painting">Blender&#x27;s own way: vertex groups and weight painting</a></li><li><a href="#skin-export-the-summary-line">Export: the summary line</a></li><li><a href="#skin-skinning-and-combining-combotest">Skinning and combining (ComboTest)</a></li></ol></li>
 <li class="chapter"><a href="#texture" data-n="9">Re-texturing and texturing from scratch</a><ol><li><a href="#texture-how-textures-live-in-the-sgm">How textures live in the .sgm</a></li><li><a href="#texture-seeing-the-textures-the-live-overlay">Seeing the textures: the live overlay</a></li><li><a href="#texture-paint-skin-repainting-a-texture">Paint Skin: repainting a texture</a></li><li><a href="#texture-export-only-painted-textures-are-re-encoded">Export: only painted textures are re-encoded</a></li><li><a href="#texture-uv-editing-the-uv-cage">UV editing: the UV cage</a></li><li><a href="#texture-texturing-from-scratch">Texturing from scratch</a></li><li><a href="#texture-transfer-texture-a-source-mesh-s-own-skin">Transfer Texture: a source mesh&#x27;s own skin</a></li><li><a href="#texture-refusals-and-gotchas">Refusals and gotchas</a></li></ol></li>
-<li class="chapter"><a href="#anim" data-n="10">Playing, editing and creating animations</a><ol><li><a href="#anim-what-import-gives-you-one-action-per-clip">What import gives you: one Action per clip</a></li><li><a href="#anim-playing-and-scrubbing-a-clip">Playing and scrubbing a clip</a></li><li><a href="#anim-editing-a-clip-in-the-dope-sheet-or-graph-editor">Editing a clip in the Dope Sheet or Graph Editor</a></li><li><a href="#anim-export-untouched-clips-keep-their-bytes-edited-ones-are-re-encoded">Export: untouched clips keep their bytes, edited ones are re-encoded</a></li><li><a href="#anim-creating-a-new-clip">Creating a new clip</a></li><li><a href="#anim-renaming-and-deleting-clips">Renaming and deleting clips</a></li><li><a href="#anim-rules-the-engine-imposes-and-the-add-on-follows">Rules the engine imposes (and the add-on follows)</a></li></ol></li>
+<li class="chapter"><a href="#anim" data-n="10">Playing, editing and creating animations</a><ol><li><a href="#anim-what-import-gives-you-one-action-per-clip">What import gives you: one Action per clip</a></li><li><a href="#anim-playing-and-scrubbing-a-clip">Playing and scrubbing a clip</a></li><li><a href="#anim-editing-a-clip-in-the-dope-sheet-or-graph-editor">Editing a clip in the Dope Sheet or Graph Editor</a></li><li><a href="#anim-exporting-animations">Exporting animations</a></li><li><a href="#anim-creating-a-new-clip">Creating a new clip</a></li><li><a href="#anim-renaming-and-deleting-clips">Renaming and deleting clips</a></li><li><a href="#anim-rules-the-engine-imposes-and-the-add-on-follows">Rules the engine imposes (and the add-on follows)</a></li></ol></li>
 <li class="chapter"><a href="#boner" data-n="11">Bones, limbs and connections (Boner)</a><ol><li><a href="#boner-the-model-in-one-minute">The model in one minute</a></li><li><a href="#boner-setting-up">Setting up</a></li><li><a href="#boner-boner-gt-limbs">Boner &amp;gt; Limbs</a></li><li><a href="#boner-boner-gt-connections">Boner &amp;gt; Connections</a></li><li><a href="#boner-optimise-ring-start-where-the-weld-begins">Optimise Ring Start: where the weld begins</a></li><li><a href="#boner-add-stub-socket-a-class-the-creature-does-not-model">Add Stub Socket: a class the creature does not model</a></li><li><a href="#boner-boner-gt-bones-renaming-adding-deleting-and-re-parenting-bones">Boner &amp;gt; Bones: renaming, adding, deleting and re-parenting bones</a></li><li><a href="#boner-deleting-and-re-parenting-the-creature-s-own-bones">Deleting and re-parenting the creature&#x27;s own bones</a></li><li><a href="#boner-joint-limits-and-ik-chains">Joint limits and IK chains</a></li><li><a href="#boner-validate-combine-preview-and-the-quick-combine-tier">Validate, Combine Preview and the Quick combine tier</a></li></ol></li>
 <li class="chapter"><a href="#scene" data-n="12">Gatherers, characters, structures and props</a><ol><li><a href="#scene-starting-a-project">Starting a project</a></li><li><a href="#scene-opening-one">Opening one</a></li><li><a href="#scene-what-you-are-looking-at">What you are looking at</a></li><li><a href="#scene-editing-the-mesh">Editing the mesh</a></li><li><a href="#scene-exporting">Exporting</a></li></ol></li>
 <li class="chapter"><a href="#blueprint" data-n="13">The Blueprint panel</a><ol><li><a href="#blueprint-loading-the-blueprint">Loading the blueprint</a></li><li><a href="#blueprint-what-the-panel-shows">What the panel shows</a></li><li><a href="#blueprint-export-entity-folder">Export Entity Folder</a></li><li><a href="#blueprint-trying-it-in-the-game">Trying it in the game</a></li></ol></li>
@@ -117,8 +115,7 @@ footer.end { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--ru
 <header class="top">
   <div class="eyebrow">IC Blender · how-to guide</div>
   <h1>Making and changing Impossible Creatures models in Blender</h1>
-  <p class="lead">Edit creatures, other models and maps with Blender, in the <strong>IC</strong> sidebar tab. Keep your
-  originals.</p>
+  <p class="lead">Edit creatures, other models and maps with Blender, in the <strong>IC</strong> sidebar tab. Back up any game file before you replace it.</p>
   <div class="toc-cards">
   <a href="#start"><b data-n="1">Getting started and the UI tour</b><span>Install, import a stock creature, find your way around the IC and Boner panels.</span></a>
 <a href="#edit"><b data-n="2">Editing an existing animal</b><span>Reshape a stock animal: patch feel, control points, symmetrize, validate, export.</span></a>
@@ -126,7 +123,7 @@ footer.end { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--ru
 <a href="#sculpt"><b data-n="4">Sculpting: brushes instead of control points</b><span>Sculpt Mode brushes on the exact surface, refitted into the patches you touched.</span></a>
 <a href="#scratch"><b data-n="5">Making an animal from scratch: a rhino</b><span>New Creature scaffold to a crude rhino with a horn, skin, clips and a combine check.</span></a>
 <a href="#fit"><b data-n="6">Fitting a mesh: an outside model becomes a creature</b><span>Any mesh becomes a patch creature: budgets, the real ceiling, and the fit-to-rig split.</span></a>
-<a href="#retarget"><b data-n="7">Retargeting: an existing creature takes another shape</b><span>Make a working creature take another shape -- and the limits of a closest-point fit.</span></a>
+<a href="#retarget"><b data-n="7">Retargeting: an existing creature takes another shape</b><span>Make a working creature take another shape.</span></a>
 <a href="#skin"><b data-n="8">Skinning and re-skinning</b><span>Which bone moves which control point, and how to change it.</span></a>
 <a href="#texture"><b data-n="9">Re-texturing and texturing from scratch</b><span>Paint the creature&#x27;s own texture, edit UVs, transfer a source mesh&#x27;s skin.</span></a>
 <a href="#anim"><b data-n="10">Playing, editing and creating animations</b><span>Play, edit and create clips as Blender Actions and export them.</span></a>
@@ -156,18 +153,10 @@ the stock rhinoceros, <code>rhinoceros.sgm</code>.</p>
   <li>In the 3D viewport press <kbd>N</kbd> and open the <strong>IC</strong> tab.</li>
 </ol>
 
-<aside class="note">
 <ul>
-  <li>Uninstall the old <em>SGM Native Patches</em> add-on first.</li>
-  <li>A newer zip installs over an older one. If it then fails to load, uninstall it, restart Blender and install
-  again.</li>
-  <li>Combine Preview ignores the Game folder setting. It looks at <code>IC_INSTALL</code>, then the usual Steam
-  folders.</li>
-  <li>Stock creature files are not included: press <strong>Extract Stock Creatures</strong> in Combine Preview to copy
-  them out of your game.</li>
-  <li>Intel Macs and ARM Windows get no ratings, cost or rank in Combine Preview.</li>
+  <li>Press <strong>Extract Stock Creatures</strong>
+  in Combine Preview to copy the stock creatures from your game.</li>
 </ul>
-</aside>
 
 <figure><img src="img/start_empty.jpg" alt="Empty scene with the add-on sidebar open">
 <figcaption>The IC tab also offers <strong>New Impossible Creatures Project</strong>.</figcaption></figure>
@@ -325,7 +314,7 @@ the Bones tab), the Limbs and Bones tabs switch the shading to match.</p>
 <figure><img src="img/start_validate.jpg" alt="Info editor showing a Valid verdict">
 <figcaption>The verdict appears in the Info editor and status bar.</figcaption></figure>
 
-<h3 id="start-export-untouched-means-byte-identical">Export: untouched means byte-identical</h3>
+<h3 id="start-exporting">Exporting</h3>
 
 <ol>
   <li>Press <strong>Export Model</strong>, or use <strong>File &gt; Export &gt; Impossible Creatures Creature
@@ -336,17 +325,10 @@ the Bones tab), the Limbs and Bones tabs switch the shading to match.</p>
 <figcaption>Choose the <code>.sgm</code> to write.</figcaption></figure>
 
 <ol start="2">
-  <li>Read the report. It lists what changed; an untouched creature comes out identical to its source.</li>
+  <li>Read the report. It lists what changed.</li>
 </ol>
 
-<aside class="note">
-<ul>
-  <li>You may overwrite the creature's own source file, except after adding, deleting, re-parenting or renaming bones, or
-  creating a stub bone. Then use another name.</li>
-  <li>Export refuses broken control points, object transforms, shape keys, extra modifiers, a deleted rig or skin image,
-  a source file changed since import, and unsupported skeleton edits. The message gives the fix.</li>
-</ul>
-</aside>
+<p>Export checks the model first, and its message says how to fix anything it refuses.</p>
 
 <figure><img src="img/start_export.jpg" alt="Export report for an unchanged creature">
 <figcaption>The report after exporting an untouched creature.</figcaption></figure>
@@ -379,22 +361,9 @@ change the creature.</p>
 <figure><img src="img/start_bake.jpg" alt="Baked textured rhinoceros mesh">
 <figcaption>The baked copy in Material Preview.</figcaption></figure>
 
-<aside class="note">
-<ul>
-  <li>Keep the creature at the origin with no transform, modifiers or shape keys.</li>
-  <li>Never delete, merge, duplicate or sort vertices with Blender's mesh tools. Undo if you do.</li>
-  <li>A saved <code>.blend</code> can still export only while the source <code>.sgm</code> stays where it was.</li>
-</ul>
-</aside>
+<p>Keep the creature at the origin without transforms, modifiers or shape keys, and keep the source <code>.sgm</code> where it
+was: export reads it again.</p>
 
-<aside class="limits">
-<ul>
-  <li>Eevee and Cycles need <strong>Bake Textured Mesh</strong> or <strong>Evaluated Surface</strong>.</li>
-  <li>A creature's <code>.ebp</code> (motion tree, events) cannot be generated or edited.</li>
-  <li>Combine Preview shows no animations.</li>
-  <li>Only Linux is tested. Treat Windows and macOS as unverified.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -437,12 +406,6 @@ are the file's control points, and Export rewrites only what changed.</p>
 
 <figure><img src="img/edit_handles.jpg" alt="Blue handle points selected on the head"><figcaption><strong>Select &gt; Handles</strong> picks the points off the surface.</figcaption></figure>
 
-<aside class="note">
-<ul>
-  <li><strong>Corners</strong> and <strong>Handles</strong> do not filter later selections.</li>
-  <li>A box select in vertex mode also takes far-side points. Check before moving.</li>
-</ul>
-</aside>
 
 <h3 id="edit-moving-points-lengthen-the-horn">Moving points: lengthen the horn</h3>
 
@@ -510,9 +473,7 @@ a patch first. For more tools see <em>Topology</em>.</p>
 
 <figure><img src="img/edit_extrude_after.jpg" alt="New patch grown into the hole"><figcaption><strong>Extrude Patch</strong> grows a patch from the selected side.</figcaption></figure>
 
-<aside class="note">
-<p>A new patch takes its bone, limb, material and UVs from where it grew.</p>
-</aside>
+<p>A new patch takes its bone, limb, material and UVs from the patch it grew from.</p>
 
 <h3 id="edit-validate-will-it-load">Validate: will it load?</h3>
 
@@ -538,33 +499,16 @@ editor.</p>
 <ol>
   <li>Press <strong>Export Model</strong> and save outside the stock folder.</li>
   <li>Read the report. It names only what changed: geometry, rest pose, rings, textures or clips.</li>
-  <li>An untouched creature reports <em>no edits; byte-identical to the source</em>.</li>
 </ol>
 
 <figure><img src="img/edit_export.jpg" alt="Export report after all edits"><figcaption>The report for the edited rhinoceros.</figcaption></figure>
 
 <figure><img src="img/edit_export_untouched.jpg" alt="Export report with no edits"><figcaption>The report for an untouched creature.</figcaption></figure>
 
-<aside class="note">
-<p><strong>Putting it in the game:</strong></p>
-<ul>
-  <li>A playable creature also needs <code>.ebp</code>, <code>.lua</code> and <code>.lsc</code> files.</li>
-  <li>For testing, loose files under the game's <code>Data/</code> folder override the archives.</li>
-  <li>To share it, pack it in a mod <code>.sga</code> with lower-case paths. The add-on does not do this.</li>
-</ul>
-</aside>
+<p>To use the model in the game, copy it into the game's <code>Data</code> folder. A new creature also needs
+<code>.ebp</code>, <code>.lua</code> and <code>.lsc</code> files.</p>
 
-<aside class="limits">
-<ul>
-  <li>No button resets a corner's handles (Max's <em>Turn to Patch</em>).</li>
-  <li>Smoothing groups and material IDs cannot be edited.</li>
-  <li>Do not use Blender's vertex or edge Delete, Merge by Distance, Sort or Duplicate. Use the Topology tools;
-  <kbd>X</kbd> &gt; <em>Patches</em> deletes patches.</li>
-  <li>X-Mirror needs exact mirror partners.</li>
-  <li><strong>Extrude Patch</strong> has no drag or distance setting. Move the new corners, or use <strong>Extrude
-  Region</strong>.</li>
-</ul>
-</aside>
+<p>Delete patches with the add-on's tools (<strong>X &gt; Patches</strong>), not Blender's vertex or edge delete, merge or sort.</p>
 </section>
 
 
@@ -628,18 +572,12 @@ and <strong>Weld</strong>.</p>
 
 <figure><img src="img/topology_welded.jpg" alt="Seam closed after Weld"><figcaption><strong>Weld</strong> closes the seam.</figcaption></figure>
 
-<aside class="note">
-<p>Weld refuses to collapse a patch, give a side three patches, or merge two corners of one ring.</p>
-</aside>
 
 <h3 id="topology-subdivide-more-patches-where-you-need-them">Subdivide: more patches where you need them</h3>
 
 <p><strong>Subdivide</strong> splits each selected patch into four without changing the shape. The split carries on
 through neighbouring patches so no gaps form.</p>
 
-<aside class="note">
-<p>It refuses if the split would cross a connection ring. On the cheetah, no torso patch can be subdivided.</p>
-</aside>
 
 <figure><img src="img/topology_subdiv_before.jpg" alt="Rear-leg patch selected"><figcaption>One rear-leg patch selected.</figcaption></figure>
 
@@ -670,24 +608,13 @@ X = 0, joins the centre seam, and uses the matching left or right bones and limb
 
 <figure><img src="img/topology_mirrored.jpg" alt="Whole cheetah after mirroring"><figcaption><strong>Mirror to Whole</strong> rebuilds the other half.</figcaption></figure>
 
-<aside class="note">
-<p>It is refused if the half crosses X = 0 or the other side exists. For a finished creature use
-<strong>Symmetrize (X)</strong>.</p>
-</aside>
 
 <h3 id="topology-attach-two-creatures-into-one">Attach: two creatures into one</h3>
 
 <p>In Object Mode, select the other creature, make yours active and press <strong>Tools &gt; Attach</strong>. Choose the
 <strong>Limb</strong> and <strong>Bone</strong> for the new parts.</p>
 
-<aside class="note">
-<ul>
-  <li>The other object and its rig are removed.</li>
-  <li>Its connection rings are dropped.</li>
-  <li>Materials are matched by name.</li>
-  <li>Seams are not joined. Weld them yourself.</li>
-</ul>
-</aside>
+<p>Attach removes the other object, its rig and its connection rings, and matches materials by name. Weld the seams afterwards.</p>
 
 <figure><img src="img/topology_attach_before.jpg" alt="Cheetah and rhinoceros both selected"><figcaption>Two creatures selected, the cheetah active.</figcaption></figure>
 
@@ -705,16 +632,6 @@ where its seams weld and <strong>25</strong> where it has its own texture island
   <li>Attach refuses to exceed 767 patches.</li>
 </ul>
 
-<aside class="limits">
-<ul>
-  <li>No bevel or chamfer; <strong>Outline</strong> is the only taper.</li>
-  <li>No bridge, and no way to cap a loop except Fill Hole.</li>
-  <li>No primitives. Start from a stock creature, <strong>New Creature (From Scratch)</strong>, <strong>Convert Mesh to
-  Creature</strong> or <strong>Fit Patches to Mesh</strong>.</li>
-  <li>Subdivide cannot cut a ring side. Deleting the connection and re-picking it changes the socket.</li>
-  <li>Smoothing groups and material IDs cannot be edited.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -746,12 +663,7 @@ untouched patches keep their exact points. The example is <code>cheetah.sgm</cod
 
 <figure><img src="img/sculpt_bump.jpg" alt="Hump pulled up on the back"><figcaption>A hump made with Grab.</figcaption></figure>
 
-<aside class="note">
-<ul>
-  <li>Do not use Dyntopo or Remesh, or delete geometry. Refit will refuse.</li>
-  <li>Do not move the sculpt object or edit the creature meanwhile, or you must start again.</li>
-</ul>
-</aside>
+<p>While sculpting, keep the topology (no Dyntopo, Remesh or deleting) and leave the sculpt object where it is.</p>
 
 <h3 id="sculpt-refit-patches">Refit Patches</h3>
 
@@ -772,19 +684,8 @@ untouched patches keep their exact points. The example is <code>cheetah.sgm</cod
 <p>Broad changes fit closely. Scales, wrinkles and sharp creases come out smoother. Either subdivide those patches first
 (see <em>Topology</em>) or paint the detail (see <em>Textures</em>).</p>
 
-<aside class="note">
-<p>Export and Validate leave out an unfinished sculpt and warn you. Refit it, or press <strong>×</strong> (Discard
-Sculpt).</p>
-</aside>
+<p>Finish with <strong>Refit Patches</strong> or <strong>Discard Sculpt</strong> before you export.</p>
 
-<aside class="limits">
-<ul>
-  <li>No topology-changing sculpting or multires. Density is fixed once a sculpt starts.</li>
-  <li>Bones do not move. Move them in <strong>Boner &gt; Bones</strong> or use retargeting.</li>
-  <li>You cannot lock a patch; just do not sculpt it.</li>
-  <li>Textures on the sculpt mesh may differ slightly at seams.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -836,13 +737,7 @@ part; proportional editing (<kbd>O</kbd>) keeps it smooth.</li>
 <figcaption>After shaping; the bones have not moved.</figcaption></figure>
 <figure><img src="img/scratch_shape_persp.jpg" alt="Reshaped rhino in perspective">
 <figcaption>The rough rhino.</figcaption></figure>
-<aside class="note">
-<ul>
-<li>Moving points does not move bones. To move them, edit the armature. The clips still play either way.</li>
-<li>After reshaping, edit or re-key each clip to update its bounds, or the game may hide the creature at the screen
-edge.</li>
-</ul>
-</aside>
+<p>Moving points does not move bones: edit the armature, then re-key the clips so their bounds update.</p>
 
 <h3 id="scratch-3-a-horn-pull-it-out-give-it-a-bone-skin-it">3. A horn: pull it out, give it a bone, skin it</h3>
 <p><strong>Extrude Patch</strong> needs an open side and the scaffold is closed, so pull the horn from existing
@@ -863,10 +758,6 @@ Bone</em>). Click <strong>Add Bone under Active</strong>, set <em>Name</em> <cod
 <figcaption>The new <code>horn</code> bone, with no points yet.</figcaption></figure>
 <figure><img src="img/scratch_horn_skinned.jpg" alt="Horn points assigned to the bone">
 <figcaption>The points now belong to <code>horn</code>.</figcaption></figure>
-<aside class="note">
-<p><em>Offset</em> is measured from the parent bone's tail along the parent's axes. The head bone points down, so you may
-need a negative value. You can move the new bone in the rig's Edit Mode.</p>
-</aside>
 
 <h3 id="scratch-4-limbs-and-connections">4. Limbs and connections</h3>
 <p>The scaffold already has these, so just check them in <strong>Boner</strong>.</p>
@@ -906,10 +797,7 @@ frames 1, 11 and 21, head down at 11.</li>
 <figcaption>The <em>Idle1</em> clip.</figcaption></figure>
 <figure><img src="img/scratch_headbob.jpg" alt="Head pitched down in headbob">
 <figcaption>The new <code>headbob</code> clip.</figcaption></figure>
-<aside class="note">
-<p>Only the rig's active Action, Actions on its NLA tracks and imported ones are exported. A new Action you set aside is
-not; Export warns you.</p>
-</aside>
+<p>Only the rig's active Action, Actions on its NLA tracks and imported ones are exported.</p>
 
 <h3 id="scratch-7-validate-combine-preview-export">7. Validate, Combine Preview, Export</h3>
 <ol>
@@ -931,16 +819,6 @@ tick only <em>Head</em> and click <strong>Preview</strong>.</li>
 <p>Open <code>rhino_done.sgm</code> in the game's Object Editor. To play it, the creature also needs <code>.ebp</code>,
 <code>.lua</code> and <code>.lsc</code> files.</p>
 
-<aside class="limits">
-<ul>
-<li>No primitives. Start from this scaffold, a stock creature, <strong>Convert Mesh to Creature</strong> or <strong>Fit
-Patches to Mesh</strong>, then use the <em>Topology</em> tools.</li>
-<li>Material IDs cannot be edited or selected by.</li>
-<li>There is only one scaffold template.</li>
-<li>No mirrored half-cycle or loop-closing helpers. To copy another creature's animations, start with <strong>New
-Impossible Creatures Project</strong> and choose to borrow them.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -980,9 +858,7 @@ example is Suzanne, without eyes and subdivided twice.</p>
   <li>Wait, about half a minute for 300 patches and longer for more.</li>
 </ol>
 
-<aside class="note">
-<p>Left empty, <strong>Skeleton Template (.sgm)</strong> uses the game's wolf, taken from your game folder.</p>
-</aside>
+<p>Left empty, <strong>Skeleton Template (.sgm)</strong> uses the game's wolf.</p>
 
 <figure><img src="img/fit_panel.jpg" alt="Panel with the two conversion buttons"><figcaption>A selected mesh offers the two conversions.</figcaption></figure>
 
@@ -1010,13 +886,8 @@ vertices</strong>, at <strong>16</strong> per patch where seams weld and <strong
 </table>
 </div>
 
-<aside class="note">
-<ul>
-  <li>For combining, keep the torso within <strong>6,584</strong> vertices and the limbs within
-  <strong>7,879</strong>. A heavy torso leaves no room for another head.</li>
-  <li><strong>Validate</strong> shows your real count.</li>
-</ul>
-</aside>
+<p>For a creature that combines, keep the torso under 6,584 vertices and the limbs under 7,879. <strong>Validate</strong> shows
+the count.</p>
 
 <h3 id="fit-fit-to-rig-the-creature-is-riggable-at-once">Fit to rig: the creature is riggable at once</h3>
 
@@ -1043,15 +914,6 @@ vertices</strong>, at <strong>16</strong> per patch where seams weld and <strong
   <li>If the template left extra surface, use <strong>Trim Stray Surface</strong> (see <em>Retargeting</em>).</li>
 </ol>
 
-<aside class="limits">
-<ul>
-  <li>No automatic skeleton.</li>
-  <li>You cannot draw the layout or place seams, except by making your own quads.</li>
-  <li>Connection rings come from the template and may need re-picking.</li>
-  <li>Floating parts are not repaired. Fit the skin alone, and do not voxel-remesh: it destroys UVs.</li>
-  <li>Holes through the shape stay in the layout.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -1096,10 +958,7 @@ a target mesh. The tools are in the <strong>Tools</strong> box.</p>
 
 <h3 id="retarget-the-limit-a-closest-point-fit-has">The limit a closest-point fit has</h3>
 
-<aside class="note">
-<p>Each point moves to the nearest spot on the target. A creature can grow fatter, thinner or longer, but a limb cannot
-<em>travel</em> to a new place. A low error figure does not prove the parts match. Use landmarks.</p>
-</aside>
+<p>Points move to the nearest part of the target, so use landmarks when limbs sit in different places.</p>
 
 <h3 id="retarget-create-landmarks-and-landmark-retarget">Create Landmarks and Landmark Retarget</h3>
 
@@ -1123,10 +982,7 @@ a target mesh. The tools are in the <strong>Tools</strong> box.</p>
 
 <p>Check <strong>coverage by limb</strong> in the report: it warns which limbs still miss the target.</p>
 
-<aside class="note">
-<p>The number of limbs, sockets and bones, and the walk motion, stay the donor's. Choose the donor for its body plan
-first.</p>
-</aside>
+<p>Limbs, sockets, bones and the walk stay the donor's. Choose the donor for its body plan.</p>
 
 <h3 id="retarget-trim-stray-surface">Trim Stray Surface</h3>
 
@@ -1152,16 +1008,6 @@ action:</p>
 
 <p><strong>Validate</strong> also warns about stray patches (<em>WARN trim</em>).</p>
 
-<aside class="limits">
-<ul>
-  <li>No tool shortens a limb by retracting it.</li>
-  <li>Trim cannot add missing parts; use <strong>Attach</strong> or <strong>Extrude Region</strong>.</li>
-  <li>Limb classes, sockets and bone counts do not change.</li>
-  <li>Landmarks are placed by hand: at least 4, each a known landmark or bone name, used once.</li>
-  <li>Clips are not retargeted and may need re-keying (see <em>Animations</em>).</li>
-  <li>The target must be one closed skin.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -1246,9 +1092,7 @@ action:</p>
 <figure><img src="img/skin_pose_after.jpg" alt="Same head pose after re-skinning">
 <figcaption>The same pose now pulls the lower neck along.</figcaption></figure>
 
-<aside class="note">
-<p>You can't assign points to a bone whose <em>Deform</em> checkbox is off.</p>
-</aside>
+<p>Points can be assigned only to bones with <strong>Deform</strong> ticked.</p>
 
 <h3 id="skin-taking-points-off-a-bone-remove-from-bone-select-unassigned-and-the-export-refusal">Taking points off a bone: Remove from Bone, Select Unassigned, and the export refusal</h3>
 
@@ -1327,8 +1171,7 @@ Keep <strong>Handles Follow Corners</strong> (redo panel) on: otherwise patches 
 <h3 id="skin-export-the-summary-line">Export: the summary line</h3>
 
 <p>Press <strong>Export Model</strong>. The report names what changed, for example
-<code>skinning: 35 bone range(s) rebuilt</code>. A high count is normal after a small edit. An untouched creature
-reports <em>byte-identical to the source</em>.</p>
+<code>skinning: 35 bone range(s) rebuilt</code>. A high count is normal after a small edit.</p>
 
 <h3 id="skin-skinning-and-combining-combotest">Skinning and combining (ComboTest)</h3>
 
@@ -1351,26 +1194,10 @@ reports <em>byte-identical to the source</em>.</p>
   combine like a stock one.</li>
 </ul>
 
-<aside class="note">
-<p>Interior points are hidden, so selections can miss them. If a tool says points were left behind, tick
-<strong>Display &gt; Show Interior Points</strong>, or select their corner.</p>
-</aside>
+<p>To select interior points, tick <strong>Display &gt; Show Interior Points</strong>.</p>
 
-<aside class="note">
-<p>Blender's Delete, Merge, Sort or Duplicate on control points disables the skin tools and Export until you Undo. Use
-the <strong>Modeling</strong> and <strong>Topology</strong> tools instead.</p>
-</aside>
+<p>Add and remove patches with the Modeling and Topology tools, not Blender's delete, merge or sort.</p>
 
-<aside class="limits">
-<ul>
-  <li>No blended weights.</li>
-  <li>No copying a skin between creatures of the same topology.</li>
-  <li>Pick Bone needs the interactive viewport.</li>
-  <li>Auto Skin has no smoothing or mirroring.</li>
-  <li>A fitted creature's skin (<strong>Split into Limbs</strong>) is only a guess: position the bones, then fix the
-  skin here.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -1424,9 +1251,7 @@ baked mesh for painting.</figcaption></figure>
 <figure><img src="img/texture_painted.jpg" alt="Paint on the head"><figcaption>Paint appears on the creature at
 once.</figcaption></figure>
 
-<aside class="note">
-<p>Paint Skin reuses an existing baked mesh. After moving control points, delete it first.</p>
-</aside>
+<p><strong>Paint Skin</strong> reuses an existing baked mesh; delete it after moving control points.</p>
 
 <h3 id="texture-export-only-painted-textures-are-re-encoded">Export: only painted textures are re-encoded</h3>
 
@@ -1462,9 +1287,6 @@ turn.</figcaption></figure>
 <figure><img src="img/texture_uvapplied.jpg" alt="Head after Apply UVs"><figcaption>Apply UVs updates the
 creature.</figcaption></figure>
 
-<aside class="note">
-<p>The UV Editor shows selected quads over any image, so select only one material's quads when judging a layout.</p>
-</aside>
 
 <h3 id="texture-texturing-from-scratch">Texturing from scratch</h3>
 
@@ -1522,7 +1344,7 @@ replaces the old ones.</figcaption></figure>
   one.</li>
   <li>Low <em>source coverage</em> means parts of the creature found no source and took nearby colours. Raise
   <strong>Ray Distance</strong>.</li>
-  <li><strong>Size</strong> is 256, 512, 1024 (default) or 2048. Large textures are untested in game.</li>
+  <li><strong>Size</strong> is 256, 512, 1024 (default) or 2048.</li>
   <li>The most patches a creature can load with drops from about 760 to about 490, and the combine budget by about a
   third. Check with <strong>Validate</strong>.</li>
   <li>Reflection and specular textures are dropped, with a warning.</li>
@@ -1547,14 +1369,6 @@ replaces the old ones.</figcaption></figure>
 <figure><img src="img/texture_refused.jpg" alt="Export refused: missing image"><figcaption>Export refuses when a skin
 image is missing.</figcaption></figure>
 
-<aside class="limits">
-<ul>
-  <li>No adding materials or textures, or reassigning them (only <strong>Transfer Texture</strong> replaces them).</li>
-  <li>No editing of base colours or smoothing groups.</li>
-  <li>Exporting a resized texture is untested in game.</li>
-  <li>Transfer Texture makes only a colour texture.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -1578,12 +1392,7 @@ the rig.</figcaption></figure>
 <figure><img src="img/anim_nla.jpg" alt="NLA editor with muted tracks"><figcaption>The NLA editor lists one track per
 clip.</figcaption></figure>
 
-<aside class="note">
-<ul>
-<li>A 24-frame clip runs from frame 1 to 25.</li>
-<li>If you imported with the option off, press <strong>Clips to Actions</strong>.</li>
-</ul>
-</aside>
+<p>If you imported with that option off, press <strong>Clips to Actions</strong>.</p>
 
 <h3 id="anim-playing-and-scrubbing-a-clip">Playing and scrubbing a clip</h3>
 
@@ -1617,7 +1426,7 @@ on every bone.</figcaption></figure>
 <figure><img src="img/anim_head_edit.jpg" alt="Edited head keys and curves"><figcaption>The head is re-keyed at frames
 9, 12 and 15.</figcaption></figure>
 
-<h3 id="anim-export-untouched-clips-keep-their-bytes-edited-ones-are-re-encoded">Export: untouched clips keep their bytes, edited ones are re-encoded</h3>
+<h3 id="anim-exporting-animations">Exporting animations</h3>
 
 <ol>
 <li>Select the creature and press <strong>Export Model</strong>. Save under a new name, not over the stock file.</li>
@@ -1630,15 +1439,7 @@ write.</figcaption></figure>
 <figure><img src="img/anim_export_info.jpg" alt="Export report"><figcaption>Only the edited clip was
 re-encoded.</figcaption></figure>
 
-<aside class="note">
-<ul>
-<li>Changing keys or renaming an Action re-encodes that clip. Playing, scrubbing and unkeyed posing don't.</li>
-<li>A re-encoded clip stores what Blender plays, one key per frame. It can differ slightly from the original between the
-original's keys.</li>
-<li>F-curve modifiers and muted F-curves are baked in, with a warning.</li>
-<li>Enabled rig constraints or drivers re-encode <em>every</em> clip. Remove them to keep clips unchanged.</li>
-</ul>
-</aside>
+<p>Only clips whose keys or names you change are rewritten. Rigs with active constraints or drivers rewrite every clip.</p>
 
 <h3 id="anim-creating-a-new-clip">Creating a new clip</h3>
 
@@ -1654,17 +1455,8 @@ name and frame range.</li>
 <figure><img src="img/anim_new_clip.jpg" alt="New Action named Taunt"><figcaption>A new clip, <em>Taunt</em>, with
 three key poses.</figcaption></figure>
 
-<aside class="note">
-<ul>
-<li>The game finds clips by name. A new name plays only if the creature's <code>.ebp</code> blueprint refers to it.</li>
-<li>To replace a stock clip, delete or rename it and give yours its exact name. Two Actions with one clip name block
-Export.</li>
-<li>Validate expects <em>idle1</em>, <em>melee1</em>, <em>stumbledie</em>, <em>stumblegetup</em> and <em>walk</em>,
-and warns about clip rates outside 20-60 fps.</li>
-<li>To keep several new clips, use <strong>Push Down</strong> on each and mute its NLA track. An Action that is neither
-active nor on the rig's NLA is <em>not</em> exported, and Export warns. Imported clips are kept without this.</li>
-</ul>
-</aside>
+<p>The game finds clips by name, so a new name plays only if the creature's blueprint uses it. To replace a stock clip, give
+yours the same name. To keep several new clips, use <strong>Push Down</strong> on each and mute its NLA track.</p>
 
 <h3 id="anim-renaming-and-deleting-clips">Renaming and deleting clips</h3>
 
@@ -1696,14 +1488,6 @@ Bone</strong>, which updates Actions.</li>
 <li>Actions left over from an earlier rig are ignored, with a warning.</li>
 </ul>
 
-<aside class="limits">
-<ul>
-<li>No per-clip frame rate setting: new Actions use the scene's.</li>
-<li>The blueprint's motion tree (which clip plays when) can't be edited.</li>
-<li>Clips aren't retargeted: after changing proportions, you may need to re-key them.</li>
-<li>Scene objects export clips with <strong>Export Scene Object (.sgm)</strong>; their bone edits aren't saved.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -1794,7 +1578,7 @@ creatures.</li>
 <li>An already good ring is refused. <strong>All Rings</strong> does the whole creature in one undo step.</li>
 <li>It never reverses a ring, but reports when a reversed one would weld better.</li>
 </ol>
-<aside class="note"><p>A badly started ring still loads in the Object Editor; only the graft is wrong.</p></aside>
+<p>Check the ring's start: a wrong start only shows in combinations.</p>
 <figure><img src="img/boner_conn_list.jpg" alt="Connections tab with head ring"><figcaption>The head connection and its
 ring are selected.</figcaption></figure>
 <figure><img src="img/boner_conn_deleted.jpg" alt="Missing connection alert"><figcaption>Deleting a connection raises
@@ -1803,7 +1587,6 @@ an alert.</figcaption></figure>
 ring.</figcaption></figure>
 <figure><img src="img/boner_conn_ring_set.jpg" alt="Neck ring re-picked"><figcaption>From Selection orders the ring for
 you.</figcaption></figure>
-<aside class="note"><p>A ring warning here or in Validate can mean the ring is on the wrong patches.</p></aside>
 
 <h3 id="boner-add-stub-socket-a-class-the-creature-does-not-model">Add Stub Socket: a class the creature does not model</h3>
 <p>Without arm stubs, for example, a creature can't take arms, and the Object Editor warns <em>Required limb class not
@@ -1819,8 +1602,6 @@ set up for you.</li>
 patch.</figcaption></figure>
 <figure><img src="img/boner_stub_after.jpg" alt="New arm socket"><figcaption>The new socket sits on that
 patch.</figcaption></figure>
-<aside class="note"><p>A new stub bone sits at the patch centre, so combinations come out slightly (about 0.8 %)
-smaller.</p></aside>
 
 <h3 id="boner-boner-gt-bones-renaming-adding-deleting-and-re-parenting-bones">Boner &gt; Bones: renaming, adding, deleting and re-parenting bones</h3>
 <p>This tab also holds the skinning tools (see the skinning chapter).</p>
@@ -1895,27 +1676,8 @@ line.</figcaption></figure>
 <figure><img src="img/boner_combine_refused.jpg" alt="Combine failed popup"><figcaption>Preview explains why combining
 fails.</figcaption></figure>
 
-<aside class="note">
-<ul>
-<li>Re-class both Left and Right partners; a one-sided change is refused by ComboTest.exe.</li>
-<li>Moving one bone can strand skin points outside their limb. Re-skin them or move the bone back.</li>
-<li>Don't rename <code>tail1</code>: combinations that replace the tail tear at the seam.</li>
-<li>Shift+D copies of original bones are refused. Copies of added bones need <strong>Adopt Added Bones</strong>.</li>
-</ul>
-</aside>
+<p>Change the class of left and right partners together, and keep the name of the <code>tail1</code> bone.</p>
 
-<aside class="limits">
-<ul>
-<li>An added bone can't be moved to another limb on its own, or host a connection.</li>
-<li><strong>Add Standard</strong> can't create root bones: for mid legs, add the <code>mid_leg1_*</code> bone
-first.</li>
-<li>Stub bones can't be placed or re-ordered by a tool.</li>
-<li><strong>Pick Ring</strong> needs the 3D Viewport.</li>
-<li>No button resets the Torso, and the overlay doesn't highlight a limb's bones.</li>
-<li>Creature <code>.ebp</code> blueprints can't be edited.</li>
-<li>Scene objects have none of these tools.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -1978,6 +1740,8 @@ beside it.</p>
   <li>Join new pieces into a part (<kbd>Ctrl</kbd>+<kbd>J</kbd>). Separate objects aren't exported.</li>
   <li>Don't delete a part object: its original shape is exported.</li>
   <li>Moving, rotating or scaling a part in Object Mode isn't exported.</li>
+  <li>Material and texture changes aren't saved; export warns you. The skeleton can't be changed: export stops until
+  you undo bone changes.</li>
 </ul>
 
 <h3 id="scene-exporting">Exporting</h3>
@@ -1985,7 +1749,7 @@ beside it.</p>
 <ol>
   <li>Press <strong>Export Scene Object (.sgm)</strong> for geometry and clips (needs a rig), or <strong>Export Scene
   Geometry (.sgm)</strong> for geometry only.</li>
-  <li>Keep <strong>Let the engine rebuild the detail ladder</strong> on. Off is untested in game.</li>
+  <li>Keep <strong>Let the engine rebuild the detail ladder</strong> on.</li>
   <li>Only changed parts are rebuilt. Read the report and any warnings.</li>
 </ol>
 
@@ -1998,17 +1762,6 @@ beside it.</p>
   Folder</strong> (next chapter).</li>
 </ul>
 
-<aside class="limits">
-<ul>
-  <li>No adding parts, or splitting a large one.</li>
-  <li>Material, texture, team-colour and bone changes are <em>not</em> exported, with no warning.</li>
-  <li>Don't rename a character's bones: vertices weighted only to a renamed bone go to the root bone.</li>
-  <li>Attachment points and damage states aren't shown.</li>
-  <li>No exported model has been played in the game yet.</li>
-  <li>Models without a mesh (such as the gyro copters) can't be opened. Projectile and effect parts can't be
-  rebuilt.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -2078,20 +1831,8 @@ kind's default numbers.</p>
   <li>To replace a stock thing, export under its exact folder and name.</li>
 </ul>
 
-<aside class="note">
 <p>In multiplayer, every player needs the same files.</p>
-</aside>
 
-<aside class="limits">
-<ul>
-  <li>Some old blueprints are view-only. Those with a built-in model, including the stock animals, can't be
-  exported.</li>
-  <li>The icon isn't shown or edited.</li>
-  <li>Deleting the object that holds your panel values (the rig, else the group empty, else the first part) loses
-  unexported changes.</li>
-  <li>Nothing exported this way has been tried in the game yet.</li>
-</ul>
-</aside>
 </section>
 
 
@@ -2100,14 +1841,6 @@ kind's default numbers.</p>
 
 <p>Open a map (<code>.sgb</code>), change its ground, water, textures and placed things, and save it. You can also start
 new maps, paint, script and replay cinematics.</p>
-
-<ul>
-  <li><strong>Nothing saved has been tested in the game.</strong> The newer tools (new map, painting, scripting,
-  cinematics, files, lists, crop) are also untried in the Mission Editor.</li>
-  <li>The free 3D view is the <strong>mirror image</strong> of the game's. Cut-scene, preview and replay cameras show
-  the game's picture.</li>
-  <li>Texture stamps made with 0.8.0 or earlier are mirrored north to south in the game.</li>
-</ul>
 
 <h3 id="maps-opening-a-map">Opening a map</h3>
 
@@ -2290,18 +2023,6 @@ map without cinematics). Triggers use the animation's number. Saving writes the 
   overrides problems.</li>
 </ul>
 
-<aside class="limits">
-<ul>
-  <li>No Script Editor, Orbit Target or Third person view.</li>
-  <li>Key codes, research, commands, stances, abilities and animations in triggers are plain numbers.</li>
-  <li>The <code>_decaled</code> ground pictures aren't regenerated.</li>
-  <li>Entity files can't hold combined creatures, and a crop can't reach outside the map.</li>
-  <li>The game look lacks per-point ground light, cast shadows and moving water. It hasn't been compared with the
-  game.</li>
-  <li>The add-on names a map after its file; in-game titles come from the language files.</li>
-  <li>Very large maps need much memory (about 2 GB to import 1025 x 1025).</li>
-</ul>
-</aside>
 </section>
 
 

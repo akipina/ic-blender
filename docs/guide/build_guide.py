@@ -26,7 +26,7 @@ BLURB = {"start": "Install, import a stock creature, find your way around the IC
          "sculpt": "Sculpt Mode brushes on the exact surface, refitted into the patches you touched.",
          "scratch": "New Creature scaffold to a crude rhino with a horn, skin, clips and a combine check.",
          "fit": "Any mesh becomes a patch creature: budgets, the real ceiling, and the fit-to-rig split.",
-         "retarget": "Make a working creature take another shape -- and the limits of a closest-point fit.",
+         "retarget": "Make a working creature take another shape.",
          "skin": "Which bone moves which control point, and how to change it.",
          "texture": "Paint the creature's own texture, edit UVs, transfer a source mesh's skin.",
          "anim": "Play, edit and create clips as Blender Actions and export them.",

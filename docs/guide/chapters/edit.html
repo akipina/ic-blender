@@ -37,12 +37,6 @@ are the file's control points, and Export rewrites only what changed.</p>
 
 <figure><img src="img/edit_handles.jpg" alt="Blue handle points selected on the head"><figcaption><strong>Select &gt; Handles</strong> picks the points off the surface.</figcaption></figure>
 
-<aside class="note">
-<ul>
-  <li><strong>Corners</strong> and <strong>Handles</strong> do not filter later selections.</li>
-  <li>A box select in vertex mode also takes far-side points. Check before moving.</li>
-</ul>
-</aside>
 
 <h3>Moving points: lengthen the horn</h3>
 
@@ -110,9 +104,7 @@ a patch first. For more tools see <em>Topology</em>.</p>
 
 <figure><img src="img/edit_extrude_after.jpg" alt="New patch grown into the hole"><figcaption><strong>Extrude Patch</strong> grows a patch from the selected side.</figcaption></figure>
 
-<aside class="note">
-<p>A new patch takes its bone, limb, material and UVs from where it grew.</p>
-</aside>
+<p>A new patch takes its bone, limb, material and UVs from the patch it grew from.</p>
 
 <h3>Validate: will it load?</h3>
 
@@ -138,31 +130,14 @@ editor.</p>
 <ol>
   <li>Press <strong>Export Model</strong> and save outside the stock folder.</li>
   <li>Read the report. It names only what changed: geometry, rest pose, rings, textures or clips.</li>
-  <li>An untouched creature reports <em>no edits; byte-identical to the source</em>.</li>
 </ol>
 
 <figure><img src="img/edit_export.jpg" alt="Export report after all edits"><figcaption>The report for the edited rhinoceros.</figcaption></figure>
 
 <figure><img src="img/edit_export_untouched.jpg" alt="Export report with no edits"><figcaption>The report for an untouched creature.</figcaption></figure>
 
-<aside class="note">
-<p><strong>Putting it in the game:</strong></p>
-<ul>
-  <li>A playable creature also needs <code>.ebp</code>, <code>.lua</code> and <code>.lsc</code> files.</li>
-  <li>For testing, loose files under the game's <code>Data/</code> folder override the archives.</li>
-  <li>To share it, pack it in a mod <code>.sga</code> with lower-case paths. The add-on does not do this.</li>
-</ul>
-</aside>
+<p>To use the model in the game, copy it into the game's <code>Data</code> folder. A new creature also needs
+<code>.ebp</code>, <code>.lua</code> and <code>.lsc</code> files.</p>
 
-<aside class="limits">
-<ul>
-  <li>No button resets a corner's handles (Max's <em>Turn to Patch</em>).</li>
-  <li>Smoothing groups and material IDs cannot be edited.</li>
-  <li>Do not use Blender's vertex or edge Delete, Merge by Distance, Sort or Duplicate. Use the Topology tools;
-  <kbd>X</kbd> &gt; <em>Patches</em> deletes patches.</li>
-  <li>X-Mirror needs exact mirror partners.</li>
-  <li><strong>Extrude Patch</strong> has no drag or distance setting. Move the new corners, or use <strong>Extrude
-  Region</strong>.</li>
-</ul>
-</aside>
+<p>Delete patches with the add-on's tools (<strong>X &gt; Patches</strong>), not Blender's vertex or edge delete, merge or sort.</p>
 </section>
