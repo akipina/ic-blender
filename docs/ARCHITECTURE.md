@@ -55,6 +55,5 @@ The release zip is a Blender extension that carries `ICParse`, `combotest`, `con
 When a new version is installed over a running one, `__init__.py` unloads an older `ICParse` and `combotest` before
 importing; `construct` and `lupa` stay loaded (their versions are pinned, and `lupa` cannot be loaded twice).
 
-[DESIGN.md](../DESIGN.md) is the detailed design; this page is the short overview.
 
 The add-on reads the game's textures, stock models and tables from the user's own installation.
