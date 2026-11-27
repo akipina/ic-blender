@@ -53,7 +53,7 @@ to load.
 
 ## Quick start
 
-This replaces the stock wolf with an edited one. The [guide](docs/guide/index.html#replace) covers each step in detail.
+This replaces the stock wolf with an edited one. The [guide](docs/guide/replace.md) covers each step in detail.
 
 1. **File > New > Impossible Creatures Project...** Choose **Creature**, start from **Wolf**, select **Replace the original wolf**,
    pick an empty folder and create the project.
@@ -67,20 +67,22 @@ alongside the stock animals.
 
 ## Documentation
 
-The user guide is in [docs/guide/index.html](docs/guide/index.html). Each chapter follows one task from a new project to the game:
+The [user guide](docs/guide/README.md) reads here on GitHub. These chapters each follow one task from a new project to the game:
 
-- [Getting started](docs/guide/index.html#start)
-- [Replacing a stock animal](docs/guide/index.html#replace)
-- [A new creature from a stock animal](docs/guide/index.html#newcreature)
-- [A creature from your own mesh](docs/guide/index.html#mesh)
-- [Gameplay numbers](docs/guide/index.html#numbers)
-- [Animations and motions](docs/guide/index.html#anim)
-- [Structures and props](docs/guide/index.html#structures)
-- [Gatherers and characters](docs/guide/index.html#gatherers)
-- [Effects, events and sounds](docs/guide/index.html#effects)
-- [Checking, exporting, installing and sharing](docs/guide/index.html#ship)
-- [Troubleshooting](docs/guide/index.html#trouble)
-- [Maps](docs/guide/index.html#maps)
+- [Getting started](docs/guide/start.md)
+- [Replacing a stock animal](docs/guide/replace.md)
+- [A new creature from a stock animal](docs/guide/newcreature.md)
+- [A creature from your own mesh](docs/guide/mesh.md)
+- [Gameplay numbers](docs/guide/numbers.md)
+- [Animations and motions](docs/guide/anim.md)
+- [Structures and props](docs/guide/structures.md)
+- [Gatherers and characters](docs/guide/gatherers.md)
+- [Effects, events and sounds](docs/guide/effects.md)
+- [Checking, exporting, installing and sharing](docs/guide/ship.md)
+- [Troubleshooting](docs/guide/trouble.md)
+- [Maps](docs/guide/maps.md)
+
+The same guide is also a single page, `docs/guide/index.html`, to open in a browser from a downloaded copy.
 
 Parts of the guide and its screenshots predate the latest interface changes. [docs/TODO.md](docs/TODO.md) lists what is out of date.
 
@@ -133,7 +135,7 @@ again.
 ## Support
 
 Blender shows the add-on's messages in the status bar and keeps them in the **Info** editor. A greyed-out button explains why in its
-tooltip. The [troubleshooting chapter](docs/guide/index.html#trouble) lists common messages. If the game does not start or does not
+tooltip. The [troubleshooting chapter](docs/guide/trouble.md) lists common messages. If the game does not start or does not
 show your content, see `warnings.log` in the test copy's folder.
 
 To report a problem, open an [issue](https://github.com/akipina/ic_blender/issues) with your operating system, Blender version and

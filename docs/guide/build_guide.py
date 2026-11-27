@@ -1,16 +1,19 @@
-"""Stitch the chapter fragments into index.html.
+"""Stitch the chapter fragments into index.html, and write the same chapters as Markdown pages for GitHub.
 
     .venv/bin/python3 ic_blender/docs/guide/build_guide.py
 
 Chapters are HTML fragments in chapters/<name>.html (one <section id=name> each, h2 title, h3 subsections);
 the navigation rail and the title cards are generated from their headings. Missing chapters are skipped
-with a warning so a partial guide still builds.
+with a warning so a partial guide still builds. The Markdown pages (README.md and <name>.md, see
+to_markdown.py) are generated too: edit the chapters, then run this script.
 """
 import datetime
 import html
 import os
 import re
 import sys
+
+import to_markdown
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ORDER = [("start", "Start here"), ("replace", "Replace one of the game's animals"),
@@ -79,9 +82,10 @@ def main():
     out = (tpl.replace("{{NAV}}", "\n".join(nav)).replace("{{CARDS}}", "\n".join(cards))
            .replace("{{CHAPTERS}}", "\n\n".join(body)).replace("{{DATE}}", datetime.date.today().isoformat()))
     open(os.path.join(HERE, "index.html"), "w").write(out)
+    pages = to_markdown.write(HERE, ORDER, BLURB, tpl)
     imgs = set(re.findall(r'src="img/([^"]+)"', out))
     missing = [i for i in imgs if not os.path.exists(os.path.join(HERE, "img", i))]
-    print(f"index.html: {len(body)} chapters, {len(imgs)} images" + (f", MISSING {missing}" if missing else ""))
+    print(f"index.html and {pages} Markdown pages: {len(body)} chapters, {len(imgs)} images" + (f", MISSING {missing}" if missing else ""))
 
 
 if __name__ == "__main__":

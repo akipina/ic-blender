@@ -18,8 +18,8 @@ Open items after the 0.9.2 alpha. The add-on's behaviour is ahead of parts of it
 ## Screenshots
 
 - Most screenshots predate the three-tab layout (IC Model / IC Game / IC Map) and the mirror fix (creatures face the other way).
-  Re-capture them with the scripts in `docs/guide/capture/` (they run on a virtual display) and rebuild `docs/guide/index.html`
-  with `docs/guide/build_guide.py`.
+  Re-capture them with the scripts in `docs/guide/capture/` (they run on a virtual display) and rebuild the guide (the HTML page and
+  the Markdown pages) with `docs/guide/build_guide.py`.
 - Add a current screenshot to the README.
 
 ## Interface
