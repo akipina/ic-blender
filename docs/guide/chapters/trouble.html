@@ -1,0 +1,226 @@
+<section id="trouble">
+<h2>Troubleshooting</h2>
+
+<p>When something does not work, read the message first. Blender shows the last message at the bottom of the window. The <strong>Info</strong> editor keeps all of them. To open it, click the editor-type button
+at the top left of any area and choose <strong>Info</strong>. (The Scripting tab at the top of Blender has one already.) The add-on's messages say what is wrong
+in plain words, and most say what to do. This chapter lists the ones you are most likely to meet, in the add-on's own words, and what to do. A word in angle brackets, such as &lt;folder&gt;, stands for the name in your message. A
+dots mark (...) means more text that depends on your case.</p>
+
+<h3>Most likely fixes</h3>
+
+<ol>
+  <li><strong>A button is grey.</strong> Hold the mouse over it. Blender says why. Usually you must select the creature or thing first, leave Edit Mode (press <kbd>Tab</kbd>), or choose an event in the list.</li>
+  <li><strong>The add-on says it has not found the game.</strong> In <strong>Edit &gt; Preferences &gt; Add-ons &gt; IC Blender</strong>, set <strong>Game folder</strong> to the folder that holds <code>IC.exe</code>.</li>
+  <li><strong>You have no test copy.</strong> Make one: <strong>IC Game</strong> tab &gt; <strong>Game</strong> panel &gt; <strong>Create Test Game Copy</strong>.</li>
+  <li><strong>The game still shows the old thing.</strong> Close the game and start it from the test copy, not from Steam (see &ldquo;The game shows nothing, or the old thing&rdquo; below).</li>
+  <li><strong>You cannot find a message.</strong> Open the <strong>Info</strong> editor (see above).</li>
+</ol>
+
+<p>If your message is not here, search this page (<kbd>Ctrl</kbd>+<kbd>F</kbd>) for the first few words. If it is still not there, send the whole message with your report (see the last section).</p>
+
+<p>Messages in <strong>red</strong> in a panel, or that start with <strong>Error</strong>, stop something. Messages that start with <strong>Warning</strong>, or that are in a grey line, are advice. You can go on.</p>
+<h3>The add-on does not show up or cannot find the game</h3>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>No game found. Set the Game folder above, or set the IC_INSTALL environment variable.</code></td><td>In <strong>Edit &gt; Preferences &gt; Add-ons &gt; IC Blender</strong>, set <strong>Game folder</strong> to the folder that holds <code>IC.exe</code>. Ignore the part about IC_INSTALL.</td></tr>
+<tr><td><code>No game folder found: set the Game folder in the add-on's preferences (Edit > Preferences > Add-ons, IC Blender), or set the IC_INSTALL environment variable.</code></td><td>The same. Until the game is found, the list <strong>Start from</strong> in the New Project window shows only <strong>Default skeleton</strong> (for a creature) or <strong>Another .sgm file...</strong> (for the other types).</td></tr>
+<tr><td><code>Parts of the add-on that could not be loaded (a red box in the preferences)</code></td><td>A part of the add-on did not start. The box says which part and why. Restart Blender. If it stays, install the zip again, and send the text of the box with your report.</td></tr>
+<tr><td><code>This was made with an older version of IC Blender. Import the original file again.</code></td><td>The <code>.blend</code> was saved with an add-on older than 0.9.2, which kept models flipped left to right. Open the model again with <strong>File &gt; Import</strong>, or start the project again. Nothing is changed behind your back.</td></tr>
+<tr><td><code>The model file &lt;name&gt; was changed on disk after it was opened here ... Import &lt;name&gt; again to carry on from the file as it is now.</code></td><td>Another program, or an export from another Blender session, changed the project's file. Import it again with <strong>File &gt; Import</strong>. In the creature panels the box <strong>Problems</strong> offers <strong>Relink Source</strong> for a file that moved.</td></tr>
+</table>
+</div>
+<h3>Making the test copy</h3>
+<p>These come from <strong>Create Test Game Copy</strong>. The window shows the first one before you press <strong>Create Copy</strong>.</p>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>&lt;folder&gt; is inside a Steam library. Steam owns that folder: it rewrites it and would wipe the copy. Choose a folder somewhere else (your Documents, for example).</code></td><td>Choose a folder outside every Steam library.</td></tr>
+<tr><td><code>That is the game folder itself. Choose a new folder for the copy. / &lt;folder&gt; is inside the game folder it would copy. Choose a folder outside the game. / &lt;folder&gt; holds the game folder it would copy. Choose a new, empty folder.</code></td><td>The copy must be a new folder of its own, not the game folder, not inside it and not around it.</td></tr>
+<tr><td><code>&lt;folder&gt; already has files in it. Choose a new or an empty folder: the copy must not mix with other files.</code></td><td>Choose a new or empty folder.</td></tr>
+<tr><td><code>&lt;folder&gt; already is a test copy of the game. Set it as the Test game folder instead of making another (or delete the folder first to start again).</code></td><td>Set that folder as <strong>Test game folder</strong> in the preferences, or delete it and make the copy again.</td></tr>
+<tr><td><code>&lt;folder&gt; is not a game folder (it has no Engine.sga). / The game folder does not exist. Set the Game folder in the add-on's preferences.</code></td><td>The <strong>Game folder</strong> is wrong. It must be the folder that holds <code>IC.exe</code> and <code>Engine.sga</code>.</td></tr>
+<tr><td><code>A test copy is already being made. Wait for it, or press Cancel.</code></td><td>Wait for the percentage in the Game panel to finish, or press <strong>Cancel</strong>.</td></tr>
+<tr><td><code>This copy was not finished (the copy was interrupted). Delete the folder and press Create Test Game Copy again.</code></td><td>Do what it says.</td></tr>
+<tr><td><code>The window shows the free space in red</code></td><td>There is not enough room. Choose another disk, or free some space. A copy with links is about half a gigabyte, a full copy about 5 GB.</td></tr>
+</table>
+</div>
+<h3>Installing and removing</h3>
+<p>These come from the <strong>Game</strong> panel, box <strong>3. Install into Test Game</strong>.</p>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>No Test game folder is set. Make a copy of the game and set it in the add-on's preferences (Test game folder).</code></td><td>Press <strong>Create Test Game Copy</strong>. It sets the folder for you.</td></tr>
+<tr><td><code>The Test game folder &lt;folder&gt; does not exist. Fix it in the add-on's preferences.</code></td><td>The folder was moved or deleted. Set it again, or make a new copy.</td></tr>
+<tr><td><code>&lt;folder&gt; is the Game folder of the add-on, the original game. Install into a copy of the game (set it as the Test game folder), or tick the box in the preferences if you really mean this folder.</code></td><td>Your <strong>Test game folder</strong> is the same as your original game. Make a test copy and use that. Do not tick the box.</td></tr>
+<tr><td><code>&lt;folder&gt; is the Steam game folder. Steam rewrites it and would wipe the item. Use a copy of the game as the Test game folder, or tick the box in the preferences if you really mean this folder.</code></td><td>The same, for a folder inside a Steam library. Use a test copy.</td></tr>
+<tr><td><code>No item folder yet: export the project for the game first, or pick an item folder in the Game panel.</code></td><td>Export first (step 2), or set <strong>Item folder</strong> to an item folder.</td></tr>
+<tr><td><code>The game would not take this item as it is, so nothing was installed. ... Fix this and export again, or press Install Anyway in the Game panel to install it as it is.</code></td><td>The lines after it say what is wrong. Fix it and export again. <strong>Install Anyway</strong> installs the item as it is, and it may not work.</td></tr>
+<tr><td><code>&lt;file&gt; was changed after it was exported (it no longer matches the list in the manifest). Export the item again.</code></td><td>A file in the item folder was edited after the export. Export again.</td></tr>
+<tr><td><code>&lt;file&gt; is left over from an earlier export: the item's list of files does not name it. Delete it from the item folder.</code></td><td>Delete that file from the item folder.</td></tr>
+<tr><td><code>&lt;file&gt; is named in the item's list of files but is not in the folder. Export the item again.</code></td><td>A file was deleted from the item folder. Export again.</td></tr>
+<tr><td><code>&lt;file&gt; has capital letters in its name; the game asks for lower-case names (rename it to lower case).</code></td><td>Rename the file in lower case, or export again.</td></tr>
+<tr><td><code>&lt;file&gt; is a settings file; an item may not carry one. / ... sits next to the data folder; everything must be inside the data folder. / ... is a shortcut (a symbolic link), not a real file; items hold real files only.</code></td><td>Take that file out of the item folder. An item holds only real files inside its <code>data</code> folder.</td></tr>
+<tr><td><code>This item holds program code (a .dll, compiled Lua or scripts that run). The add-on installs data items only: install it anyway only if you made it and trust it.</code></td><td>Do not install something you did not make and do not trust. The add-on installs models, pictures, sounds and settings, not programs.</td></tr>
+<tr><td><code>&lt;file&gt; is a model the game would not load correctly. / ... is damaged or not in the format the game reads.</code></td><td>Export the item again from Blender. If it happens again, send the message with your report.</td></tr>
+<tr><td><code>Advice: &lt;file&gt; differs from the game's own models (advice only; the game may still load it): ...</code> (a yellow line after the install message)</td><td>Nothing to do. It is advice, not a refusal. The install went ahead. Only the red box with <strong>Install Anyway</strong> is a refusal.</td></tr>
+<tr><td><code>Advice: ... is not something the Steam Workshop takes for sharing; the game still loads it.</code></td><td>Ignore it. You are not using the Steam Workshop. The game loads the files.</td></tr>
+<tr><td><code>The install stopped: ... Anything already written was taken back; press Remove if the item is listed.</code></td><td>Usually the disk is full, or a file is in use. Close the game, free some space and press <strong>Install into Test Game</strong> again.</td></tr>
+<tr><td><code>&lt;item&gt;.lst is in the game folder and was not made by this add-on (another tool's item): choose another item id</code></td><td>Another tool installed an item with that name. Export under another name.</td></tr>
+<tr><td><code>&lt;folder&gt;: a symbolic link where a folder goes (a game copy made of links cannot be written to without changing the original)</code></td><td>A folder in your copy is a link to the original. The install refuses so that it cannot change the original game. Make the test copy again with <strong>Create Test Game Copy</strong>.</td></tr>
+<tr><td><code>The creature list of &lt;mod&gt; was NOT changed: ... (or) ... is not a plain list of names, so it was NOT changed and the new creature is not offered in that mod.</code></td><td>A mod's creature list could not be written, or you edited it by hand. Add your creature's name to that list yourself (the README of a zip made by <strong>Pack for Sharing</strong> shows the line). The creature shows in the other mods.</td></tr>
+<tr><td><code>N file(s) of this item are also in the folder of the mod ... The game keeps loading that copy there, not the new file.</code></td><td>A file of that name in a mod's folder (or in <code>DataMOD</code>) comes first. Play without that mod, or remove that file from the copy.</td></tr>
+<tr><td><code>&lt;item&gt; is not installed / &lt;item&gt; was not installed by this add-on (its uninstall list is another tool's); it is left alone</code></td><td>Nothing to remove here. Another tool owns that item.</td></tr>
+<tr><td><code>The removal stopped: ... Press Remove again once the file is free.</code></td><td>Close the game and press <strong>Remove</strong> again.</td></tr>
+</table>
+</div>
+<h3>Starting a project</h3>
+<p>These come from <strong>File &gt; New &gt; Impossible Creatures Project...</strong>. The file window has closed when you read them.</p>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>Could not start the project: 'cheetah' is the name of a creature the game already has: choose another name</code></td><td>Open <strong>File &gt; New &gt; Impossible Creatures Project...</strong> again and type another file name (lower case, no spaces, 3 to 24 characters).</td></tr>
+<tr><td><code>Could not start the project: 'my cheetah' is not a usable creature name: use 3 to 24 letters (a-z), digits or underscores</code></td><td>The same. Use letters, digits and underscores only, for example <code>my_cheetah</code>.</td></tr>
+<tr><td><code>Could not start the project: my_cheetah.sgm is already there: choose another name (nothing was overwritten)</code></td><td>The folder holds an earlier project of that name. Choose another folder or another name.</td></tr>
+</table>
+</div>
+<h3>What the common warnings mean</h3>
+<p>A warning is advice, not a stop sign. A creature made from a game animal shows about a dozen of these. The original animal has the same ones.</p>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What it means</th></tr>
+<tr><td><code>N warning(s): the Info editor lists them</code></td><td>The check found advice, no problem. Read the lines in the Info editor. Only lines in red must be fixed.</td></tr>
+<tr><td><code>The clip '&lt;clip&gt;' is not played by any motion, so the game never plays it ...</code></td><td>The animation is in the file, but no rule tells the game when to play it. Harmless for the game's own animals (they have such clips). For a clip of your own, see <a href="#anim">Animations and motions</a>.</td></tr>
+<tr><td><code>the creature creator picture is still the original &lt;animal&gt;'s (give an icon picture to change it)</code></td><td>The creature creator still shows the original animal's picture. Choose an <strong>Icon picture</strong> when you export, or keep <strong>Make the icon from the creature</strong> ticked.</td></tr>
+<tr><td><code>This REPLACES the game's own &lt;name&gt; ...</code></td><td>This is the notice for a replacement. It is what you chose. See <a href="#replace">Replace one of the game's animals</a>.</td></tr>
+</table>
+</div>
+<h3>Changing parts of a model (buildings, workers, props)</h3>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td>A button in the <strong>Parts</strong> panel is grey</td><td>Press <kbd>Tab</kbd> to leave Edit Mode. These buttons work only in Object Mode.</td></tr>
+<tr><td><code>Select the new mesh, then the part to replace (last)</code></td><td>Click your mesh, then <kbd>Shift</kbd>-click the model's part last, so that it is the active one. Press the button again.</td></tr>
+<tr><td><code>Select ONE mesh to put in the part (join several with Ctrl+J first)</code></td><td>Join your meshes into one (select them, press <kbd>Ctrl</kbd>+<kbd>J</kbd>), then try again.</td></tr>
+<tr><td><code>Select the meshes to add (not parts of a model) and the model's part last</code></td><td>Select your new mesh, then a part of the model last. The mesh must not be a part already.</td></tr>
+<tr><td><code>Select the new mesh, then any part of the model (last)</code></td><td>Click your mesh, then <kbd>Shift</kbd>-click any part of the model last.</td></tr>
+</table>
+</div>
+<h3>A creature from your own mesh</h3>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>Choose a target mesh (the shape the creature should take)</code></td><td>The window opened with <strong>Target Mesh</strong> empty. Press the button again and choose your mesh in <strong>Target Mesh</strong> before you press OK.</td></tr>
+<tr><td><code>... a creature is one closed skin. Merge by Distance or separate extra shells (Edit Mode: P &gt; By Loose Parts) and retarget to the skin alone</code></td><td>Your mesh has loose parts. Select it, press <kbd>Tab</kbd>, then <strong>Mesh &gt; Clean Up &gt; Merge by Distance</strong>. If it is several pieces on purpose, use <strong>Fit Patches to Mesh</strong> with <strong>Fit Separate Pieces</strong> ticked.</td></tr>
+<tr><td><code>&lt;mesh&gt;'s object transform was ignored (the fit is in its local space): apply the transform first ...</code></td><td>Select the mesh, press <kbd>Ctrl</kbd>+<kbd>A</kbd> and choose <strong>All Transforms</strong>, then fit again.</td></tr>
+<tr><td><code>Patch budget 300 is over 263: it will load, but may not combine</code></td><td>Lower <strong>Patch Budget</strong> (in the panel at the bottom left after the fit) if you want the creature to combine.</td></tr>
+</table>
+</div>
+<h3>Animations and motions</h3>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>There is already a clip or an Action called '&lt;name&gt;'. Choose another name.</code></td><td>Press the button again and type a name the rig does not have.</td></tr>
+<tr><td><code>Give the clip a name of 1 to 32 characters.</code></td><td>Type a name.</td></tr>
+<tr><td><code>The rig has no clip to start from. Borrow Clips... brings clips from another model ...</code></td><td>Press <strong>Borrow Clips...</strong> in the <strong>Motions</strong> panel.</td></tr>
+<tr><td><code>Few bones share names with that model: its clips will move little.</code></td><td>The other model's bones have other names than yours, so the borrowed animation hardly moves. Borrow from a model with the same skeleton.</td></tr>
+<tr><td><code>Borrowing failed (...). Press Ctrl+Z to undo what it did ...</code></td><td>Press <kbd>Ctrl</kbd>+<kbd>Z</kbd>, then try another model or file.</td></tr>
+</table>
+</div>
+<h3>Effects, events and sounds</h3>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>Name the clip first (type it in the Clip box above the list) ...</code></td><td>The model has no clip yet. Type a clip name in the <strong>Clip</strong> box of the Events box.</td></tr>
+<tr><td><code>Choose an event first.</code></td><td>Click an event in the list in <strong>Events</strong>, then try again.</td></tr>
+<tr><td><code>The clip '&lt;clip&gt;' has no event that starts an effect.</code></td><td>Nothing to show for that clip. Choose an event of the clip, give it an <strong>Effect</strong>, and try again.</td></tr>
+<tr><td><code>Copy the effect into your project first (Copy to my project).</code></td><td>A game effect cannot be edited in place. Press <strong>Copy to my project</strong> in <strong>Effect editor</strong>.</td></tr>
+<tr><td><code>There is an effect called '&lt;name&gt;' already ...: choose another name.</code></td><td>Type another name.</td></tr>
+<tr><td><code>This creature has no animation clips yet, so no event of another animal fits it. Import or make its clips first.</code></td><td>Make or borrow clips first (<a href="#anim">Animations and motions</a>), then copy the events.</td></tr>
+<tr><td><code>The blueprint the events were read from has changed since ... Press Load events ...</code></td><td>Press <strong>Load events</strong> again. It reads the file as it is now and drops the event changes you had not exported.</td></tr>
+<tr><td><code>The game cannot play ... sound ... Save the sound again as WAV with plain PCM, 16 bit.</code></td><td>Open the sound in a sound program and save it again as a WAV file, 16 bit, plain PCM.</td></tr>
+</table>
+</div>
+<h3>Exporting a creature</h3>
+<p>These come from <strong>Export Creature for the Game</strong> and <strong>Check the Creature</strong>.</p>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>... connection ring 'head' missing ... / Export for the Game refused: nothing was written</code></td><td>The same problem as the next row, seen from the export button: the creature has no connection rings. See below.</td></tr>
+<tr><td><code>This creature has no connection rings, so the creature creator cannot use it and Export for the Game refuses it. Use Retarget Creature to Mesh (IC Model tab, Tools) to get a creature with rings.</code></td><td>The creature came from <strong>Fit Patches to Mesh</strong>, which makes the shape only. Start from a game animal and use <strong>Retarget Creature to Mesh</strong> (<a href="#mesh">A creature from your own mesh</a>).</td></tr>
+<tr><td><code>the creature would not load: ... / Export for the Game refused: fix these first (Check the Creature lists them all)</code></td><td>Press <strong>Check the Creature</strong> and read the red lines in the <strong>Info</strong> editor. Each says what to fix. If you deleted, merged or duplicated vertices, press <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</td></tr>
+<tr><td><code>N control points used by patches have no bone (points ...): the game needs every patch point skinned to a bone. Boner > Bones > Select Unassigned selects them (orange in the By Bone overlay); assign them to a bone or run Auto Skin</code></td><td>In Edit Mode, press the small <strong>Select</strong> button next to the line &ldquo;Unassigned: N&rdquo; in the <strong>Boner</strong> panel (<strong>Bones</strong>). Then press <strong>Assign Selected</strong> or <strong>Auto Skin</strong> (<a href="#skin">Skinning and re-skinning</a>). The button appears only in Edit Mode.</td></tr>
+<tr><td><code>The name '&lt;name&gt;': 3 to 24 characters of a-z, 0-9 and _ (lower case, no spaces)</code></td><td>Change <strong>Name</strong> in the export window. A red line shows the problem as you type.</td></tr>
+<tr><td><code>&lt;name&gt; is a game animal's name: choose 'Replace the original &lt;name&gt;' to change that animal, or another name</code></td><td>Pick <strong>Replace the original ...</strong> in the export window, or give the creature another name.</td></tr>
+<tr><td><code>There is no game animal to replace: this creature was not started from one of the game's own animals. Choose 'A new creature of my own'.</code></td><td>Only a project started from an animal of the base game or of Insect Invasion can replace it.</td></tr>
+<tr><td><code>The folder &lt;folder&gt; exists and is not an earlier export of &lt;name&gt; ... so nothing was written and nothing of yours is lost. Choose another folder or another name.</code></td><td>The export folder holds something else (maybe your project). Choose another <strong>Folder</strong>.</td></tr>
+<tr><td><code>That is the game's own folder. Write into a separate folder ... / That folder is inside Steam's game folders. Write into a separate folder ...</code></td><td>Choose a folder of your own for the export.</td></tr>
+<tr><td><code>N numbers are outside what the export accepts: Export Creature for the Game will refuse them.</code></td><td>In <strong>Creature Stats</strong> the numbers in red are too big or too small. Fix them or press their circle arrow (<a href="#numbers">Gameplay numbers</a>).</td></tr>
+<tr><td><code>The game would not load this effect: ... (fix it in Effects and events &gt; Effect editor). / The file '&lt;file&gt;' has a space in its name, and an item cannot list a file like that.</code></td><td>Open <strong>IC Game &gt; Effects and events &gt; Effect editor</strong>. Fix the effect named, or delete the file with the space and copy the effect from the game again.</td></tr>
+<tr><td><code>The event '&lt;name&gt;' names no clip, so the game never runs it.</code></td><td>Give the event a <strong>Clip</strong> in the Events box, or delete it.</td></tr>
+<tr><td><code>The clip '&lt;clip&gt;' is not played by any motion, so the game never plays it. Give it a motion: in the Motions box press Add Copy, choose this clip and set when it plays ...</code></td><td>See <a href="#anim">Animations and motions</a>.</td></tr>
+<tr><td><code>The rig has no clip called '&lt;clip&gt;': this motion would do nothing.</code></td><td>A motion names a clip the rig does not have (it was renamed or deleted). Choose a clip for the motion, or make the clip.</td></tr>
+<tr><td><code>No icon was made for the creature creator: ... It shows the original's picture; choose an icon picture or press Icon from this view in a 3D view, then export again</code></td><td>Blender could not draw the picture (no graphics card or driver in that session). The export still worked. Choose an <strong>Icon picture</strong> if you want your own.</td></tr>
+</table>
+</div>
+<h3>Exporting a structure, a prop, a worker, a character or an effect</h3>
+<p>These come from <strong>Check</strong> and <strong>Export Entity Folder</strong>.</p>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>The game would not accept these files (N errors), so nothing was written: (1) ... Tick 'Export anyway' to write them regardless.</code></td><td>Press <strong>Check</strong> to see every error. Fix them. <strong>Export anyway</strong> writes the files regardless, and the game may refuse them.</td></tr>
+<tr><td><code>There is no blueprint (.ebp) file beside the model. Import the model from the game's own files, or start a project from one of the game's things.</code></td><td>Start the project with <strong>File &gt; New &gt; Impossible Creatures Project...</strong>. That brings the blueprint.</td></tr>
+<tr><td><code>There is no thing of the game to replace: this model was not started from one of the game's own things ... Choose 'A new name of my own'.</code></td><td>Only a project started from one of the game's things can replace it.</td></tr>
+<tr><td><code>Export to &lt;file&gt; refused: it is this model's own blueprint, and ... would be applied a second time by the next export. Export under another name</code></td><td>You tried to write onto the project's own file with a change that cannot be repeated (a renamed bone, a new part, a changed texture). Choose a folder and name of your own.</td></tr>
+<tr><td><code>The blueprint file '&lt;file&gt;' changed on disk after it was loaded. Press Reset to read it again ...</code></td><td>Press <strong>Reset</strong> in the <strong>Blueprint</strong> panel. This throws away blueprint changes you have not exported.</td></tr>
+<tr><td><code>This blueprint carries its model inside itself, so there is no separate .sgm file to write beside it.</code></td><td>This kind of blueprint can be looked at but not exported yet.</td></tr>
+<tr><td><code>part '&lt;name&gt;' comes to N vertices once split at UV seams and flat faces; the game draws at most 12,288 per part. Reduce its detail (Decimate, fewer seams) or split it into two parts</code></td><td>Do what it says. Apply a Decimate modifier to the part, or make it two parts.</td></tr>
+<tr><td><code>N vertices of '&lt;part&gt;' are weighted only to deleted bone(s) ..., so they follow no bone in Blender. Undo the delete and use Armature > Delete Bones, Merge Weights (it hands the weights to the parent), or weight those vertices to another bone</code></td><td>Do what it says. Delete bones with <strong>Armature &gt; Delete Bones, Merge Weights</strong>, not with <kbd>X</kbd>.</td></tr>
+<tr><td><code>bones '&lt;a&gt;' and '&lt;b&gt;' have the same name ignoring case ... / bone '&lt;name&gt;...' has a N-character name; the game reads at most ... / bone '&lt;name&gt;' (the first bone) cannot be deleted ...</code></td><td>Rename the bone. Bone names are at most 79 characters. The first bone must stay.</td></tr>
+<tr><td><code>The game needs power-of-two sides, at most 1024: export refuses this (a red line in the IC Material panel)</code></td><td>Use <strong>Replace Image</strong> with <strong>Scale to a size the game takes</strong> ticked, or resize the picture.</td></tr>
+</table>
+</div>
+<h3>Sharing and installing a zip</h3>
+<p>These come from the box <strong>4. Share</strong>.</p>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>The item has problems the game would refuse, so it was not packed for sharing: ...</code></td><td>Fix them and export again, or tick <strong>Pack anyway</strong> in the options of the file window (the panel at the right).</td></tr>
+<tr><td><code>&lt;zip&gt; already exists. Choose another name, or replace it. / &lt;zip&gt; exists and is not a zip file, so it is not replaced.</code></td><td>Choose another name, or pick the existing zip in the file window to replace it. Only a zip is ever replaced.</td></tr>
+<tr><td><code>The zip cannot be written inside the item's own folder / ... inside a Steam library</code></td><td>Save the zip somewhere else.</td></tr>
+<tr><td><code>&lt;folder&gt; has no data folder with files in it: export the project for the game first.</code></td><td>Export first.</td></tr>
+<tr><td><code>&lt;file&gt; is not a zip file the add-on can open ... / The zip is refused: ... is password protected / ... is a symbolic link / ... would unpack to more than ...</code></td><td>The add-on refuses anything unsafe. Ask the author for a plain zip made with <strong>Pack for Sharing</strong>.</td></tr>
+<tr><td><code>The item is refused: it holds files outside the data folder (...). An item may only hold a data folder; the game reads nothing else from it.</code></td><td>The zip is not an item. Ask the author, or copy its <code>data</code> folder in by hand.</td></tr>
+<tr><td><code>The item is refused: '&lt;a&gt;' and '&lt;b&gt;' differ only by capital letters. Windows cannot hold both.</code></td><td>The zip is made badly. Ask the author.</td></tr>
+<tr><td><code>The check refused &lt;name&gt;: ... (in the Share box, with Install Anyway)</code></td><td>Read the reasons. <strong>Install Anyway</strong> installs it as it is, and it may not work.</td></tr>
+</table>
+</div>
+<h3>The game shows nothing, or the old thing</h3>
+<div class="tablewrap">
+<table>
+<tr><th>What you see</th><th>What to do</th></tr>
+<tr><td><code>Nothing in the add-on says anything, and the game shows the old thing.</code></td><td><ol>
+<li>Close the game and start it again from the test copy.</li>
+<li>Check that you started the game from the <strong>test copy</strong>, not from the Steam game.</li>
+<li>Look at the <strong>Installed here</strong> list: is the item there?</li>
+<li>For a creature with a new name, look in the creature creator of the right game (base game, Insect Invasion, Tellurian).</li>
+<li>A thing with a name of its own shows only where a map places it.</li>
+<li>A file of that name in a mod's folder or in <code>DataMOD</code> comes first (the install says so).</li>
+<li>Read <code>warnings.log</code> in the test copy's folder.</li>
+</ol></td></tr>
+<tr><td><code>The creature is not in the campaign.</code></td><td>In the campaign the army builder offers only the animals the campaign has unlocked. It shows in skirmish and in the free creature creator.</td></tr>
+<tr><td><code>The game does not start from the test copy.</code></td><td>The Steam version starts only while Steam is running. Make sure Steam is open and signed in. On Linux, <code>IC.exe</code> is a Windows program, so it must run through Wine or Proton (see <a href="#start">Start here</a>, &ldquo;Start the game&rdquo;). We have not tried every route.</td></tr>
+</table>
+</div>
+<h3>Making a report</h3>
+
+<p>Open an issue on the add-on's page and include:</p>
+
+<ul>
+  <li>your operating system, your Blender version and the add-on's version (<strong>Edit &gt; Preferences &gt; Add-ons &gt; IC Blender</strong>);</li>
+  <li>what you did, step by step;</li>
+  <li>the exact message, copied from the <strong>Info</strong> editor;</li>
+  <li>the last lines of <code>warnings.log</code> in the test copy's folder, if the game was involved.</li>
+</ul>
+
+</section>

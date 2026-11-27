@@ -28,9 +28,9 @@ MAX_LINES = 14
 
 
 def cursor_centre(context) -> tuple:
-    """The 3D cursor as a game position (x, z) in metres (Blender's y is the game's -z)."""
+    """The 3D cursor as a game position (x, z) in metres (Blender's x, y are the game's -x, -z)."""
     c = context.scene.cursor.location
-    return (float(c.x), float(-c.y))
+    return (float(-c.x), float(-c.y))
 
 
 def _problem_lines(problems: list) -> list:
@@ -63,7 +63,7 @@ def draw_area(context, top, region) -> object:
     if terrain is not None:
         level = max(v[2] for v in terrain.bound_box) + 2.0 if len(terrain.data.vertices) else 0.0
     lo, hi = region.lo, region.hi
-    pts = [(lo[0], -lo[1], level), (hi[0], -lo[1], level), (hi[0], -hi[1], level), (lo[0], -hi[1], level)]
+    pts = [(-lo[0], -lo[1], level), (-hi[0], -lo[1], level), (-hi[0], -hi[1], level), (-lo[0], -hi[1], level)]
     me = bpy.data.meshes.new(f"Crop area {X.map_name(top)}")
     me.from_pydata(pts, [(0, 1), (1, 2), (2, 3), (3, 0)], [])
     me.update()

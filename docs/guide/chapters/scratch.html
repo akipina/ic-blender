@@ -13,16 +13,15 @@ it. At Detail 1 it has:</p>
 <li>a closed body of 248 patches with torso, head, tail and four legs;</li>
 <li>13 limbs (wings and front arms are empty stubs) and 12 connection rings;</li>
 <li>a labelled checker texture;</li>
-<li>the 9 standard clips and the base-game IK chains.</li>
+<li>the 8 standard clips and the base-game IK chains.</li>
 </ul>
 <p>The options are <em>Name</em>, <em>Detail</em> 1–3 (1 is coarsest), <em>Standard Clips</em>, <em>IK Chains</em> and
 <em>Clips as Actions</em>.</p>
 
 <h3>1. New Creature (From Scratch)</h3>
 <ol>
-<li>Press <kbd>N</kbd> and open the <strong>IC</strong> tab.</li>
-<li>Click <strong>IC Blender &gt; New Creature (From Scratch)</strong>, or <strong>Add &gt; Impossible Creatures Creature
-(From Scratch)</strong>.</li>
+<li>Press <kbd>N</kbd> and open the <strong>IC Model</strong> tab.</li>
+<li>Click <strong>IC Model</strong> tab &gt; <strong>New Creature (From Scratch)</strong>.</li>
 <li>Set <em>Name</em> to <code>Rhino</code>, keep <em>Detail</em> 1, save as <code>rhino.sgm</code>.</li>
 <li>Set the shading to <em>By Limb</em> and tick <em>Show Connections</em>.</li>
 </ol>
@@ -46,7 +45,7 @@ part; proportional editing (<kbd>O</kbd>) keeps it smooth.</li>
 <figcaption>After shaping; the bones have not moved.</figcaption></figure>
 <figure><img src="img/scratch_shape_persp.jpg" alt="Reshaped rhino in perspective">
 <figcaption>The rough rhino.</figcaption></figure>
-<p>Moving points does not move bones: edit the armature, then re-key the clips so their bounds update.</p>
+<p>Moving points does not move bones: edit the armature. Export gives the clips it keeps new bounds when the body's size changed, so no re-keying is needed for that.</p>
 
 <h3>3. A horn: pull it out, give it a bone, skin it</h3>
 <p><strong>Extrude Patch</strong> needs an open side and the scaffold is closed, so pull the horn from existing
@@ -100,7 +99,7 @@ Action Editor.</li>
 <li>For a new clip, select the rig, create an Action named <code>headbob</code>, enter Pose Mode
 (<kbd>Ctrl</kbd>+<kbd>Tab</kbd>) and key the rotation of <code>neck2</code>, <code>neck3</code> and <code>head</code> at
 frames 1, 11 and 21, head down at 11.</li>
-<li>Export adds it as a new clip.</li>
+<li>Export adds it as a new clip. For the game to play it, it also needs a motion: see <a href="#anim">Animations and motions</a>.</li>
 </ol>
 <figure><img src="img/scratch_actions.jpg" alt="Idle1 keys in the Dope Sheet">
 <figcaption>The <em>Idle1</em> clip.</figcaption></figure>
@@ -110,22 +109,28 @@ frames 1, 11 and 21, head down at 11.</li>
 
 <h3>7. Validate, Combine Preview, Export</h3>
 <ol>
-<li>Press <strong>Validate (will it load?)</strong> with <em>Combine Checks</em> on <em>Quick</em>. Two warnings are
-expected and do not block: old clip bounds, and no <code>.lua</code> file (a combine keeping these legs gets zero ground
+<li>Press <strong>Validate (will it load?)</strong> with <em>Combine Checks</em> on <em>Quick</em>. One warning is
+expected and does not block: no <code>.lua</code> file (a combine keeping these legs gets zero ground
 speed).</li>
 <li>In <strong>Combine Preview</strong> choose <em>This Creature Is the Torso</em>, <em>Stock</em>, <code>bull</code>,
 tick only <em>Head</em> and click <strong>Preview</strong>.</li>
-<li>Click <strong>Export Model</strong> and save as <code>rhino_done.sgm</code>.</li>
+<li>Click <strong>Export Model</strong> and save as <code>rhino_done.sgm</code> (a model file you can open again later).</li>
 </ol>
-<figure><img src="img/scratch_validate.jpg" alt="Validate button with Quick checks">
-<figcaption>Validating the rhino.</figcaption></figure>
 <figure><img src="img/scratch_combine.jpg" alt="Rhino body with a bull head">
 <figcaption>Rhino torso with a bull head.</figcaption></figure>
 <figure><img src="img/scratch_export.jpg" alt="Horn bone ready for export">
 <figcaption>Ready to export.</figcaption></figure>
 
-<h3>8. Prove it loads</h3>
-<p>Open <code>rhino_done.sgm</code> in the game's Object Editor. To play it, the creature also needs <code>.ebp</code>,
-<code>.lua</code> and <code>.lsc</code> files.</p>
+<h3>8. Take it into the game</h3>
+<p>A creature built from the template has no game animal behind it, so the export has no original to copy. It makes the blueprint for you, from your clips, and starts the numbers from the
+cheetah's. The export window says so (&ldquo;Built from nothing: a generated blueprint&rdquo;; the field <strong>Start stats from</strong> lets you pick another animal to start the numbers from).</p>
+<ol>
+<li>Open the <strong>IC Game</strong> tab, <strong>Game</strong> panel. Press <strong>Check the Creature</strong>.</li>
+<li>Press <strong>Export Creature for the Game</strong>. Give it a name such as <code>my_rhino</code> and a display name, and press <strong>OK</strong>.</li>
+<li>Press <strong>Install into Test Game</strong> and start the game from the test copy.</li>
+</ol>
+<p>The chapter <a href="#newcreature">A new creature from a game animal</a> shows these steps in full. A creature built from the template with a generated blueprint was loaded by a test build of the
+game from a script (it was listed in the creature creator, combined with a baboon and used in a skirmish without an error). Its skin is a plain checker pattern, so a combined creature looks patchy.
+Nobody has looked at one in the game.</p>
 
 </section>

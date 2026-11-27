@@ -56,11 +56,11 @@ class BZ_OT_validate(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return store.is_native(context.active_object)
+        return store.active_creature(context) is not None            # the creature, or its rig
 
     def execute(self, context):
         from . import ops
-        obj = context.active_object
+        obj = store.active_creature(context)
         # Judge the creature Export would write (in memory): limb, ring, skeleton, skinning and Action edits
         # are all in it, and a grown creature is checked as grown (not as "vertex count changed").
         model = None
@@ -76,30 +76,61 @@ class BZ_OT_validate(bpy.types.Operator):
             problems = [f"export failed, so there is nothing to validate: {type(e).__name__}: {e}"]
         problems += core.check_structure(store.limb_names(obj), store.patch_limb(obj),
                                          store.connections(obj), store.bone_names(obj), store.limb_ids(obj))
+        if model is not None:                      # clip names the game will not play (decomp MotionTree::Build wiring)
+            from . import startcheck
+            problems += startcheck.clip_lines(model, store.source_path(obj))
         from . import trimops                      # A5: surface the recorded fit / retarget target does not have
         problems += trimops.validate_lines(obj, context)
         problems += self._combine_checks(context, obj, model)
+        obj["bz_check_numbers"] = []                      # the numbers of an earlier Check are stale when this one stops before the export check
+        if model is not None and not core.blocking(problems):
+            # What Export for the Game would refuse (the item check, events, motions, numbers): found now, so a creature that passes
+            # Check is one Export accepts. Nothing is written.
+            from . import gameexport
+            ex_err, ex_warn = gameexport.check_lines(obj, context)
+            # A creature that is still being built (it has connection rings, and the checks above list something every game creature has and
+            # this one lacks, e.g. one ring) cannot be exported or combined YET: that is said as a warning with what to do, not as an error,
+            # so the modelling tools carry on. A creature with no rings at all (a plain mesh) is not being built on, it needs Retarget
+            # Creature to Mesh, and with nothing of that kind missing an export refusal stays an error.
+            unfinished = any(p.startswith("STOCK") for p in problems) and bool(store.connections(obj))
+            for e in ex_err:
+                if e in problems:
+                    continue
+                if unfinished and e.startswith("the game would not take the item"):
+                    todo = ("Create the missing connection (Boner, Create Connection) and pick its ring, "
+                            if "connection ring" in e else "Add what the other lines say this creature lacks, ")
+                    problems.append(f"WARN export: Export for the Game and the creature creator cannot take this creature yet: {e} {todo}"
+                                    "then press Check again. Until then you can go on modelling.")
+                else:
+                    problems.append(e)
+            problems += [f"WARN export: {w}" for w in ex_warn if not any(w in p for p in problems)]
         errs = core.blocking(problems)
         stock = [p for p in problems if p.startswith("STOCK")]
         warns = [p for p in problems if p.startswith("WARN")]
         combine = [p for p in problems if p.startswith(("COMBINE ERROR", "COMBINE WARN"))]
         obj["bz_validation"] = problems
+        numbers = [str(t) for t in obj.get("bz_check_numbers", [])] if model is not None else []        # what the changed numbers come to (gameexport.check_lines)
         if not [p for p in problems if not p.startswith("COMBINE INFO")]:
-            self.report({"INFO"}, "Valid: should load in the Object Editor, complete as a stock creature"
+            self.report({"INFO"}, "Valid: the game should load this creature, and Export for the Game accepts it"
                                   + (", and combines right" if any(p.startswith("COMBINE INFO ") and " designs (" in p
                                                                    for p in problems) else ""))
+            for t in numbers:
+                self.report({"INFO"}, t)
             return {"FINISHED"}
+        from .sceneobj.ui_kit import plain
         for p in errs:
-            self.report({"ERROR"}, p)
+            self.report({"ERROR"}, plain(p))
         for p in stock + warns + combine:
-            self.report({"WARNING"}, p)
+            self.report({"WARNING"}, plain(p))
+        for t in numbers:
+            self.report({"INFO"}, t)
         tail = f", {len(combine)} combine issue(s)" if combine else ""
         if errs:
-            self.report({"ERROR"}, f"{len(errs)} problem(s) block loading, {len(stock)} stock-rulebook gap(s), "
-                                   f"{len(warns)} warning(s){tail} -- see info log")
+            self.report({"ERROR"}, f"{len(errs)} problem(s) stop the game loading or exporting this creature, {len(stock)} thing(s) every "
+                                   f"game creature has and this one lacks, {len(warns)} warning(s){tail}. The Info editor lists them")
         else:
-            self.report({"WARNING"}, f"Loads in the Object Editor; {len(stock)} stock-rulebook gap(s) (things every "
-                                     f"base-game creature has), {len(warns)} warning(s){tail} -- see info log")
+            self.report({"WARNING"}, f"The game loads this creature; {len(stock)} thing(s) every game creature has and this one lacks, "
+                                     f"{len(warns)} warning(s){tail}. The Info editor lists them")
         return {"FINISHED"}
 
     @staticmethod

@@ -1,0 +1,137 @@
+<section id="replace">
+<h2>Replace one of the game's animals</h2>
+
+<p>This is the shortest way to see your own work in the game. You change one of the game's own animals, here the wolf, and the game then uses
+your wolf. It takes about ten minutes. You need the setup from <a href="#start">Start here</a>, including a test copy of the game.</p>
+
+<aside class="limits"><p>Replacing changes the animal for <strong>every army and every skirmish</strong> in the copy of the game you install it into. In a
+game with other players, everyone needs the same files. When a match starts, the game compares the numbers and the size of the creatures in the
+armies. A match with a wolf in it, or with a creature built from wolf parts, will not agree if the other player has the original wolf. A match
+without a wolf is not affected. Replacing is for your own test game. If you want an animal of your own next to the originals, use <a href="#newcreature">A
+new creature from a game animal</a> instead.</p></aside>
+
+<h3>What you can and cannot replace</h3>
+
+<ul>
+  <li>You can replace the animals of the base game and of Insect Invasion.</li>
+  <li>You cannot replace an animal of Dino Dawn or Tellurian, an animal of a mod, or a creature built from nothing. For those, choose <strong>A
+  new creature of my own</strong>.</li>
+  <li>The animal keeps its own name and texts. What changes is the model, the picture of its skin and its numbers.</li>
+  <li>The Steam Workshop does not take a replacement. It takes only creatures with new names.</li>
+</ul>
+
+<h3>1. Start the project</h3>
+
+<ol>
+  <li>Choose <strong>File &gt; New &gt; Impossible Creatures Project...</strong>. A file window opens.</li>
+  <li>The choices are in the panel at the right of that window. (If you do not see it, press the small gear button at the top right of the
+  window.) Keep <strong>Type</strong> on <strong>Creature</strong>.</li>
+  <li>Open <strong>Start from</strong>. The first choice is <strong>Default skeleton</strong>. After it come the game's animals, each with its
+  origin in brackets. Choose <strong>Wolf (Base game)</strong>.</li>
+  <li>Under it, two buttons appear: <strong>A new creature of my own</strong> and <strong>Replace the original wolf</strong>. Choose
+  <strong>Replace the original wolf</strong>. A small text says what it does.</li>
+  <li>The window is a file browser. Go to an empty folder of your own. Ignore the <strong>Name</strong> box and the file name at the bottom:
+  the files are called <code>wolf</code> whatever you type, because the game finds the wolf by that name. Press the <strong>New Impossible
+  Creatures Project</strong> button at the bottom right.</li>
+</ol>
+
+<p>You should see a wolf in the 3D Viewport: a wolf shape with its points, and its skeleton. The message at the bottom of the window says
+&ldquo;Started the creature project wolf ... it replaces the game's own wolf when you export it for the game&rdquo;. In your folder you
+now have <code>wolf.sgm</code> (the model), <code>wolf.ebp</code> (the blueprint), <code>wolf.lua</code> (the numbers) and <code>wolf.lsc</code>
+(the limb scales).</p>
+
+<p>If you do not see <strong>Replace the original wolf</strong>, you picked an animal that cannot be replaced (see above), or <strong>Default
+skeleton</strong>, or the add-on did not find the game. In that last case <strong>Start from</strong> holds only <strong>Default skeleton</strong>:
+set the <strong>Game folder</strong> in the preferences (<a href="#start">Start here</a>). If the message says <code>wolf.sgm</code> is already there, the folder holds an earlier wolf project. Choose another folder.
+Nothing is overwritten.</p>
+
+<h3>2. Change the wolf</h3>
+
+<p>Anything you can do to a creature works here. For a first try, give it a hump.</p>
+
+<ol>
+  <li>Make sure the wolf is selected, and press <kbd>Tab</kbd> to enter Edit Mode.</li>
+  <li>Click a point at the top of the back. Press <kbd>O</kbd> to turn on proportional editing.</li>
+  <li>Press <kbd>G</kbd>, <kbd>Z</kbd>, <kbd>0.25</kbd>, <kbd>Enter</kbd>. Scroll the mouse wheel while you move to change how wide the lift
+  is.</li>
+  <li>Press <kbd>O</kbd> again to turn proportional editing off, and <kbd>Tab</kbd> to leave Edit Mode.</li>
+</ol>
+
+<p>You should see a bump on the wolf's back. The surface follows the points. The chapter <a href="#edit">Editing an existing animal</a> has more
+you can do.</p>
+
+<h3>3. Check it</h3>
+
+<ol>
+  <li>Open the <strong>IC Game</strong> tab and the <strong>Game</strong> panel.</li>
+  <li>In the box <strong>1. Check</strong>, press <strong>Check the Creature</strong>.</li>
+</ol>
+
+<p>For the wolf you should see &ldquo;2 warning(s): the Info editor lists them&rdquo;. That is expected. Read them in the <strong>Info</strong> editor
+(<a href="#start">Start here</a> says how to open it). One says the clip &ldquo;Crouch&rdquo; is never played; the game's own wolf has the same clip.
+The other is the notice that this replaces the game's wolf. Both are harmless. A warning is advice, not a stop sign. A problem in red must be
+fixed first: the game would not load the creature, and the export refuses it. See <a href="#trouble">Troubleshooting</a>.</p>
+
+<h3>4. Export it for the game</h3>
+
+<ol>
+  <li>In the box <strong>2. Export for the Game</strong>, read the lines under the title. They say what the creature is built on, then &ldquo;Export as: Replace the original
+  wolf&rdquo; and what that means.</li>
+  <li>Press <strong>Export Creature for the Game</strong>. A window opens. At the top, <strong>Replace the original wolf</strong> is chosen. Under it is
+  the warning from the box at the top of this chapter.</li>
+  <li>You can leave the rest as it is. <strong>Icon picture</strong> lets you choose a picture for the creature creator.
+  <strong>Make the icon from the creature</strong> (ticked) draws one from your wolf. <strong>Folder</strong> is where the export folder goes. Empty means a folder
+  called <code>ic_items</code> beside your wolf files.</li>
+  <li>Press <strong>OK</strong>.</li>
+</ol>
+
+<p>You should see, in the <strong>Info</strong> editor, a line that starts with &ldquo;Wrote&rdquo; and says how many files were written and that
+they replace the game's own wolf. The box now shows &ldquo;Last export: wolf&rdquo;.</p>
+
+<p>The creature creator's picture: if you chose no picture, the export draws one for you. It shows the wolf from the front, from the side and a
+little from above, on the creature creator's green-brown background. That needs Blender's renderer. If it cannot draw it, the original wolf's picture
+stays, and a warning says so. Choose <strong>Icon picture</strong> or press <strong>Icon from this View</strong> (a button next to the export button; it
+takes the picture from your 3D view as it is now) and export again.</p>
+
+<h3>5. Install it into your test copy</h3>
+
+<ol>
+  <li>In the box <strong>3. Install into Test Game</strong>, check that your test copy's folder is shown. If it shows a red message, see the
+  <strong>Next:</strong> line.</li>
+  <li>Check the line <strong>Installs: wolf</strong>.</li>
+  <li>Press <strong>Install into Test Game</strong>.</li>
+</ol>
+
+<p>The add-on first checks the item the way the game's own rules would. Then it copies the files into the copy's <code>Data</code> folder.
+Loose files there come before the files in the game's archives, so the game uses yours. The game also keeps a saved copy of each model it has
+drawn. The install deletes the saved copy of the wolf, so the game draws your new one. Everything it replaces is kept, so that <strong>Remove</strong>
+can put it back.</p>
+
+<p>You should see &ldquo;Installed 'wolf' into ...: 5 files&rdquo;. (If your copy already had loose files for the wolf, the message also says how
+many were replaced.) Two yellow lines follow. They say the Steam Workshop would not take these files for sharing, and that the game still loads them.
+Ignore them: you are not using the Workshop. A third line says the install replaces 4 files the game ships. That is the point. The
+list <strong>Installed here</strong> (a box under box 3) now shows <code>wolf</code>. The <strong>Next:</strong> line says to start the game from your test copy.</p>
+
+<h3>6. Play it</h3>
+
+<ol>
+  <li>Close the game if it is running. It reads a creature's files when it loads it.</li>
+  <li>Start the game from the test copy: run <code>IC.exe</code> in that folder. On Linux that needs Wine or Proton, and the Steam version starts only
+  while Steam is running. <a href="#start">Start here</a> has the details, under &ldquo;Start the game&rdquo;.</li>
+  <li>Start a skirmish and build a creature that uses the wolf, or look at the wolf in the creature creator.</li>
+</ol>
+
+<p>You should see your wolf, with the hump. If you see the old wolf, read <a href="#trouble">Troubleshooting</a>: the usual reasons are that the
+game was still running, or that a game mod in your copy has its own wolf file that comes first.</p>
+
+<h3>7. Go back</h3>
+
+<p>In the list <strong>Installed here</strong>, press <strong>Remove</strong> next to <code>wolf</code>. A window asks &ldquo;Remove 'wolf' from the Test game?&rdquo;
+Confirm. The message says &ldquo;Removed 'wolf': 5 files deleted, 0 put back as they were.&rdquo; <strong>&ldquo;0 put back&rdquo; is right the first time.</strong>
+The original wolf lives inside the game's archive and shows again as soon as your files are gone. &ldquo;Put back&rdquo; counts only loose files you had
+before. Your project stays in Blender, so you can install it again.</p>
+
+<aside class="note"><p>Nothing here has been looked at by eye in the running game. The files of a replacement are the same kind as the files of a new creature,
+and four new creatures were loaded in a test build of the game from a script. A replacement itself has not been loaded in the game yet.</p></aside>
+
+</section>

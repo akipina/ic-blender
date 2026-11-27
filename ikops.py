@@ -305,7 +305,7 @@ class BZ_OT_ik_reset_chains(bpy.types.Operator):
 
 
 class BZ_OT_reset_joint_limits(bpy.types.Operator):
-    """Put a bone's joint limits back to its BONE record's values (the stock ones)"""
+    """Put a bone's joint limits back to the values the creature had when it was imported (the stock ones)"""
     bl_idname = "bz.reset_joint_limits"
     bl_label = "Reset Joint Limits"
     bl_options = {"REGISTER", "UNDO"}

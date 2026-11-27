@@ -1,7 +1,7 @@
 <section id="skin">
 <h2>Skinning and re-skinning</h2>
 
-<p>Skinning decides which bone moves each control point. The tools are in the <strong>IC</strong> tab under
+<p>Skinning decides which bone moves each control point. The tools are in the <strong>IC Model</strong> tab under
 <strong>Boner &gt; Bones</strong>. The examples use the stock <code>rhinoceros.sgm</code>.</p>
 
 <h3>The model: one bone per point, no weights</h3>
@@ -15,8 +15,8 @@
 <h3>Seeing the skin: By Bone</h3>
 
 <ol>
-  <li>Import the rhinoceros (<strong>IC Blender &gt; Import Model</strong>) and open the sidebar (<kbd>N</kbd>) on the
-  <strong>IC</strong> tab.</li>
+  <li>Import the rhinoceros (<strong>IC Model</strong> tab &gt; <strong>Import Model</strong>) and open the sidebar (<kbd>N</kbd>) on the
+  <strong>IC Model</strong> tab.</li>
   <li>Open <strong>Boner</strong> and choose the <strong>Bones</strong> tab.</li>
   <li>Set <strong>Overlay</strong> to <strong>By Bone</strong>. Points take their bone's colour; points with no bone are
   orange.</li>
@@ -88,9 +88,6 @@
   points turn orange and <em>Unassigned</em> turns red. Selected points of other bones are left alone.</li>
 </ol>
 
-<figure><img src="img/skin_remove.jpg" alt="Left ear orange, Unassigned in red">
-<figcaption>The left ear has no bone, so Export will refuse.</figcaption></figure>
-
 <ol start="2">
   <li><strong>Export Model</strong> now writes nothing, and <strong>Validate (will it load?)</strong> reports that
   export is blocked.</li>
@@ -152,15 +149,12 @@ Keep <strong>Handles Follow Corners</strong> (redo panel) on: otherwise patches 
   <strong>Select Unassigned</strong> finds points in no group.</li>
 </ol>
 
-<figure><img src="img/skin_blended.jpg" alt="Red alert about a blended weight">
-<figcaption>The tab warns about blended weights.</figcaption></figure>
-
 <h3>Export: the summary line</h3>
 
 <p>Press <strong>Export Model</strong>. The report names what changed, for example
 <code>skinning: 35 bone range(s) rebuilt</code>. A high count is normal after a small edit.</p>
 
-<h3>Skinning and combining (ComboTest)</h3>
+<h3>Skinning and combining</h3>
 
 <p>The combiner moves a limb by its bone list. Skin a limb's patch points only to:</p>
 
@@ -174,7 +168,7 @@ Keep <strong>Handles Follow Corners</strong> (redo panel) on: otherwise patches 
 <p>Warnings:</p>
 
 <ul>
-  <li>Other points go to the root bone when the limb is grafted (for a leg, ComboTest.exe fails). Re-skin them, or add
+  <li>Other points go to the root bone when the limb is grafted (for a leg, the combiner fails). Re-skin them, or add
   their bone to the limb (<strong>Boner &gt; Limbs &gt; Add Active Bone</strong>).</li>
   <li>Don't skin points to a stub bone, and don't leave a connection's host bone without points.</li>
   <li><strong>Validate</strong> reports these as <em>STOCK</em> lines. Export still works, but the creature won't

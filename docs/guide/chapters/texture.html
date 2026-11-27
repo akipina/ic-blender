@@ -17,7 +17,7 @@
 <h3>Seeing the textures: the live overlay</h3>
 
 <ol>
-  <li>Use <strong>IC Blender &gt; Import Model</strong> and pick <code>rhinoceros.sgm</code>.</li>
+  <li>Use <strong>IC Model</strong> tab &gt; <strong>Import Model</strong> and pick <code>rhinoceros.sgm</code>.</li>
   <li>The shading selector in <strong>Display</strong> starts on <strong>Textured</strong>.</li>
   <li>Choose <strong>Plain</strong>, <strong>By Limb</strong> or <strong>By Bone</strong> to check shape or
   ownership.</li>
@@ -36,7 +36,7 @@ image.</figcaption></figure>
 <h3>Paint Skin: repainting a texture</h3>
 
 <ol>
-  <li>With the creature active, press <strong>IC Blender &gt; Paint Skin</strong>. It makes a
+  <li>With the creature active, press <strong>IC Model</strong> tab &gt; <strong>Paint Skin</strong>. It makes a
   <code>&lt;creature&gt;_baked</code> mesh and enters <strong>Texture Paint</strong>.</li>
   <li>Paint on the mesh, or in the Image Editor in <strong>Paint</strong> mode. Use pure magenta for
   transparency.</li>
@@ -53,22 +53,28 @@ once.</figcaption></figure>
 <h3>Export: only painted textures are re-encoded</h3>
 
 <ol>
-  <li>Select the <em>creature</em>, then press <strong>IC Blender &gt; Export Model</strong>.</li>
+  <li>Select the <em>creature</em>, then press <strong>IC Model</strong> tab &gt; <strong>Export Model</strong>.</li>
   <li>The report lists what changed, for example <code>textures: 1 edited (rhino02.bmp: 3812 texels)</code>.</li>
 </ol>
 
-<figure><img src="img/texture_export.jpg" alt="Export report for a painted texture"><figcaption>The report names the
-changed texture.</figcaption></figure>
-
 <p>Unpainted textures are unchanged. A painted one keeps its palette where possible. An image whose size changed gets a
-new palette.</p>
+new palette. When more than 5 % of the texels changed (a repaint rather than a brush stroke), Export encodes the skin both
+ways, keeping the old palette and quantising the whole picture afresh, and writes the one whose colours are closer to your
+picture; when the fresh one wins, the report says so with both errors.</p>
+
+<h3>Load Skin Image: a picture file as the skin</h3>
+
+<p>To use a picture made elsewhere, press <strong>IC Model</strong> tab &gt; <strong>Load Skin Image</strong> (next to <strong>Paint
+Skin</strong>) and pick a PNG, JPEG, TGA or BMP. <strong>Skin</strong> chooses which texture it replaces when the creature has
+several. A picture of another size is scaled to the skin's size (<strong>Resize To The Skin</strong>; off refuses it). The
+picture goes into the skin image, so Paint Skin continues from it, and Export writes it into the texture as above.</p>
 
 <h3>UV editing: the UV cage</h3>
 
 <p>Each patch has one UV point per corner.</p>
 
 <ol>
-  <li>With the creature active, press <strong>IC Blender &gt; Edit UVs</strong>. It makes a
+  <li>With the creature active, press <strong>IC Model</strong> tab &gt; <strong>Edit UVs</strong>. It makes a
   <code>&lt;creature&gt;_UVcage</code> mesh with one quad per patch.</li>
   <li>In Edit Mode on the cage, select faces and open the <strong>UV Editor</strong>. Pick the texture, then move,
   rotate or scale the UVs.</li>
@@ -90,10 +96,13 @@ creature.</figcaption></figure>
 <p>You can't add materials or textures by hand, so start from a creature with the slots you need.</p>
 
 <ol>
-  <li>Press <strong>IC Blender &gt; New Creature (From Scratch)</strong>. Set <strong>Name</strong>, keep
+  <li>Press <strong>IC Model</strong> tab &gt; <strong>New Creature (From Scratch)</strong>. Set <strong>Name</strong>, keep
   <strong>Standard Clips</strong>, <strong>IK Chains</strong> and <strong>Clips as Actions</strong> on, and choose
-  where to save the <code>.sgm</code>.</li>
-  <li>It has one 256x256 checker texture, <code>&lt;name&gt;01.bmp</code>, on every slot.</li>
+  where to save the <code>.sgm</code>. <strong>Detail</strong> 1 is the coarsest body; 3 has three times the patches,
+  so the checker lands differently.</li>
+  <li>It has one 256x256 checker texture on every slot, named after the creature in lower case:
+  <code>&lt;name&gt;01.bmp</code>, for example <code>newcreature01.bmp</code>. Its Blender image is
+  <code>SGM_newcreature01.bmp</code>.</li>
   <li>Paint over it with <strong>Paint Skin</strong>.</li>
 </ol>
 
@@ -107,14 +116,13 @@ exported.</p>
   <li>Use <strong>Image &gt; Open</strong> in an Image Editor.</li>
   <li>Resize it to match the creature's image (<strong>Image &gt; Resize</strong>).</li>
   <li>In the Python Console:
-      <code>src = bpy.data.images["skin.png"]; dst = bpy.data.images["SGM_guidezilla01.bmp"]; dst.pixels = src.pixels[:]</code></li>
+      <code>src = bpy.data.images["skin.png"]; dst = bpy.data.images["SGM_newcreature01.bmp"]; dst.pixels = src.pixels[:]</code>
+      (use your creature's name in lower case in place of <code>newcreature</code>).</li>
   <li>Export. Only colour is exported, so use magenta for transparency.</li>
 </ol>
 
 <figure><img src="img/texture_pngswap.jpg" alt="Scaffold wearing the copied PNG"><figcaption>The creature shows the
 copied picture.</figcaption></figure>
-<figure><img src="img/texture_pngexport.jpg" alt="Export report for the replaced texture"><figcaption>Export reports
-the whole texture as changed.</figcaption></figure>
 
 <h3>Transfer Texture: a source mesh's own skin</h3>
 
@@ -133,12 +141,11 @@ texture.</p>
 <figure><img src="img/texture_transfer.jpg" alt="Per-patch texture beside the rhinoceros"><figcaption>Each square of
 the new texture is one patch.</figcaption></figure>
 
-<figure><img src="img/texture_transfer_export.jpg" alt="Export report after a transfer"><figcaption>One new texture
-replaces the old ones.</figcaption></figure>
-
 <ul>
-  <li>With no recorded mesh it stops with <em>Choose a source mesh</em>, and the button offers no field to choose
-  one.</li>
+  <li>With no recorded mesh (a creature that was not fitted or retargeted, such as a new one) it stops with <em>Choose a
+  source mesh</em>, and no redo panel appears to choose one. Run it from Blender's Python Console instead, with the
+  creature selected: <code>bpy.ops.bz.transfer_texture(source="MyMesh")</code>, where <code>MyMesh</code> is the name
+  of the textured mesh.</li>
   <li>Low <em>source coverage</em> means parts of the creature found no source and took nearby colours. Raise
   <strong>Ray Distance</strong>.</li>
   <li><strong>Size</strong> is 256, 512, 1024 (default) or 2048.</li>
@@ -162,8 +169,5 @@ replaces the old ones.</figcaption></figure>
   <li><strong>Hidden creatures still draw.</strong> Exclude their collection, or delete them.</li>
   <li><strong>Saving the .blend.</strong> Don't unpack or purge the skin images.</li>
 </ul>
-
-<figure><img src="img/texture_refused.jpg" alt="Export refused: missing image"><figcaption>Export refuses when a skin
-image is missing.</figcaption></figure>
 
 </section>

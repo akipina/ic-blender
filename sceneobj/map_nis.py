@@ -1,6 +1,6 @@
 """Stand-in for a placed cut-scene (NIS) object, for the replay (how the game reads it: ``ICParse.sgm.nis_scene``).
 
-:func:`build_nis` makes a separate collection (armature, meshes, NLA-layered clips, mirrored camera, timed events);
+:func:`build_nis` makes a separate collection (armature, meshes, NLA-layered clips, camera, timed events);
 times are seconds after "NIS start", and unplayed channels are listed in ``notes``. Never change the placed object or
 write ``ic_*`` keys: the map save must not see any of this.
 """
@@ -26,8 +26,8 @@ from . import prefs
 K_NIS = "ic_nis_standin"            # on the stand-in collection and its root: the blueprint it was built from
 PREFIX_CLIP = "NIS clip "
 
-# SGM (x, y, z) -> Blender (x, -z, y): the add-on's axes (rig._B); a transform M maps as B M B^-1
-_B3 = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]])
+# SGM (x, y, z) -> Blender (-x, -z, y): the add-on's axes (rig._B, a reflection); a transform M maps as B M B^-1
+_B3 = np.array([[-1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]])
 _B4 = np.eye(4)
 _B4[:3, :3] = _B3
 
@@ -105,7 +105,7 @@ def _qmul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
                      aw * bz + ax * by - ay * bx + az * bw], axis=-1)
 
 
-_QB = _mat_to_quat(_B3)                                   # the axis change as a quaternion
+_QB = _mat_to_quat(-_B3)                                  # -B is a rotation, and conjugating by it is conjugating by B
 _QB_CONJ = _QB * np.array([1.0, -1.0, -1.0, -1.0])
 
 
@@ -114,7 +114,7 @@ def bone_constants(bind_world, parents):
     ``basis = Rb_i^-1 @ Rb_parent @ (B L B^-1)`` where ``Rb`` is a bind world in Blender's axes (the algebra of
     ``actions.basis_samples``, which does it through whole-skeleton worlds frame by frame; the parent's animation cancels, so a
     bone's basis depends on its own keys only). ``P = q(C_R) * qB`` so that a key quaternion ``q`` gives ``P * q * qB^-1``."""
-    Rb = [_B4 @ np.asarray(w, dtype=np.float64) @ _B4.T for w in bind_world]           # B^-1 = B^T (a rotation)
+    Rb = [_B4 @ np.asarray(w, dtype=np.float64) @ _B4.T for w in bind_world]           # B^-1 = B^T (orthogonal)
     out = []
     for i in range(len(Rb)):
         p = parents[i] if parents[i] is not None else -1
@@ -176,8 +176,7 @@ def basis_quat(consts, xyzw) -> np.ndarray:
 def camera_matrix(position, rotation_xyzw):
     """The Blender transform ``(location (3,), quaternion wxyz)`` of a model camera at an SGM position and rotation: the camera
     looks down its +Z with +Y up (``Camera::GetLookAt`` / ``GetUp``); Blender's looks down -Z, so the axes become (right, up, back)
-    with right = forward x up, the only way round a rotation has them. The game's right is the other one (up x forward): the
-    camera object's flip (``ops_map_import.show_game_picture``) turns the picture into the game's."""
+    with right = forward x up in Blender, which is the game's right (up x forward in its left-handed axes) after the reflection."""
     R = np.array(NS.quat_to_matrix(rotation_xyzw))
     f, u = _B3 @ R[:, 2], _B3 @ R[:, 1]
     r = np.cross(f, u)
@@ -565,7 +564,6 @@ def _make_camera(context, coll, root, model, sched, cuts, build, fps, start_fram
     cam.rotation_mode = "QUATERNION"
     coll.objects.link(cam)
     cam.parent = root
-    M.show_game_picture(cam)
     # which clip plays at a time: the first in the list (highest priority) among those started
     starts = sorted(sched, key=lambda e: e.delay)
     n = int(math.ceil(duration * fps)) + 1
@@ -700,7 +698,7 @@ def _events(model, ebp, sched, subtitles):
             ev.append({"t": r["t"], "kind": "camera_cut", "camera": r["name"], "quality": "exact", "clip": r["clip"]})
         elif r["kind"] == "exclusive":
             ev.append({"t": r["t"], "kind": "exclusive_mode", "on": r["on"], "quality": "exact", "clip": r["clip"],
-                       "why": "while on, the game draws only the cut-scene's own object (SimVis::RenderWorld clears the visible list)"})
+                       "why": "while on, the game draws only the cut-scene's own object (it hides everything else)"})
         else:
             ev.append({"t": r["t"], "kind": "lighting", "value": r["value"], "quality": "exact", "clip": r["clip"]})
     for r in NS.model_events(ebp, model, sched):

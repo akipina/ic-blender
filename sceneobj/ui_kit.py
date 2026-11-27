@@ -14,6 +14,17 @@ import bpy
 ORDER = 5                 # imported early: panels of other slices subclass SubPanel
 ABSTRACT = ("SubPanel",)  # defined here, never registered (the contract test skips these)
 
+# The three tabs of the 3D view sidebar: every panel's ``bl_category`` is one of these.
+TAB_MODEL = "IC Model"    # shape, rig, skin, parts, markers, damage states, materials, combine preview
+TAB_GAME = "IC Game"      # blueprint, motions, events, effects, gameplay numbers, check, export, install, share
+TAB_MAP = "IC Map"        # every map panel
+
+try:
+    from ICParse.plainwords import plain          # a checker's message without source files, function names and rule ids
+except ImportError:                                # an older ICParse: messages are shown as they are
+    def plain(text):
+        return text
+
 ICON_BY_LEVEL = {"ERROR": "ERROR", "WARN": "INFO", "INFO": "DOT"}
 
 
@@ -59,7 +70,7 @@ def wrap_lines(text: str, width: int = 60) -> list:
     """``text`` cut into lines of about ``width`` characters at word breaks (a word longer than a line stays whole). This is the
     wrapping the creature panels have always used (it moved here from ``ui._alert``)."""
     lines, line = [], ""
-    for w in str(text).split():
+    for w in str(plain(text)).split():
         if len(line) + len(w) + 1 > width:
             lines.append(line)
             line = w
@@ -68,6 +79,82 @@ def wrap_lines(text: str, width: int = 60) -> list:
     if line:
         lines.append(line)
     return lines
+
+
+# The first line of every panel: what the panel is for, in a sentence a player can read. ``add_purposes`` puts it in front of each panel's own
+# ``draw`` when the add-on registers (so a panel's code does not have to repeat it). A panel not listed here draws its own first hint.
+PURPOSE = {
+    "BZ_PT_panel": "Open, start and reshape a model. What the game does with it is in the IC Game tab.",
+    "BZ_PT_boner": "Limbs, bones and connections. They decide which points follow which bone, and where parts of other animals can join.",
+    "BZ_PT_combine": "See your creature joined with another animal, the way the game's creature creator would join them.",
+    "BZ_PT_damage_states": "How a building looks as it is hurt. Each damage state is a shape the game blends in.",
+    "BZ_PT_scene_parts": "The separate pieces the model is made of. Add, replace or remove a piece.",
+    "BZ_PT_scene_markers": "Named points on the model where the game puts effects and sounds.",
+    "BZ_PT_ic_material": "The picture, opacity and team colour of the selected material.",
+    "BZ_PT_blueprint": "The blueprint is the file that tells the game how this model behaves: its name, kind, size, sounds and numbers.",
+    "BZ_PT_motions": "A clip (an animation) plays in the game only through a motion. Here you choose which clip plays when.",
+    "BZ_PT_fx_events": "An event says: at this moment of this animation, start this effect and play this sound, at this point of the model.",
+    "BZ_PT_fx_used": "The effects your events start. Copy a game effect into your project to change it.",
+    "BZ_PT_fx_editor": "Every setting of one effect. Each change is saved to the effect's file at once.",
+    "BZ_PT_stats": "The numbers of your creature: hit points, speed, attacks, abilities. They start as the numbers of the animal you began with.",
+    "BZ_PT_game": "The steps that take your work into the game: check it, export it, install it into your test copy, and share it.",
+    "BZ_PT_map": "Change a game map: its ground, water, textures and the things placed on it. Save a folder to copy into the game.",
+    "BZ_PT_map_terrain": "Raise or lower the ground, and move the water.",
+    "BZ_PT_map_look": "Show the map the way the game draws it: sun, sky, ground picture, water and fog. This is never saved.",
+    "BZ_PT_map_ground": "Choose which picture covers which part of the ground.",
+    "BZ_PT_map_objects": "The things placed on the map. Move, copy, add and delete them, and say who owns them.",
+    "BZ_PT_map_save": "Check what you changed, then save the map into a folder of your own.",
+    "BZ_PT_map_cinematics": "The map's cut-scene animations: cameras and moving objects.",
+    "BZ_PT_map_replay": "Play a cut-scene back on Blender's timeline, acted out by stand-ins.",
+    "BZ_PT_map_script_groups": "Groups of objects, and variables, that triggers use.",
+    "BZ_PT_map_script_triggers": "Triggers: when something happens on the map, do something.",
+    "BZ_PT_map_script_dialogs": "Dialog triggers: the speech and text the map shows.",
+    "BZ_PT_map_script_ai": "The computer players' scripts and armies.",
+    "BZ_PT_map_settings": "The map's name, kind and number of players.",
+    "BZ_PT_map_terrain_look": "Light, sky, sea, fog and the fine ground texture.",
+    "BZ_PT_map_problems": "What is wrong with the map: missing or blocked starts, broken script references.",
+    "BZ_PT_map_tools_files": "Import and export the height map, the terrain and the placed things as files.",
+    "BZ_PT_map_tools_objects": "A list of the placed objects. Filter it to select, hide or delete.",
+    "BZ_PT_map_tools_blueprints": "How often each kind of thing is used on the map.",
+    "BZ_PT_map_tools_crop": "Make the map smaller: cut it down to a smaller square.",
+}
+
+
+def panel_purpose(layout, idname: str) -> None:
+    """The panel's purpose line (a small grey sentence at the top of the panel); nothing for a panel with no entry in :data:`PURPOSE`."""
+    text = PURPOSE.get(idname)
+    if not text:
+        return
+    col = layout.column(align=True)
+    for line in wrap_lines(text, 44):
+        col.label(text=line)
+
+
+def add_purposes() -> int:
+    """Put :func:`panel_purpose` in front of the ``draw`` of every panel class listed in :data:`PURPOSE` (called when the add-on registers, before
+    its classes are). Safe to call twice. Returns how many panels were changed."""
+    done, seen, stack = 0, set(), list(bpy.types.Panel.__subclasses__())
+    while stack:
+        cls = stack.pop()
+        stack.extend(cls.__subclasses__())
+        ident = cls.__dict__.get("bl_idname", "")
+        orig = cls.__dict__.get("draw")
+        if ident not in PURPOSE or orig is None or getattr(orig, "_bz_purpose", False) or id(cls) in seen:
+            continue
+        seen.add(id(cls))
+        cls.draw = _with_purpose(orig, ident)
+        done += 1
+    return done
+
+
+def _with_purpose(orig, ident: str):
+    """``orig`` (a panel's ``draw``) with the purpose line first. Blender wants a ``draw`` of exactly ``(self, context)``, so the two values it
+    needs are in the closure, not in default arguments."""
+    def draw(self, context):
+        panel_purpose(self.layout, ident)
+        return orig(self, context)
+    draw._bz_purpose = True
+    return draw
 
 
 def alert(layout, text: str, icon: str = "ERROR", width: int = 60) -> None:
@@ -136,7 +223,7 @@ class SubPanel(bpy.types.Panel):
     ``capability`` and draws itself; it is shown only when the active entity has that capability, and starts closed."""
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = TAB_MODEL
     bl_parent_id = "BZ_PT_entity"
     bl_options = {"DEFAULT_CLOSED"}
     capability = ""
@@ -159,7 +246,7 @@ def draw_scene_pointer(layout, obj, *, rig_box=None) -> None:
     parts = [o for o in bpy.data.objects if o.get("bz_scene") and o.get("bz_source") == obj.get("bz_source")]
     kind = {"CHARACTER": "gatherer / character", "STRUCTURE": "structure / prop"}.get(obj.get("bz_project", ""), "scene object")
     info.label(text=f"{kind}: {len(parts)} part(s), {sum(len(o.data.vertices) for o in parts)} vertices")
-    info.label(text="(triangle mesh: edit it freely -- faces, UVs, weights -- then Export)")
+    info.label(text="(edit faces, UVs, weights, bones, textures, markers, damage keys and parts, then Export)")
     if obj.get("bz_rig"):
         if rig_box is not None:
             rig_box(layout, obj)

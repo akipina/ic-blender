@@ -14,8 +14,9 @@ from mathutils import Matrix
 
 from ICParse.codecs import reconstruct as R
 
-# SGM (x,y,z) -> Blender (x,-z,y) as a 4x4 change-of-basis B; a transform M maps as B @ M @ B^-1.
-_B = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=np.float64)
+# SGM (x,y,z) -> Blender (-x,-z,y) as a 4x4 change-of-basis B (a reflection, core.sgm_to_blender); a transform M maps
+# as B @ M @ B^-1, which keeps a rotation a rotation.
+_B = np.array([[-1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=np.float64)
 _BINV = np.linalg.inv(_B)
 
 
@@ -73,7 +74,7 @@ KEY_BONE_LIMITS = "bz_joint_limits"           # on a rig Bone (C8.4): the BONE r
 #                                               min > max. Then the record's limit flag word (bit 0; present when more than
 #                                               3 bytes remain) as ICParse keeps it. Export writes a bone's limits only
 #                                               when they differ from its record.
-LIMITS_TOOLTIP = ("Joint limits (min x y z, max x y z in radians, then flags); exported if changed")
+LIMITS_TOOLTIP = ("Joint limits (min x y z, max x y z in radians, in the game's own axes, then flags); exported if changed")
 
 
 def stamp_joint_limits(arm_obj, model) -> int:

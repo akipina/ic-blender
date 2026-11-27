@@ -1,0 +1,198 @@
+<section id="effects">
+<h2>Effects, events and sounds</h2>
+
+<p>Smoke, sparks, beams and the sounds that go with them are not part of a model. The game keeps each <strong>effect</strong> in its own file. An <strong>event</strong> starts it. An event
+says: &ldquo;when this animation reaches this moment, start this effect and play this sound, at this point of the model&rdquo;. The game runs it by itself while the thing animates. A bite
+with a spark, a footstep with a puff of dust and the glow at a worker's hand when he heals are all events.</p>
+
+<p>This chapter shows how to change an effect, hook it to an animation, add your own sound, and see the result in the game. It works for creatures, workers, characters, structures and props. It also covers a
+thing the game throws or fires (a projectile) and the small mesh an effect draws (an effect model). You need the setup from <a href="#start">Start here</a>.</p>
+
+<aside class="limits"><p>You cannot hear a sound in Blender, and the effect preview is only a guide. Look at and listen to the real thing in the game. One effect was loaded in a test build of the game from a script. Nothing has been seen or
+heard in the game.</p></aside>
+
+<h3>Words used here</h3>
+
+<ul>
+  <li><strong>Blueprint</strong>: the file that tells the game how the model behaves: its animations, sounds, effects and numbers.</li>
+  <li><strong>Clip</strong>: one animation of the model (a walk, a bite).</li>
+  <li><strong>Marker</strong>: a named point on the model where an effect or sound happens (a hand, a muzzle).</li>
+  <li><strong>Key frame</strong>: one stage of an effect's life (its start, its middle, its end).</li>
+  <li><strong>Item</strong>: the folder the export makes. It holds the files the game reads.</li>
+  <li><strong>Projectile</strong>: something the game throws or fires. <strong>Effect model</strong>: a small mesh an effect draws.</li>
+  <li><strong>Mono</strong>: a sound with one channel. <strong>16 bit</strong>: a common sound quality. A sound that comes &ldquo;from a place in the world&rdquo; must be mono.</li>
+</ul>
+
+<h3>Try this first</h3>
+
+<ol>
+  <li>Start a project and select it (see step 1 below). Open <strong>IC Game &gt; Effects and events</strong> and press <strong>Load events</strong> in <strong>Events</strong>.</li>
+  <li>Press <strong>Copy a game effect</strong>, search for <code>blue sparks_ring</code> and choose it. It is copied into your project with <code>my_</code> in front of its name (the new name is shown in the list <strong>Effects used</strong>).</li>
+  <li>Choose an event in the list. In its <strong>Effect</strong> box, type the new name (or search for it with the magnifier: your own effects come first).</li>
+  <li>Export, install and play (<a href="#ship">Check, export, install, remove and share</a>). We have not seen this in the game.</li>
+</ol>
+
+<h3>1. Open the Effects and events panel</h3>
+
+<ol>
+  <li>Start a project for the thing (a creature: <a href="#newcreature">A new creature from a game animal</a>; a worker, structure or prop: <a href="#gatherers">Gatherers and characters</a>,
+  <a href="#structures">Structures and props</a>). Select it.</li>
+  <li>Open the <strong>IC Game</strong> tab and the panel <strong>Effects and events</strong> (it starts closed; click its header). It has the parts <strong>Events</strong>, <strong>Sounds</strong>, <strong>Effects used</strong>,
+  <strong>Effect editor</strong> and <strong>Effect preview</strong>.</li>
+</ol>
+
+<p>If you do not see <strong>Effects and events</strong>, click the model's mesh or skeleton in the 3D Viewport. The panel is hidden when nothing is selected, or when the selected object is a marker or a
+camera. For an Effect model project only <strong>Effects used</strong> and <strong>Effect editor</strong> show.</p>
+
+<p>An effect on its own has no animation to hook to. For a projectile or an effect model, start the project with <strong>Type</strong> set to <strong>Projectile</strong> or <strong>Effect model</strong> (see the end of this chapter).</p>
+
+<h3>2. Look at the events</h3>
+
+<ol>
+  <li>Open <strong>Events</strong> and press <strong>Load events</strong>. A creature that you started from a game animal shows that animal's events. A creature you started from <strong>Default skeleton</strong> starts with the cheetah's events for the clips it has.</li>
+  <li>Choose a clip in <strong>Clip</strong> to see only its events.</li>
+  <li><strong>Add</strong> makes an event for that clip at the playhead. Choose the clip first: if you do not, Add uses the model's first clip. The new event is called <code>NewEvent</code>; rename it in
+  <strong>Name</strong>. A model with no clip needs a clip name typed in the <strong>Clip</strong> box first, because an event runs only while the clip of its name plays.
+  <strong>Copy</strong> and <strong>Delete</strong> do what they say.</li>
+  <li>Choose an event and fill in its box:
+    <ul>
+      <li><strong>Name</strong>: a label.</li>
+      <li><strong>Clip</strong>: the animation it belongs to.</li>
+      <li><strong>Time</strong>: how far into the clip the event happens, from 0 to just under 1. 0 is the first frame and 0.5 is halfway. An event at 1 never runs, so the panel does not offer it.
+      The clock button sets the time from the playhead. <strong>Do not press the rewind button on an event that plays a sound</strong>: it makes the event run when the clip starts, and a sound on such an event loops.</li>
+      <li><strong>Marker</strong>: where on the model it happens. Type the marker's name, or press the magnifier and choose it from the list of the model's markers and bones. (The small axes button
+      does not work yet.)</li>
+      <li><strong>Effect</strong> and <strong>Sound</strong>: the magnifier searches the game's effects and sound files. Your own effects and sounds come first.</li>
+    </ul>
+  </li>
+  <li>Fields the box has no row for stay under <strong>Other fields</strong>, as they are. <strong>Add field...</strong> adds one.</li>
+</ol>
+
+<p>An event with no clip never runs. The box shows a red note, and the export lists it.</p>
+
+<p>The edits are written into the blueprint when you export: <strong>Export Creature for the Game</strong> for a creature, <strong>Export Entity Folder</strong> for anything else. Only the events you changed are different in the file.
+If you never opened the box, the thing exports exactly as before.</p>
+
+<h3>Copy events from another animal</h3>
+
+<p>To use another animal's events instead of the ones you started with, press <strong>Copy events from another animal</strong>, choose a game animal, and its events are copied for the clips your creature has. An event of a clip you do not
+have could never run, so it is left out. Edit them afterwards as you like.</p>
+
+<h3>3. Copy an effect and change it</h3>
+
+<p>A game effect cannot be edited in place. You copy it into your project first.</p>
+
+<ol>
+  <li>Open <strong>Effects used</strong>. It lists the effects your events name and the effects those start. Each is marked <em>project</em> (your copy), <em>game</em> (the game's own) or <em>missing</em>.
+  A game effect can be looked at in the editor, but only copied until it is yours: press <strong>Copy to my project</strong> in <strong>Effect editor</strong>, or <strong>Copy a game effect</strong> above.</li>
+  <li>Press <strong>Copy a game effect</strong> and search for one, or press the copy button next to a game effect in the list. The copy brings the effect, the effects it starts, and their pictures and meshes into your project's
+  folder <code>&lt;your project&gt;_fx/data</code>. That is a folder named after your project's <code>.sgm</code> file, with <code>_fx</code> added, next to it (for example <code>my_lab_fx/data</code>). The first grey line of the panel shows the path.</li>
+  <li>Look at <strong>Name prefix</strong> (<code>my_</code> unless you change it). It goes in front of every copied name, so the game's own effects stay as they are. <strong>If you empty it, the copies keep the game's
+  names and replace the game's effects.</strong></li>
+  <li>Give an event your copy's name in its <strong>Effect</strong> box. The game plays your copy only where an event names it.</li>
+</ol>
+
+<p><strong>New</strong> makes an effect of a type (spray, ring, beam, trail, combo or conditional) at the game's own defaults, or from a game effect of the same type.</p>
+
+<p>A game effect whose name has a space (for example &ldquo;blue sparks_ring&rdquo;) is copied with an underscore instead, because an item cannot hold a file name with a space. The effects that start it follow. A name you type for a new
+effect gets the same change.</p>
+
+<p>Two special kinds: a <strong>combo</strong> effect starts all the effects it names at once. When the first of them has ended, the game stops the others: a spray stops making particles, a looping effect or a trail ends. A ring or
+a beam that does not loop plays out. A <strong>conditional</strong> effect also starts both of its effects, so edit it as a pair of effects.</p>
+
+<h3>4. Retune it: the Effect editor</h3>
+
+<ol>
+  <li>Press the pencil next to an effect. It opens in <strong>Effect editor</strong>.</li>
+  <li>Change the rows. Every property has the control of its kind: a number (with the range the game accepts in the label), a tick box, a colour, a picture or mesh (type its name, or press the folder button to copy a
+  file from your disk into the project; the small cube button beside <strong>Mesh</strong> uses your own model), the blend mode, or the name of another effect (type it, or press the magnifier to choose).</li>
+  <li>Each change is written to the effect's file at once. A value the game would silently ignore (out of range, wrong count) is refused, and the reason is shown.</li>
+  <li>The <strong>x</strong> next to a row takes the property out of the file, so the game uses its default.</li>
+</ol>
+
+<p>Spray, ring and beam effects change over their life. <strong>Key frame</strong> chooses which key the rows show. <strong>Add</strong> inserts one between its neighbours, <strong>Remove</strong> deletes one and <strong>Move</strong> changes its
+time (0 is the start of the effect, 1 its end; the first and last keys stay). <strong>Duplicate under a new name</strong> copies the effect shown. <strong>Write effect files to a folder</strong> writes the project's effect files, pictures, meshes and sounds into
+<code>&lt;your folder&gt;/data/</code>, without the model.</p>
+
+<p>The pictures inside a game's 3D effect mesh stay the game's own. You cannot change them here.</p>
+
+<h3>5. Your own sound from a WAV file</h3>
+
+<ol>
+  <li>Open <strong>Sounds</strong> (it starts closed; click its header) and press <strong>New Sound From WAV</strong>. A file window opens. Pick a <code>.wav</code> file.</li>
+  <li>Set the options in the panel at the right of the file window (open it with the small arrow, or press <kbd>T</kbd>):
+    <ul>
+      <li><strong>Sound name</strong>: letters, digits and underscores, up to 32. Empty uses the file's name.</li>
+      <li><strong>Volume</strong>: 1 plays the wave as it is. It plays at exactly this volume and at the wave's own pitch every time. (The game's own animal sounds vary a little. Yours does not.)</li>
+      <li><strong>Has a place in the world</strong>: the sound comes from where the thing is and gets quieter with distance. Use a mono wave for this. Then set <strong>Full volume up to</strong> and <strong>Not heard
+      beyond</strong>. The far distance must be larger than the near one.</li>
+      <li><strong>Use it in the chosen event</strong>: puts the sound into the event you have chosen.</li>
+    </ul>
+  </li>
+  <li>Press the blue <strong>New Sound From WAV</strong> button. The add-on makes the three small files the game needs (a sound, a sample and the wave) in your project's folder.</li>
+</ol>
+
+<p>Your sounds are listed in <strong>Sounds</strong> with <strong>Use</strong> (puts it into the chosen event) and a bin button (delete it). In an event's <strong>Sound</strong> search they come first.</p>
+
+<p>Save your sound as a WAV file, 16 bit, plain PCM, mono. The game also reads three kinds of ADPCM. Floating-point WAV files and &ldquo;extensible&rdquo; WAV files (many 24 bit files are) are refused, and the message tells you to save the sound again as plain 16 bit. A plain 24 bit file only gets a warning.</p>
+
+<p><strong>Give the event a time.</strong> An event that plays a sound plays it once only when the event has a time (0 up to just below 1). With no time the game starts it as a looping sound that stays until the clip is over.
+The Events box and the export tell you when an event of yours has a sound and no time.</p>
+
+<ul>
+  <li>When you export, the sound goes into the item with the event. For a creature the sound lives in a folder of the creature's own name. If you export under another name, the add-on moves it and the events follow.
+  A worker, a character, a structure or a prop keeps its sounds in <code>audio/sfx/&lt;its name&gt;</code> inside the item.</li>
+  <li>For a creature, two sounds with the same name in two folders cannot both go into one item, because they would land on one file. The export stops and says so. Delete one, or make it again under another name.</li>
+  <li>The bin button asks first, deletes the sound's files (a file another of your sounds still uses stays) and <strong>cannot be undone</strong>.</li>
+  <li>Blender's Undo does not undo a file written into your project (an effect or a sound).</li>
+</ul>
+
+<h3>6. See the effect in Blender: the preview and its limits</h3>
+
+<ol>
+  <li>Open <strong>Effect preview</strong>. Choose a clip in the Events box.</li>
+  <li>Press <strong>Show the clip's effects</strong>, then press Play on the timeline. Every event of that clip that starts an effect shows it at its marker, at the moment the event gives.
+  <strong>Show this event's effect</strong> does the same for the event chosen in the list. <strong>Remove</strong> takes the preview away.</li>
+</ol>
+
+<p>The pictures are kept in a collection named after your model and are never exported. The effect follows the marker (or bone) while the animation moves it. It faces the scene camera, or your 3D view when there is no camera.</p>
+
+<p>It is a <strong>preview, not the game's own picture</strong>:</p>
+
+<ul>
+  <li>Particles that use a 3D mesh show as flat pictures. A spray has no ground or wind. A trail follows the marker's own path.</li>
+  <li>An effect that lasts for ever is shown for a couple of seconds, or until the other effects of its combo have ended.</li>
+  <li>An effect the preview cannot draw is left out, with a message. The game plays it as usual.</li>
+  <li>If the effects run past the end of your timeline, the message says up to which frame.</li>
+  <li>It does not show other event fields, such as a second marker an effect uses.</li>
+</ul>
+
+<h3>7. Check, export, install</h3>
+
+<ol>
+  <li>In the <strong>Game</strong> panel, <strong>1. Check</strong>: for a structure, a worker, a character or a prop, <strong>Check</strong> lists an effect the game would not load as an error. For a creature,
+  <strong>Check the Creature</strong> does not test your effects. The export does. A project of the type Effect model also shows one note: &ldquo;This effect installs as loose files ... The Steam Workshop does not take
+  effect items yet, so it cannot be shared there&rdquo;. It does not mean anything is wrong with your effect.</li>
+  <li>Export (<strong>Export Creature for the Game</strong> or <strong>Export Entity Folder</strong>). It writes the model, the blueprint with your events and the project's effect files in one go. It stops, before writing
+  anything, if an effect is one the game would not load at all. The message names the file and why.</li>
+  <li>Press <strong>Install into Test Game</strong>. The effect files install as loose files, and the game reads them.</li>
+</ol>
+
+<h3>Projectiles and effect models</h3>
+
+<p><strong>File &gt; New &gt; Impossible Creatures Project...</strong> has two types for this chapter:</p>
+
+<ul>
+  <li><strong>Projectile</strong>: something the game throws or fires (a rock, a quill, a spit). It is a small model with a blueprint, started from one of the game's projectiles, and exported like any other thing with
+  <strong>Export Entity Folder</strong>.</li>
+  <li><strong>Effect model</strong>: a small mesh that an effect draws instead of a flat picture (a chunk, a shard, a ring). It has <em>no blueprint</em> and no events. <strong>Export Entity Folder</strong> writes an item
+  folder named after the model, with the model in <code>data/art/fx/</code>, the project's effect files and a list of files. An effect names the model in its <strong>Mesh</strong> box. <strong>Use my model</strong> beside <strong>Mesh</strong> points a
+  ring at your own model.</li>
+</ul>
+
+<h3>What was checked</h3>
+
+<p>An effect file (the Anti-Air Tower's two electric trails, retuned to red-orange and three times as wide) was loaded by a test build of the game at the start of a skirmish. The mesh the effect draws is read only when the
+effect plays, and nothing in that test made it play. Nothing was seen or heard.</p>
+
+</section>

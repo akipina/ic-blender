@@ -1,117 +1,176 @@
 <section id="anim">
-<h2>Playing, editing and creating animations</h2>
+<h2>Animations and motions</h2>
 
-<p>Each clip in a creature's <code>.sgm</code> (<em>Idle1</em>, <em>walk</em>, <em>Melee1</em> and so on) becomes a
-Blender <strong>Action</strong>. Edit it with Blender's tools; <strong>Export Model</strong> writes it back.</p>
+<p>This chapter is about how a creature, a worker or a building moves. It covers playing and changing the animations it has, making a new one, telling
+the game when to play it, getting the walking speed right, and borrowing animations from another model.</p>
 
-<h3>What import gives you: one Action per clip</h3>
+<h3>Two words: clip and motion</h3>
 
-<p>With <strong>Clips as Actions</strong> on (default), each clip is an Action on the rig, with its own muted NLA
-track.</p>
+<p>A <strong>clip</strong> is one animation, for example <em>Idle1</em>, <em>walk</em> or <em>Melee1</em>. In Blender each clip is an <strong>Action</strong> on the rig.</p>
 
-<figure><img src="img/anim_import.jpg" alt="Imported rhinoceros at rest"><figcaption>No clip is active after
-import.</figcaption></figure>
+<p>A <strong>motion</strong> is a rule in the blueprint that says when a clip plays. The blueprint is the file that tells the game how the model behaves: its
+animations, sounds, effects and numbers. A clip plays in the game only when a motion names it. The game makes the motions for the usual clip names by
+itself, when the model loads, and only where the blueprint does not have a motion of that name. The names it makes motions for are:</p>
 
-<figure><img src="img/anim_panel.jpg" alt="Rig box with Load Animation"><figcaption>The rig box loads clips and selects
-the rig.</figcaption></figure>
+<ul>
+  <li>for a creature or a worker: <strong>Idle1</strong> (or <strong>Idle</strong>), <strong>OAttack1</strong>, <strong>Walk</strong>, <strong>Run</strong>, <strong>Swim</strong>,
+  <strong>Fly</strong>, <strong>Soar</strong>, <strong>Melee1</strong>, <strong>Melee2</strong>, <strong>MeleeLow1</strong>, <strong>StumbleGetup</strong>,
+  <strong>StumbleDie</strong>;</li>
+  <li>for a structure: <code>build_01</code>, <code>build_02</code> and so on, <code>addon_x_01</code> and so on, <code>damage_01</code> and so on.</li>
+</ul>
 
-<figure><img src="img/anim_nla.jpg" alt="NLA editor with muted tracks"><figcaption>The NLA editor lists one track per
-clip.</figcaption></figure>
+<p>The game finds clips by name and ignores capital letters. <code>Idle1.max</code> is the same as <code>Idle1</code>. A clip with any other name never
+plays until you give it a motion. The add-on warns you about such a clip, and, for a near miss (<code>Attack1</code>, <code>Melee 1</code>, <code>Walk.001</code>), names
+the clip to rename it to.</p>
 
-<p>If you imported with that option off, press <strong>Clips to Actions</strong>.</p>
-
-<h3>Playing and scrubbing a clip</h3>
+<h3>Play a clip</h3>
 
 <ol>
-<li>Select the creature and pick a clip from <strong>Load Animation</strong> in the IC tab. The frame range and rate
-follow the clip.</li>
-<li>Press <kbd>Space</kbd> to play, or drag the Timeline playhead.</li>
-<li>Switch clips any time, there or in the Action Editor with the rig selected.</li>
+  <li>Select the creature (or the model). In the <strong>IC Model</strong> tab, in the rig box of the <strong>IC Blender</strong> panel, open <strong>Load
+  Animation</strong> and choose a clip. The frame range and rate follow the clip.</li>
+  <li>Press <kbd>Space</kbd> to play, or drag the playhead in the timeline.</li>
+  <li>Choose another clip any time, there or in the Action Editor with the rig selected.</li>
 </ol>
 
-<figure><img src="img/anim_melee_pose.jpg" alt="Melee1, head lowered"><figcaption>Melee1 at frame
-12.</figcaption></figure>
+<figure><img src="img/anim_melee_pose.jpg" alt="Melee1, head lowered"><figcaption>Melee1 at frame 12.</figcaption></figure>
 
 <figure><img src="img/anim_walk_pose.jpg" alt="walk, mid-stride"><figcaption>walk at frame 26.</figcaption></figure>
 
-<h3>Editing a clip in the Dope Sheet or Graph Editor</h3>
+<p>If the rig box shows a button <strong>Clips to Actions</strong> instead of &ldquo;N clips as Actions&rdquo;, the model was opened without its clips as Actions. Press <strong>Clips to Actions</strong>.
+The line &ldquo;active: none (rest pose)&rdquo; means no clip is chosen yet, and the rig shows its resting pose.</p>
+
+<figure><img src="img/anim_nla.jpg" alt="NLA editor with muted tracks"><figcaption>Each clip is an Action on the rig, and the NLA editor (Blender's editor for layering animations) lists one muted track per clip. You do not need to use it.</figcaption></figure>
+
+<h3>Change a clip</h3>
 
 <p>The Actions belong to the rig, so select it first.</p>
 
 <ol>
-<li>Press <strong>Select Rig</strong>. Select the creature again when you want to edit geometry.</li>
-<li>Open a <strong>Dope Sheet</strong> in <strong>Action Editor</strong> mode, or the <strong>Graph
-Editor</strong>.</li>
-<li>In Pose Mode (<kbd>Ctrl</kbd>+<kbd>Tab</kbd>), go to a frame, pose a bone and key it with <kbd>I</kbd>. Auto Keying
-works too.</li>
+  <li>Press <strong>Select Rig</strong>. Select the creature again when you want to edit its shape.</li>
+  <li>Open a <strong>Dope Sheet</strong> in <strong>Action Editor</strong> mode, or the <strong>Graph Editor</strong>.</li>
+  <li>Enter Pose Mode (<kbd>Ctrl</kbd>+<kbd>Tab</kbd>), go to a frame, pose a bone and key it with <kbd>I</kbd>. Auto Keying works too.</li>
 </ol>
 
-<figure><img src="img/anim_dopesheet.jpg" alt="Melee1 keys in the Action Editor"><figcaption>Each clip frame has a key
-on every bone.</figcaption></figure>
+<figure><img src="img/anim_dopesheet.jpg" alt="Melee1 keys in the Action Editor"><figcaption>Each clip frame has a key on every bone.</figcaption></figure>
 
-<figure><img src="img/anim_head_edit.jpg" alt="Edited head keys and curves"><figcaption>The head is re-keyed at frames
-9, 12 and 15.</figcaption></figure>
+<figure><img src="img/anim_head_edit.jpg" alt="Edited head keys and curves"><figcaption>The head is re-keyed at frames 9, 12 and 15.</figcaption></figure>
 
-<h3>Exporting animations</h3>
+<p>Only clips whose keys or names you change are written again. The others come out as they were. If a clip you changed is a game name (Walk, Melee1 ...), the
+game plays your version. Nothing else needs doing.</p>
+
+<h3>Make a new clip and make it play</h3>
+
+<p>Say you want a slow walk for when the creature is hurt. You need a clip, and then a motion that plays it.</p>
 
 <ol>
-<li>Select the creature and press <strong>Export Model</strong>. Save under a new name, not over the stock file.</li>
-<li>Read the report, for example <em>clips: 9 kept, 1 written</em>.</li>
+  <li><strong>Make the clip.</strong> Choose a clip to start from with <strong>Load Animation</strong> (for example <em>walk</em>). Open the <strong>IC Game</strong> tab and
+  the <strong>Motions</strong> panel (it starts closed). Press <strong>New Clip</strong>, type a name (1 to 32 letters, for example <code>slow_walk</code>) and
+  press <strong>OK</strong>. You should see a message &ldquo;Made the clip 'slow_walk' (a copy of 'walk') and set it as the rig's active Action&rdquo;. The
+  clip belongs to the rig and is kept.</li>
+  <li><strong>Change its keys</strong> in the Action Editor, as above. Keep the first and last pose the same so that it loops.</li>
+  <li><strong>Load the motions.</strong> In the <strong>Motions</strong> panel press <strong>Load Motions</strong>. You should see a list of the blueprint's motions, with the
+  motions each one starts indented below it. (If the panel says the model has no motion list at all, press <strong>Make the Motion List</strong>. It builds
+  the standard motions from your clips.)</li>
+  <li><strong>Add a motion that plays the new clip.</strong> Click the <em>Walk</em> motion in the list. Press <strong>Add Copy</strong>. In the window, set <strong>Clip</strong>
+  to <code>slow_walk</code> and give it a <strong>Name</strong>. Leave <strong>Start it wherever the original starts</strong> ticked. Press <strong>OK</strong>.</li>
+  <li><strong>Give it its own range.</strong> This step is the one people forget. The copy starts with the original's range, and where two motions start together, the one listed
+  first covers the other. So a copy listed after the original is never seen until its range is different. (The window for <strong>Add Copy</strong> also has a box <strong>List it before the original</strong>.
+  Tick it and the copy covers the original instead.) Under <strong>Plays only while</strong>, set
+  <strong>Variable</strong> to <code>Velocity</code> (how fast the unit is moving, in game units per second; the game moves it by itself), and fill in <strong>Above</strong> and <strong>Up to</strong>: the lowest and highest speed at which this motion plays (-1 means no limit). Then
+  click the original <em>Walk</em> motion and change its range so the two take turns and do not overlap.</li>
+  <li><strong>Set the speed.</strong> Under <strong>Speed</strong>, <strong>Speed follows</strong> is the variable (<code>Velocity</code>) and <strong>Clip made for</strong> is the value at which
+  the clip plays at its own pace. At twice that value it plays twice as fast. See &ldquo;Walk and run speeds&rdquo; below to get this number.</li>
+  <li><strong>Look at the box Check what you changed.</strong> It lists what the game would do differently from what you most likely want: a motion that plays a clip the rig
+  does not have, two motions that start together, a gap in speeds where nothing plays, a loop. It shows only what your changes brought, not what the original blueprint
+  already had.</li>
+  <li><strong>Export</strong> with <strong>Export Creature for the Game</strong> (or <strong>Export Entity Folder</strong> for a worker, a structure or a prop). The export tells you about any
+  new clip that no motion plays.</li>
 </ol>
 
-<figure><img src="img/anim_export_dialog.jpg" alt="Export file browser"><figcaption>Choose the file to
-write.</figcaption></figure>
 
-<figure><img src="img/anim_export_info.jpg" alt="Export report"><figcaption>Only the edited clip was
-re-encoded.</figcaption></figure>
+<h3>Walk and run speeds</h3>
 
-<p>Only clips whose keys or names you change are rewritten. Rigs with active constraints or drivers rewrite every clip.</p>
-
-<h3>Creating a new clip</h3>
+<p>A walk cycle has to be told how fast the creature was walking when it was made, or the feet slide on the ground.</p>
 
 <ol>
-<li>Press <strong>Select Rig</strong>, enter Pose Mode, click <strong>New</strong> in the Action Editor and name the
-Action.</li>
-<li>Set the frame range (for example 1 to 21) and a frame rate of 30.</li>
-<li>Key the rest pose at the start, pose and key a middle frame, and key the rest pose at the end so it loops.</li>
-<li>Keep the Action active, select the creature and press <strong>Export Model</strong>. The clip takes the Action's
-name and frame range.</li>
+  <li>In the <strong>Motions</strong> panel find the box <strong>Walk and run speeds</strong> and press <strong>Measure Walk and Run Speeds</strong>.</li>
+  <li>For each walking or running clip (a motion whose speed follows Velocity) you see a line like &ldquo;walk: 3.20 (now 3.00, from the feet on the ground)&rdquo;. A clip with
+  no foot on the ground says &ldquo;no answer&rdquo;.</li>
+  <li>Press <strong>Use</strong> next to a line to put the measured number into <strong>Clip made for</strong>.</li>
 </ol>
 
-<figure><img src="img/anim_new_clip.jpg" alt="New Action named Taunt"><figcaption>A new clip, <em>Taunt</em>, with
-three key poses.</figcaption></figure>
+<p>This is a good first guess. Look at the feet in the game and adjust. Motions that follow something else (an attack's time) are not measured and are never changed by it.</p>
 
-<p>The game finds clips by name, so a new name plays only if the creature's blueprint uses it. To replace a stock clip, give
-yours the same name. To keep several new clips, use <strong>Push Down</strong> on each and mute its NLA track.</p>
+<h3>Borrow clips from another model</h3>
 
-<h3>Renaming and deleting clips</h3>
+<p>You can copy the animations of another model onto your rig as new clips.</p>
 
-<ul>
-<li><strong>Rename</strong> the Action, not the NLA track or strip, to rename the clip.</li>
-<li><strong>Delete</strong> a clip in the Outliner: <em>Blender File</em> &gt; Actions &gt; right-click &gt;
-Delete.</li>
-<li>Unlinking the Action or deleting its NLA track does <em>not</em> drop an imported clip.</li>
-</ul>
+<ol>
+  <li>In the <strong>Motions</strong> panel press <strong>Borrow Clips...</strong>. (The panel needs a model with a skeleton.)</li>
+  <li><strong>Borrow from</strong>: choose a model of the game, or set <strong>Or a file</strong> to a model on disk. A creature borrows from other creatures. A worker, a character or
+  a structure borrows from other models of those kinds.</li>
+  <li><strong>Only these clips</strong>: names separated by commas. Empty copies every clip you do not have yet. A clip you already have is skipped.</li>
+  <li><strong>New name</strong>: works only together with <strong>Only these clips</strong>. Type exactly one clip name there, and give it a name your rig does not have yet. This lets you
+  borrow the other model's Walk next to your own Walk. (Otherwise the message says &ldquo;A new name works for one clip: name that clip under 'Only these clips'&rdquo;.)</li>
+  <li>Press <strong>OK</strong>.</li>
+</ol>
 
-<p><strong>Validate (will it load?)</strong> lists missing clips and export warnings before you write.</p>
+<p>Bones are matched by name. A bone the other model has no bone for stays in its resting pose. Move distances are scaled to the size of your bones. The message says how many bones
+matched. If only a few do, the clips will hardly move, and the add-on warns you. A borrowed clip with a name the game knows (Idle1, Run ...) gets its motion from the game, only where
+your blueprint has no motion of that name. A borrowed clip with any other name needs a motion: use <strong>Add Copy</strong> as above.</p>
 
-<figure><img src="img/anim_validate_info.jpg" alt="Validate warnings"><figcaption>Validate warns before
-export.</figcaption></figure>
-
-<figure><img src="img/anim_export2_info.jpg" alt="Report with dropped clips"><figcaption>The report counts kept,
-written and dropped clips.</figcaption></figure>
-
-<figure><img src="img/anim_reimport.jpg" alt="Re-imported file playing Taunt"><figcaption>Re-import to check the new
-clips.</figcaption></figure>
-
-<h3>Rules the engine imposes (and the add-on follows)</h3>
+<h3>Renaming, deleting and exporting clips</h3>
 
 <ul>
-<li>A bone with no keys in a clip stays at rest under its parent.</li>
-<li>One Action is one clip. NLA blending isn't exported; mute unmuted tracks to silence the warning.</li>
-<li>Keys on a missing bone are left out, with a warning. Rename bones with <strong>Boner &gt; Bones &gt; Rename
-Bone</strong>, which updates Actions.</li>
-<li>Actions left over from an earlier rig are ignored, with a warning.</li>
+  <li><strong>Rename</strong> the Action, not the NLA track or strip, to rename the clip. The motions that played it follow.</li>
+  <li><strong>Delete</strong> a clip in the Outliner: <em>Blender File</em> &gt; Actions &gt; right-click &gt; Delete. Unlinking the Action or deleting its NLA track does <em>not</em> drop an
+  imported clip.</li>
+  <li>A clip made with <strong>New Clip</strong> or <strong>Borrow Clips...</strong> is kept. Any other new Action is exported only while it is the rig's active Action or sits on one of its NLA
+  tracks.</li>
+  <li>The scene's <strong>Frame Rate</strong> (Output Properties) is the rate of a new clip. <strong>Load Animation</strong> sets it to the loaded clip's rate. Check that it is 30 before you
+  export a clip you keyed yourself.</li>
 </ul>
+
+<h3>Reference</h3>
+
+<p>You do not need this part for the walk-through above. Come back to it when you want to know what a box does.</p>
+
+<h4>The Motions box in full</h4>
+
+<ul>
+  <li><strong>Name</strong> and <strong>the clip it plays</strong>: the magnifier lists the rig's clips, the play button shows the clip on the rig so you can watch it in Blender.</li>
+  <li><strong>Loop</strong>: whether the clip repeats.</li>
+  <li><strong>Speed</strong>: <strong>Speed follows</strong>, <strong>Clip made for</strong>, <strong>Play speed</strong> and an invert button.</li>
+  <li><strong>Plays only while</strong>: <strong>Variable</strong>, <strong>Above</strong> and <strong>Up to</strong>. This is how Idle, Walk and Run take turns.</li>
+  <li><strong>More</strong>: fade in and out, strength, how much of the clips below shows through, start delay, pause between loops.</li>
+  <li><strong>Add Copy</strong>: a new motion like the selected one.</li>
+  <li><strong>Delete</strong>: removes the selected motion (the motions it started stay) and fixes the numbers of the others for you. If the game makes a motion like it by itself when
+  the model loads, the message says it comes back. Change the motion instead of deleting it, or give the clip another name.</li>
+  <li>The play button next to the list (<strong>Start With This</strong>): the motion the model starts with.</li>
+</ul>
+
+<p>The changes are written when you export. Only the motions you changed are written again. If you change nothing, the blueprint is the original byte for byte, and the export
+says nothing about its motions. If you rename a clip in Blender, the motions that played it follow the new name. If the export says the blueprint's motions are not the ones the box
+loaded, the blueprint is another one now and your motion changes were not written. Press <strong>Load Motions</strong> to read it again (this drops your motion changes) and make
+them again.</p>
+
+<aside class="note"><p>What starts a motion is a range on a variable the game moves. The game's engine moves <code>Velocity</code> (how fast the unit goes). The game's rules move
+<code>Build</code> and <code>Damage</code> (structures), <code>AttackTime</code> (attacks) and a few others, and start some motions by name. A motion that no range reaches, and that
+no playing motion lists as a child, does not start. A variable name that is not one of the game's own cannot be checked: a name you type is trusted.</p></aside>
+
+<h4>Rules the game imposes</h4>
+
+<ul>
+  <li>A bone with no keys in a clip stays at rest under its parent.</li>
+  <li>One Action is one clip. Mixing in the NLA editor is not exported. Mute the NLA tracks you do not want counted to silence the warning.</li>
+  <li>Keys on a missing bone are left out, with a warning. For a creature, rename bones with <strong>Boner &gt; Bones &gt; Rename Bone</strong>, which updates the Actions. For a building, a worker or a prop there is no Boner panel: rename the bone in the
+  Outliner (or press <kbd>F2</kbd> in Edit Mode), as in <a href="#structures">Structures and props</a>, &ldquo;The skeleton&rdquo;.</li>
+  <li>Actions left over from an earlier rig are ignored, with a warning.</li>
+  <li>Each clip stores two boxes (one for the whole clip, one for its last frame) that the game uses to decide when a unit is on screen. When a reshaped body changes the creature's size,
+  the export recalculates the boxes of the clips it keeps as they are. The keys are not touched.</li>
+</ul>
+
+<aside class="limits"><p>A motion can be added as a copy under the same parents as its original, or under none. Moving a motion under another one is not in the box yet. Old blueprints
+of version 1 or 2 use only Velocity as the speed and the condition variable. The Motions box was tested from a script in headless Blender, not by hand in the Blender window and not in the game.</p></aside>
 
 </section>

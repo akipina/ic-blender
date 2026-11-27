@@ -32,20 +32,45 @@ except ImportError:                      # imported top-level (tests put ic_blen
 PATCH_CORNERS = BE.PATCH_CORNERS  # (0, 3, 15, 12)
 
 
-# --- axis conversion: SGM (x, y, z) <-> Blender (x, -z, y) ----------------------------
-# IC creatures are authored Y-up/Z-forward; Blender is Z-up. The map is linear, so we can
-# tessellate directly in Blender space (Bernstein eval is a linear combination of points).
+# --- axis conversion: SGM (x, y, z) <-> Blender (-x, -z, y) ---------------------------
+# The game's axes are left-handed (Y up, camera right = up x forward), Blender's right-handed (Z up), so the map is a
+# reflection (determinant -1): the game's +X is Blender's -X and nothing looks mirrored. A reflection turns every
+# surface inside out, so at the same boundary creature patch grids are transposed (:func:`transpose_patches`) and
+# triangle / quad winding is reversed: inside Blender everything is self-consistent. The map is linear, so patches
+# are tessellated directly in Blender space.
+
+AXES_DET = -1.0
+
 
 def sgm_to_blender(a: np.ndarray) -> np.ndarray:
-    """(N,3) SGM coords -> (N,3) Blender coords: (x, y, z) -> (x, -z, y)."""
+    """(N,3) SGM coords -> (N,3) Blender coords: (x, y, z) -> (-x, -z, y)."""
     a = np.asarray(a, dtype=np.float64)
-    return a[:, [0, 2, 1]] * np.array([1.0, -1.0, 1.0])
+    return a[:, [0, 2, 1]] * np.array([-1.0, -1.0, 1.0])
 
 
 def blender_to_sgm(a: np.ndarray) -> np.ndarray:
-    """Inverse of :func:`sgm_to_blender`: (x, y, z) -> (x, z, -y)."""
+    """Inverse of :func:`sgm_to_blender`: (x, y, z) -> (-x, z, -y)."""
     a = np.asarray(a, dtype=np.float64)
-    return a[:, [0, 2, 1]] * np.array([1.0, 1.0, -1.0])
+    return a[:, [0, 2, 1]] * np.array([-1.0, 1.0, -1.0])
+
+
+# A patch's 16 slots read column-major: the 4x4 grid transposed (corners 0 and 15 stay, 3 and 12 swap).
+_TRANSPOSE = np.array([4 * r + c for c in range(4) for r in range(4)], dtype=np.int64)
+# Corner UVs are stored in slot order 0, 3, 12, 15, so the transpose swaps the middle two pairs.
+_UV_TRANSPOSE = np.array([0, 1, 4, 5, 2, 3, 6, 7], dtype=np.int64)
+
+
+def transpose_patches(patches) -> np.ndarray:
+    """(Np, 16) patch table with every 4x4 grid transposed: the file's table <-> Blender's (its own inverse). Reverses
+    each patch's orientation, which the reflection of :func:`sgm_to_blender` reverses back."""
+    p = np.asarray(patches, dtype=np.int64).reshape(-1, 16)
+    return p[:, _TRANSPOSE]
+
+
+def transpose_patch_uv(patch_uv) -> np.ndarray:
+    """(Np, 8) corner UVs to go with :func:`transpose_patches` (its own inverse)."""
+    u = np.asarray(patch_uv, dtype=np.float64).reshape(-1, 8)
+    return u[:, _UV_TRANSPOSE]
 
 
 # --- loaded-creature container --------------------------------------------------------
@@ -191,9 +216,9 @@ def creature_arrays_from_model(m, source_path: str = "") -> CreatureData:
                          "(no control-point patches)")
     world_sgm = R.world_vertices(m)                       # (Nv, 3) bind-pose world, SGM space
     verts = sgm_to_blender(world_sgm)
-    patches = np.array([list(p.control_points) for p in m.patches], dtype=np.int64)
+    patches = transpose_patches([list(p.control_points) for p in m.patches])
     patch_mat = np.array([int(p.material_index) for p in m.patches], dtype=np.int64)
-    patch_uv = np.array([list(p.uvs) for p in m.patches], dtype=np.float64)
+    patch_uv = transpose_patch_uv([list(p.uvs) for p in m.patches])
     return CreatureData(
         name=getattr(m, "name", "Creature") or "Creature",
         verts=verts, patches=patches, edges=_patch_grid_edges(patches),
@@ -242,7 +267,8 @@ def tessellate(verts_blender: np.ndarray, patches: np.ndarray, n: int = 5, rest_
     Returns (V (M,3), T (T,3), N (M,3)) ready for a GPU batch. Delegates to ICParse's
     single-source-of-truth Bernstein evaluator -- no approximation beyond density ``n``. Cells are
     split along the diagonal the game picks (from the rest-pose grid: pass ``rest_blender`` when the
-    control points are posed; the axis map is a rotation, so the rule holds in Blender space)."""
+    control points are posed; the axis map is orthogonal and linear through the origin, so the rule -- distances from the
+    origin, which the engine's centre estimate depends on -- holds in Blender space and for the transposed grids alike)."""
     return BE.tessellate(np.asarray(verts_blender, dtype=np.float64),
                          [row for row in np.asarray(patches, dtype=np.int64)], n=max(2, int(n)),
                          split="engine", split_cp=rest_blender)
@@ -251,8 +277,9 @@ def tessellate(verts_blender: np.ndarray, patches: np.ndarray, n: int = 5, rest_
 def engine_normals(verts_blender: np.ndarray, patches: np.ndarray, patch_types=None, n: int = 5):
     """Per-surface-vertex normals exactly as the game shades the surface (ICParse's engine-verified
     rule: analytic normals, welded along shared edges and, at corners, within a smoothing group).
-    The SGM->Blender axis map is a rotation, so evaluating on Blender-space control points gives
-    Blender-space normals directly."""
+    The SGM->Blender axis map is a reflection and the grids are transposed with it (:func:`transpose_patches`), so
+    evaluating on Blender-space control points gives the game's normals reflected (``tests/so_mirror_pure_test.py``
+    compares them on stock creatures: all but float noise at collapsed patch edges)."""
     types = None
     if patch_types is not None and len(patch_types) == len(patches):
         types = [int(t) for t in patch_types]
@@ -1288,7 +1315,13 @@ def build_export(st: EditState) -> BuiltExport:
     remapped. Rings and textures are applied the same way in both paths. Added bones (``st.added_bones``) are inserted
     before the stub bones in both paths before the owners are laid out (owner keys >= n_src name them), renames follow
     through the index map, and a bone Blender made goes into its parent's limb. Clips are not touched here
-    (:func:`apply_clip_plan`, encoded against this model; a kept clip holds an added bone at its bind-local rest)."""
+    (:func:`apply_clip_plan`, encoded against this model; a kept clip holds an added bone at its bind-local rest).
+    ``st.patches`` and ``st.patch_uv`` are Blender's (transposed grids); they go back to the file's layout first."""
+    if st.patches is not None or st.patch_uv is not None:
+        import dataclasses
+        st = dataclasses.replace(
+            st, patches=None if st.patches is None else transpose_patches(st.patches),
+            patch_uv=None if st.patch_uv is None else transpose_patch_uv(st.patch_uv))
     src = read_source(st.source_path)
     m = read_source(st.source_path)                     # the private copy that becomes the export
     verts = np.asarray(st.verts, dtype=np.float64).reshape(-1, 3)
@@ -1601,6 +1634,37 @@ def _build_grown(m, src, st, verts) -> BuiltExport:
                        conn_src=conn_src, warnings=warns + cwarns, insert=ins, pool_src=psrc)
 
 
+#: a repaint that changes more than this share of a skin's texels is encoded both ways (see :func:`encode_skin`)
+SKIN_BOTH_WAYS = 0.05
+
+
+def skin_error(tex, rgba) -> float:
+    """Mean squared colour error (0-255 scale, per channel) between the texture's decoded mip 0 and the image it must show."""
+    want = np.frombuffer(bytes(rgba), dtype=np.uint8).reshape(-1, 4)[:, :3].astype(np.float64)
+    got = np.frombuffer(ICtex.decode_texture(tex, 0), dtype=np.uint8).reshape(-1, 4)[:, :3].astype(np.float64)
+    return float(((want - got) ** 2).mean())
+
+
+def encode_skin(src_tex, rgba, w, h):
+    """``(Texture, texels changed, note)`` for a repainted skin.
+
+    The edit encoder (``ICtex.encode_texture_edit``) keeps the source palette and every untouched texel, which is right for a
+    brush stroke but poor for a repaint with many new colours: they pile into the free palette slots and then into the nearest
+    existing entry. When more than :data:`SKIN_BOTH_WAYS` of the texels changed, the skin is also quantised afresh
+    (``ICtex.encode_texture``: a new 256-colour palette for the whole image) and the one whose mip 0 is closer to the painted
+    image wins (a tie keeps the edit). ``note`` says so when the fresh one won, else ''."""
+    new, k = ICtex.encode_texture_edit(src_tex, rgba, int(w), int(h))
+    if not k or (int(w), int(h)) != (src_tex.width, src_tex.height) or k <= SKIN_BOTH_WAYS * int(w) * int(h):
+        return new, k, ""
+    fresh = ICtex.encode_texture(src_tex.name, rgba, int(w), int(h))
+    e_edit, e_fresh = skin_error(new, rgba), skin_error(fresh, rgba)
+    if e_fresh < e_edit:
+        fresh.format_code = src_tex.format_code
+        return fresh, k, (f"skin '{src_tex.name}': {k} of {int(w) * int(h)} texels changed, so the whole image was quantised afresh "
+                          f"(colour error {e_fresh:.1f} against {e_edit:.1f} keeping the old palette)")
+    return new, k, ""
+
+
 def _apply_textures(m, textures, names=None, slots=None, warnings=None) -> dict:
     """Repainted textures re-encoded with the source palette and every untouched texel kept
     (``ICParse.codecs.texture.encode_texture_edit``); returns {index: texels changed} for those that differ.
@@ -1623,7 +1687,9 @@ def _apply_textures(m, textures, names=None, slots=None, warnings=None) -> dict:
             if i in textures:
                 rgba, w, h = textures[i]
                 if src_t is not None and (src_t.width, src_t.height) == (int(w), int(h)):
-                    new_t, k = ICtex.encode_texture_edit(src_t, rgba, int(w), int(h))
+                    new_t, k, note = encode_skin(src_t, rgba, int(w), int(h))
+                    if note and warnings is not None:
+                        warnings.append(note)
                 else:
                     new_t, k = ICtex.encode_texture(name, rgba, int(w), int(h)), int(w) * int(h)
                 if k:
@@ -1666,7 +1732,9 @@ def _apply_textures(m, textures, names=None, slots=None, warnings=None) -> dict:
         idx = int(idx)
         if not 0 <= idx < len(m.textures):
             raise ValueError(f"painted texture {idx}: the creature has {len(m.textures)} textures")
-        new, k = ICtex.encode_texture_edit(m.textures[idx], rgba, int(w), int(h))
+        new, k, note = encode_skin(m.textures[idx], rgba, int(w), int(h))
+        if note and warnings is not None:
+            warnings.append(note)
         if k:
             m.textures[idx] = new
             changed[idx] = k
@@ -1700,6 +1768,51 @@ def apply_clip_plan(m, add_clips=None, drop_names=None) -> None:
                 m.animations.append(a)
 
 
+def extent_changed(src, m) -> bool:
+    """Whether the export model's overall extent (the control points in world space) differs from the source's."""
+    a = R.world_vertices(src)
+    b = R.world_vertices(m)
+    ext_a = np.concatenate([a.min(0), a.max(0)])
+    ext_b = np.concatenate([b.min(0), b.max(0)])
+    scale = max(1e-6, float(np.abs(ext_a).max()))
+    return bool(np.abs(ext_a - ext_b).max() > 1e-4 * scale)
+
+
+def refresh_kept_bounds(built, kept, warnings=None) -> list:
+    """Recompute the motion bounds of the kept clips when the model's extent changed, keys untouched; returns the clip names.
+
+    A clip's two boxes (``bbox1``: the whole clip, ``bbox2``: the last frame) come from the geometry it was exported with, and the
+    engine culls and picks by them (``AnimPlayList::GetBounds``, decomp ``AnimPlayList.cpp:1041-1046``); it recomputes them only
+    when a file's box is degenerate (``Anim.cpp:1571``). So a clip kept byte for byte beside a bigger or smaller body would keep
+    the old body's boxes: here they are derived again with ``ICParse.codecs.anim.clip_bounds`` (the same recipe a clip written
+    from scratch gets), and only the INFO bounds of the clip change -- every key stays its source bytes. Version-1 clips carry no
+    boxes (the engine derives them at load). A failure leaves the clip as it was and is added to ``warnings``."""
+    if not kept or not (built.grown or built.reencoded):
+        return []
+    from ICParse.codecs import anim as ICanim
+    m = built.model
+    try:
+        if not extent_changed(built.source, m):
+            return []
+    except Exception as e:                                   # never silent
+        if warnings is not None:
+            warnings.append(f"clip bounds check failed: {type(e).__name__}: {e}")
+        return []
+    done, keep = [], set(kept)
+    for a in m.animations:
+        if a.name not in keep or ICanim.layout_of(a) != "v7" or not a.has_bbox:
+            continue
+        try:
+            b1, b2 = ICanim.clip_bounds(m, a)
+        except Exception as e:                               # noqa: BLE001
+            if warnings is not None:
+                warnings.append(f"bounds of kept clip '{a.name}' not recomputed: {type(e).__name__}: {e}")
+            continue
+        a.bbox1, a.bbox2 = tuple(b1), tuple(b2)
+        done.append(a.name)
+    return done
+
+
 @dataclass
 class ExportSummary:
     parts: list
@@ -1711,7 +1824,7 @@ class ExportSummary:
         return "; ".join(self.parts) if self.parts else "no edits"
 
 
-def export_summary(built: BuiltExport, kept=(), written=(), dropped=(), warnings=()) -> ExportSummary:
+def export_summary(built: BuiltExport, kept=(), written=(), dropped=(), warnings=(), bounds_refreshed=()) -> ExportSummary:
     """What the export changed, diffed from the final model against the source (not from what the operators
     meant to do), plus warnings the diff implies. ``kept`` / ``written`` / ``dropped``: the clip plan, verified
     against the model's clip names (a planned clip missing from the model raises)."""
@@ -1828,14 +1941,17 @@ def export_summary(built: BuiltExport, kept=(), written=(), dropped=(), warnings
     if rest and kept:
         warns.append(f"rest pose of {len(rest)} bone(s) changed: {len(kept)} kept clip(s) play in-game as imported "
                      "(bone-local tracks); Blender now previews them offset by the rest change")
-    if kept and (built.grown or built.reencoded):
+    if bounds_refreshed:
+        parts.append(f"clip bounds: {len(bounds_refreshed)} kept clip{'s' if len(bounds_refreshed) != 1 else ''} recomputed for the new "
+                     "extent (keys untouched)")
+    if kept and (built.grown or built.reencoded) and not bounds_refreshed:
         try:
             a = R.world_vertices(src); b = R.world_vertices(m)
             ext_a = np.concatenate([a.min(0), a.max(0)]); ext_b = np.concatenate([b.min(0), b.max(0)])
             scale = max(1e-6, float(np.abs(ext_a).max()))
             if np.abs(ext_a - ext_b).max() > 1e-4 * scale:
                 warns.append(f"{len(kept)} kept clip(s) have bounds from the source geometry, whose extent changed "
-                             "(the engine culls by clip bounds): edit or re-key a clip to re-encode it")
+                             "(the engine culls by clip bounds) and could not be recomputed: edit or re-key a clip to re-encode it")
         except Exception as e:                             # never silent
             warns.append(f"clip bounds check failed: {type(e).__name__}: {e}")
     return ExportSummary(parts=parts, warnings=warns, stock=list(built.stock or []))
@@ -1881,9 +1997,12 @@ def patches_to_creature(template_path, pool_blender, patches, bone=0, vert_bone=
     the tail of :func:`mesh_to_creature`, shared with Fit Patches to Mesh (``fitops``), whose pool is the fitted
     one. ``vert_bone`` / ``patch_limb`` give the skin and the limb membership (``fitops.rig_split``: the template's
     own body plan, so no bone of a limb is falsely a stub); without them every point goes on ``bone`` and every
-    patch into limb 0. Returns (sgm_bytes, n_control_points, n_patches)."""
+    patch into limb 0. ``patches`` is ACC's layout (``acc.cage_to_patches``: a face's a, b, c, d at slots 0, 3, 15, 12),
+    which faces inward on a mesh wound outward; transposed it faces out like an imported creature.
+    Returns (sgm_bytes, n_control_points, n_patches)."""
+    patches = transpose_patches(patches)
     N, F = len(pool_blender), len(patches)
-    default_uv = [0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0]      # uv slots = corners 0,3,12,15 (engine order)
+    default_uv = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0]      # Blender's corner slots 0,3,12,15 (file: 0,12,3,15)
     owners = np.full(N, bone, dtype=np.int64) if vert_bone is None \
         else np.asarray(vert_bone, dtype=np.int64).reshape(-1)
     limbs = np.zeros(F, dtype=np.int64) if patch_limb is None \
@@ -1942,11 +2061,12 @@ class ScenePart:
     verts: np.ndarray            # (N, 3) Blender space
     normals: np.ndarray          # (N, 3) Blender space, or empty
     uvs: np.ndarray              # (N, 2) Blender convention (V flipped), or empty
-    tris: np.ndarray             # (T, 3)
+    tris: np.ndarray             # (T, 3) Blender winding (the file's corners 0, 2, 1)
     tri_mat: np.ndarray          # (T,) index into SceneData.materials
     skin: list                   # per vertex [(bone_index, weight), ...] (empty when rigid)
     bind: object = None          # bone index the whole part is rigidly attached to, or None
     mesh_index: int = -1         # index in the file's mesh list (ICParse Scene.meshes); empty meshes are skipped, so it can differ from the part number
+    morphs: list = field(default_factory=list)   # damage states: per morph target (file order) an (N, 3) Blender-space offset per vertex
 
 
 @dataclass
@@ -1962,6 +2082,7 @@ class SceneData:
     source_path: str = ""
     scene: object = None         # the parsed ICParse Scene
     missing_textures: list = field(default_factory=list)
+    markers: list = field(default_factory=list)   # attach points: see scene_markers()
 
 
 def is_scene_model(m) -> bool:
@@ -2066,19 +2187,39 @@ def load_scene(path: str, data_root: str = None, texture_source=None) -> SceneDa
                 mat_index[sub.material] = mi
             for t in sub.triangles:
                 if len(set(t)) == 3 and all(0 <= x < nv for x in t):
-                    tris.append(tuple(int(x) for x in t)); tmat.append(mi)
+                    tris.append((int(t[0]), int(t[2]), int(t[1]))); tmat.append(mi)   # winding reversed with the axes
         parts.append(ScenePart(
             name=(mm.name.strip() or f"part{i:02d}"), verts=sgm_to_blender(P),
             normals=sgm_to_blender(N) if len(N) else N, uvs=UV,
             tris=np.asarray(tris, dtype=np.int64).reshape(-1, 3), tri_mat=np.asarray(tmat, dtype=np.int64),
-            skin=[list(infl) for infl in mm.skin] if mm.skin else [], bind=mm.bind, mesh_index=i))
+            skin=[list(infl) for infl in mm.skin] if mm.skin else [], bind=mm.bind, mesh_index=i,
+            morphs=[sgm_to_blender(t.dense(nv)) for t in getattr(mm, "morph_targets", [])]))
     rig = ICpose.SceneRig(sc.bones) if sc.bones else None
     base = os.path.splitext(os.path.basename(path))[0]
     return SceneData(
         name=(sc.name or base) if getattr(sc, "name", "") else base, parts=parts, materials=materials,
         textures=textures, bone_names=[b.name for b in sc.bones], bone_parents=(rig.parents if rig else []),
         bind_world=(rig.bind_world if rig else []), animations=list(sc.animations or []),
-        source_path=src, scene=sc, missing_textures=missing)
+        source_path=src, scene=sc, missing_textures=missing,
+        markers=scene_markers(sc, [b.name for b in sc.bones], rig.bind_world if rig else []))
+
+
+def scene_markers(sc, bone_names, bind_world) -> list:
+    """The attach points (FORM MRKR) of an ICParse Scene, one dict each, in file order: ``name``, ``bone`` (the file's
+    spelling; "" = model space), ``bone_index`` (into ``bone_names``, matched ignoring case as the game does; None when there
+    is no bone or the skeleton lacks it), ``local`` (4x4, SGM space, relative to the bone), ``world`` (4x4, SGM space, bind
+    pose: ``bind_world[bone] @ local``, or ``local`` without a bone), ``index`` (the file's marker number) and ``marker``
+    (the ICParse Marker, kept so an unmoved marker writes back exactly). ``bind_world`` is whatever the scene reader gives,
+    so a corrected bone bind flows through."""
+    from ICParse.sgm.scene import markers as MK
+    out = []
+    for m in getattr(sc, "markers", None) or []:
+        bi = MK.bone_index(m.bone, bone_names)
+        if bi is not None and bi >= len(bind_world):
+            bi = None
+        out.append({"name": m.name, "bone": m.bone, "bone_index": bi, "local": m.local(),
+                    "world": m.world(bone_names, bind_world) if bi is not None else m.local(), "index": m.index, "marker": m})
+    return out
 
 
 def scene_bone_world(data: SceneData, anim_index: int, t: float):

@@ -47,8 +47,8 @@ def _edit():
     try:
         return importlib.import_module("ICParse.sgb.edit")
     except ImportError as exc:
-        raise MapSaveError("Saving maps needs a newer ICParse than the one installed (ICParse.sgb.edit is missing: "
-                           f"{exc}). Update the add-on's ICParse and try again.") from exc
+        raise MapSaveError("Part of this add-on is out of date, so it cannot save maps "
+                           f"({exc}). Install the newest version of the add-on and try again.") from exc
 
 
 def library_problem() -> str:
@@ -532,8 +532,23 @@ def _read_entities(plan: Plan, top) -> None:
         plan.entities = rows
 
 
+def axes_refusal(top):
+    """``store.OLD_AXES_MESSAGE`` when the map's terrain, water, placed objects, decal handles or cinematic keys lack the axes stamp
+    (``store.stamp_axes``), else None."""
+    from . import map_cinematics, map_paint
+    objs = [terrain_of(top), water_of(top)] + entity_objects(top) + map_paint.decal_handles(top)
+    root = map_cinematics.root_of(top)
+    if root is not None:
+        for coll in map_cinematics.anim_collections(root):
+            objs += map_cinematics.key_objects(coll)
+    return M.axes_refusal(*objs)
+
+
 def build_plan(context, top) -> Plan:
     """Read every change from the scene (nothing is written): raises :class:`MapSaveError` when the map cannot be saved as it is."""
+    why = axes_refusal(top)
+    if why:
+        raise MapSaveError(why)
     raw, mv, gm = read_source(context, top)
     plan = Plan(name=map_name(top), raw=raw, mv=mv, gm=gm)
     context.view_layer.update()                            # a position set by a script is in the object's matrix only after this
@@ -813,7 +828,7 @@ def ground_height_at(terrain, x: float, y: float) -> float | None:
     me.vertices.foreach_get("co", co)
     z = co.reshape(-1, 3)[:, 2].astype(np.float64).reshape(h, w)
     p = terrain.matrix_world.inverted() @ Vector((x, y, 0.0))
-    gx = p.x / ts + (w - 1) / 2.0
+    gx = -p.x / ts + (w - 1) / 2.0                         # Blender (x, y) is the game's (-x, -z)
     gz = -p.y / ts + (h - 1) / 2.0
     if gx < 0 or gz < 0 or gx > w - 1 or gz > h - 1:
         return None
@@ -875,6 +890,7 @@ def new_entity_object(context, top, mv, ref: str, location, game_dir: str):
     spelling = map_blueprint_spelling(mv, ref)
     name = os.path.splitext(os.path.basename(ref))[0].upper()
     obj = bpy.data.objects.new(f"{name} new", None)
+    M.stamp(obj)
     coll, why = _load_model(context, top, ref, game_dir)
     if coll is not None:
         obj.instance_type = "COLLECTION"

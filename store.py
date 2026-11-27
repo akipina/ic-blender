@@ -94,6 +94,12 @@ IK_TABLE_KEYS = (KEY_IK_NAMES, KEY_IK_SRC, KEY_IK_FLAGS, KEY_IK_ENABLED, KEY_IK_
 TABLE_KEYS = (KEY_PATCHES, KEY_NPATCH, KEY_PATCH_UV, KEY_PATCH_MAT, KEY_PATCH_TYPE, KEY_PATCH_LIMB, KEY_CONN_NAMES,
               KEY_CONN_BONES, KEY_CONN_VERTS, KEY_CONN_COUNTS, KEY_CONN_ENC, KEY_STORE_VERSION, KEY_POOL_N,
               KEY_MANUAL_INTERIOR, KEY_LIMB_PINS) + LIMB_TABLE_KEYS + CONN_TABLE_KEYS + BONE_TABLE_KEYS + IK_TABLE_KEYS
+# The axes an IC object was made in (core.sgm_to_blender): 2 = game (x, y, z) -> Blender (-x, -z, y). Every import and
+# every IC object made in Blender carries it; every export refuses an object without it.
+KEY_AXES = "ic_axes"
+AXES = 2
+OLD_AXES_MESSAGE = "This was made with an older version of IC Blender. Import the original file again."
+
 JOURNAL_MIN = 64          # journal entries kept per object: at least this, and Blender's undo steps plus a margin
 
 
@@ -372,6 +378,8 @@ def pool_error(obj):
     from . import core
     if not is_native(obj):
         return None
+    if not axes_current(obj):                  # made before the axis flip: its tables are in the old axes (core.sgm_to_blender)
+        return OLD_AXES_MESSAGE
     gerr = generation_error(obj)
     if gerr:
         return gerr
@@ -435,8 +443,31 @@ def forget_cache() -> None:
 
 
 # ------------------------------------------------------------------------------------------- tagging
+def stamp_axes(*ids) -> None:
+    """Mark objects (or other ID blocks) as made in the current axes (:data:`AXES`)."""
+    for i in ids:
+        if i is not None:
+            i[KEY_AXES] = AXES
+
+
+def axes_current(i) -> bool:
+    """True when ``i`` carries the current axes stamp."""
+    try:
+        return i is not None and int(i.get(KEY_AXES, 0)) == AXES
+    except (TypeError, ValueError):
+        return False
+
+
+def axes_refusal(*ids):
+    """:data:`OLD_AXES_MESSAGE` when any of ``ids`` (None skipped) lacks the current axes stamp, else None."""
+    if any(i is not None and not axes_current(i) for i in ids):
+        return OLD_AXES_MESSAGE
+    return None
+
+
 def tag(obj, data) -> None:
     obj[MARK] = True
+    obj[KEY_AXES] = AXES
     obj[KEY_SOURCE] = data.source_path
     obj[KEY_NAME] = data.name
     obj[KEY_UID] = uuid.uuid4().hex
@@ -1389,6 +1420,26 @@ def set_ik_rows(obj, rows) -> None:
 
 def is_native(obj) -> bool:
     return bool(obj and obj.type == "MESH" and obj.get(MARK))
+
+
+def creature_of(obj):
+    """The creature (the mesh the add-on made, not a scene object) that ``obj`` is, or the one whose rig ``obj`` is; None for anything else.
+    The panels that act on a creature (Check, Export, Creature Stats) work while the rig is the active object, as the Motions box does."""
+    if obj is None:
+        return None
+    if is_native(obj) and not obj.get("bz_scene"):
+        return obj
+    if obj.type == "ARMATURE":
+        import bpy
+        owners = [o for o in bpy.data.objects if is_native(o) and not o.get("bz_scene") and rig(o) == obj]
+        if len(owners) == 1:
+            return owners[0]
+    return None
+
+
+def active_creature(context):
+    """:func:`creature_of` the active object of ``context``."""
+    return creature_of(getattr(context, "active_object", None))
 
 
 def source_path(obj) -> str:

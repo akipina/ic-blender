@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -21,10 +22,15 @@ import bpy
 from . import core
 from . import material
 from . import rig
+from . import store
 
 KEY_SCENE = "bz_scene"           # truthy on every part object of an imported scene object
 KEY_SCENE_PART = "bz_scene_part"  # part index
 KEY_NORMALS_ERROR = "bz_normals_error"  # set on a part whose stored normals Blender refused (it shows its own smooth normals)
+KEY_NEW_PART = "bz_new_part"     # truthy on a mesh made a part of a scene object in Blender (with its bz_source / bz_rig)
+KEY_PART_LIKE = "bz_part_like"   # on a new part: the mesh whose clip visibility it copies ("" = visible in every clip)
+KEY_REMOVE_PARTS = "bz_remove_parts"   # on a part object: the part numbers of the file the export removes (Use This Mesh as the Model)
+KEY_SHOW_ALWAYS = "bz_show_always"     # on a part object: the export makes it visible in every clip (Use This Mesh as the Model)
 
 
 def normals_errors(objs):
@@ -129,9 +135,10 @@ def bone_changes(obj) -> list:
     return out
 
 
-def build_scene(context, data, source_path=None, clips_as_actions=True):
+def build_scene(context, data, source_path=None, clips_as_actions=True, markers=False):
     """Create the part objects (+ armature, materials, images) for a ``core.SceneData``; returns the
-    list of mesh objects (the largest first)."""
+    list of mesh objects (the largest first). ``markers``: also build the attach points as empties
+    (``sceneobj/slice_markers.py``; the plain model import does, the map importers do not)."""
     src = source_path or data.source_path
     images = _images(data)
     mats = material.build_blender_materials(
@@ -143,6 +150,7 @@ def build_scene(context, data, source_path=None, clips_as_actions=True):
     arm_obj = None
     if data.bone_names and (has_skin or has_bind):
         arm_obj = rig.create_armature(context, data.name + "_rig", data.bone_names, data.bone_parents, data.bind_world)
+        store.stamp_axes(arm_obj)
 
     objs = []
     for pi, part in enumerate(data.parts):
@@ -172,6 +180,7 @@ def build_scene(context, data, source_path=None, clips_as_actions=True):
         context.collection.objects.link(obj)
         obj[KEY_SCENE] = True
         obj[KEY_SCENE_PART] = pi
+        store.stamp_axes(obj)                                   # made in the current axes (core.sgm_to_blender)
         obj["bz_source"] = src
         obj["bz_name"] = data.name
         if arm_obj is not None:
@@ -192,6 +201,10 @@ def build_scene(context, data, source_path=None, clips_as_actions=True):
             mod.use_vertex_groups = True
             obj["bz_rig"] = arm_obj.name
             obj["bz_anims"] = [a.name or f"anim{i}" for i, a in enumerate(data.animations)]
+        if part.morphs:                                     # damage states as shape keys, their clips as Actions
+            from . import scene_damage
+            scene_damage.build_shape_keys(obj, data, part)
+            scene_damage.import_key_clips(obj, data, part)
         objs.append(obj)
 
     if arm_obj is not None and clips_as_actions and data.animations:
@@ -202,18 +215,40 @@ def build_scene(context, data, source_path=None, clips_as_actions=True):
             arm_obj["bz_actions_error"] = str(e)
 
     _remember_looks(mats, images.values())
+    _remember_shaders(mats, data, src, images)
     objs.sort(key=lambda o: -len(o.data.vertices))
+    group = None
     if len(objs) > 1 and arm_obj is None:
         group = bpy.data.objects.new(data.name, None)
+        store.stamp_axes(group)
         context.collection.objects.link(group)
         for o in objs:
             o.parent = group
+    if markers and objs:
+        from .sceneobj import slice_markers
+        slice_markers.build_markers(context, data, src, arm_obj, group, objs)
+    from . import scenesafety
+    scenesafety.stamp_source(src)                           # the file the model was built on: an export checks it is still that file
     for o in context.view_layer.objects:
         o.select_set(False)
     if objs:
         objs[0].select_set(True)
         context.view_layer.objects.active = objs[0]
     return objs
+
+
+def _remember_shaders(mats, data, src, images):
+    """Record each material's source shader for the materials export (``scene_materials.remember``); skipped for a model
+    that has no file of its own (a map's archived models)."""
+    from . import scene_materials
+    try:
+        path = core.resolve_source(src) if src else ""
+        if path and os.path.isfile(path):
+            with open(path, "rb") as f:
+                scene_materials.remember(mats, data, f.read(), images)
+    except Exception as e:                              # noqa: BLE001 -- the import itself must not fail over this
+        for mat in mats:
+            mat["bz_shader_error"] = f"{type(e).__name__}: {e}"
 
 
 def scene_objects(context=None):
@@ -235,6 +270,7 @@ class BuiltPart:
     submeshes: list             # [(shader name, [(a, b, c), ...])] over the output vertices, in order of first use
     source_vertex: np.ndarray   # (N,) the Blender vertex each output vertex came from
     notes: list = field(default_factory=list)
+    bind: object = "source"     # a rigid part read against a rig edit: the target bone it follows (None = none)
 
 
 @dataclass
@@ -245,12 +281,36 @@ class SceneExport:
     missing: list               # parts of the file with no object in this scene: kept from the source
     notes: list
     damage_states_dropped: dict = field(default_factory=dict)   # part number -> damage states written out of it
+    files: dict = field(default_factory=dict)   # texture files the model needs beside it: lower-case path inside Data -> bytes
+    skeleton: object = None     # ICParse SkeletonReport when the skeleton was written (scene_skeleton)
+    rig_edit: object = None     # the scene_skeleton.RigEdit the export used
+    markers: dict = field(default_factory=dict)   # what happened to the attach points (ICParse write_scene_markers report)
+    parts_added: list = field(default_factory=list)     # [(object name, part number in the written file)] new parts
+    parts_removed: list = field(default_factory=list)   # names of the parts removed because their object was deleted
+    converted: bool = False     # the model's single mesh was put into a part group to hold the new parts
+
+    @property
+    def markers_added(self) -> list:
+        return list(self.markers.get("added", []))
+
+    @property
+    def markers_removed(self) -> list:
+        return list(self.markers.get("removed", []))
+
+    @property
+    def markers_changed(self) -> list:
+        return list(self.markers.get("changed", []))
+
+    @property
+    def markers_renamed(self) -> list:
+        return list(self.markers.get("renamed", []))
+    morphs: dict = field(default_factory=dict)  # part number -> {kept, encoded, added, removed, forced_v2} of its damage states
 
 
 def damage_states_refusal(name: str, count: int) -> str:
-    """Why an edited part with damage states (morph targets) is not exported."""
-    return (f"'{name}' has damage states ({count} stored shapes); editing its mesh would break them. Undo the edit, or tick "
-            "\"Drop the damage states of edited parts\" in File > Export or Export Entity Folder")
+    """Why an edited part with damage states (morph targets) but no shape keys for them is not exported."""
+    from . import scene_damage
+    return scene_damage.damage_states_refusal(name, count)
 
 
 def part_objects(obj):
@@ -270,17 +330,92 @@ def part_objects(obj):
     return [found[k] for k in sorted(found)]
 
 
+def model_root(obj):
+    """The object whose place is the model's origin for the part ``obj``: its rig, else the group empty the parts hang
+    under, else the part itself (a single part with no rig: moving it moves the whole model, as its markers do). A part's
+    model-space mesh is its vertices through ``inverse(root.matrix_world) @ obj.matrix_world``, the identity for every
+    imported part."""
+    from . import scene_skeleton
+    arm = scene_skeleton.rig_of(obj)
+    if arm is not None:
+        return arm
+    p = obj.parent
+    return p if p is not None and p.type == "EMPTY" else obj
+
+
+def part_matrix(o, root):
+    """``inverse(root.matrix_world) @ o.matrix_world`` as a 4x4 numpy array (Blender space), None when it is the identity
+    (to 1e-6). A mesh parented to a bone is placed by the bone's REST, so a clip posing the rig does not move it."""
+    M = o.matrix_world
+    if o.parent is not None and o.parent_type == "BONE" and o.parent.type == "ARMATURE" and o.parent_bone in o.parent.data.bones:
+        from mathutils import Matrix
+        b = o.parent.data.bones[o.parent_bone]
+        M = o.parent.matrix_world @ b.matrix_local @ Matrix.Translation((0.0, b.length, 0.0)) @ o.matrix_parent_inverse \
+            @ o.matrix_basis
+    if root is not None:
+        M = root.matrix_world.inverted_safe() @ M
+    A = np.array([[M[r][c] for c in range(4)] for r in range(4)], dtype=np.float64)
+    return None if np.allclose(A, np.eye(4), atol=1e-6) else A
+
+
+def new_part_objects(obj) -> list:
+    """The meshes that become NEW parts of the scene object ``obj`` belongs to, by name: those stamped ``bz_new_part`` with
+    its source and rig (*Make Part of Scene Object*), and any other mesh that is no part of a scene object but a child of
+    its rig or group empty. Only meshes in a scene count."""
+    src, rig_name = obj.get("bz_source"), obj.get("bz_rig")
+    root = model_root(obj)
+    out = []
+    for o in bpy.data.objects:
+        if o.type != "MESH" or o.get(KEY_SCENE_PART) is not None or not o.users_scene:
+            continue
+        if o.get(KEY_NEW_PART):
+            if o.get("bz_source") == src and o.get("bz_rig") == rig_name:
+                out.append(o)
+        elif not o.get(KEY_SCENE) and o.parent is root:
+            out.append(o)
+    return sorted(out, key=lambda o: o.name)
+
+
+def new_part_binding(o, skel):
+    """How a new part moves: ``("skin", None)`` (weighted to several bones), ``("rigid", target)`` (it follows one bone of
+    the rig edit ``skel``: parented to that bone, or one vertex group at full weight on every vertex) or ``("rigid",
+    None)`` (it does not move: no skeleton, or no group naming a bone)."""
+    if skel is None:
+        return "rigid", None
+    if o.parent is not None and o.parent_type == "BONE" and o.parent_bone:
+        t = skel.target_of(o.parent_bone)
+        if t is None:
+            raise ValueError(f"'{o.name}' is parented to bone '{o.parent_bone}', which the model's skeleton does not have")
+        return "rigid", t
+    me = o.data
+    used = np.unique(_foreach(me.loops, "vertex_index", np.int64)) if len(me.loops) else np.zeros(0, np.int64)
+    weights = {}
+    for vi in used.tolist():
+        for g in me.vertices[vi].groups:
+            if g.weight > 0.0:
+                weights.setdefault(g.group, []).append(float(g.weight))
+    live = [g for g in o.vertex_groups if skel.target_of(g.name) is not None and weights.get(g.index)]
+    if not live:
+        return "rigid", None
+    if len(live) == 1 and len(weights[live[0].index]) == len(used) and min(weights[live[0].index]) >= 0.999:
+        return "rigid", skel.target_of(live[0].name)
+    return "skin", None
+
+
 def _foreach(coll, attr, dtype, per=1):
     a = np.empty(len(coll) * per, dtype=dtype)
     coll.foreach_get(attr, a)
     return a.reshape(-1, per) if per > 1 else a
 
 
-def build_part(obj, data, part) -> BuiltPart:
+def build_part(obj, data, part, slot_names=None, skel=None, matrix=None) -> BuiltPart:
     """Read a part object's mesh as the file stores it. Seams are split where a vertex's corners disagree on UV, or where a
     face is flat-shaded (its corners take the face normal); everything else shares one vertex and takes the smooth normal.
     Output vertices keep the Blender vertex order (copies from splitting are appended after), so an unedited mesh maps back
-    to exactly the vertices it was imported from. Vertices no face uses are not written."""
+    to exactly the vertices it was imported from. Vertices no face uses are not written. ``slot_names``: the shader name of
+    each material slot (the materials export's ``slot_names``); without it a slot is the imported material of its number.
+    ``matrix``: the object's place in the model (:func:`part_matrix`, Blender space), applied to its vertices and normals;
+    a mirroring matrix also turns the triangles round, so they keep facing out."""
     me = obj.data
     if obj.mode == "EDIT":
         obj.update_from_editmode()
@@ -289,7 +424,7 @@ def build_part(obj, data, part) -> BuiltPart:
     me.calc_loop_triangles()
     nl, nv, npoly, nt = len(me.loops), len(me.vertices), len(me.polygons), len(me.loop_triangles)
     notes = []
-    tri_loops = _foreach(me.loop_triangles, "loops", np.int64, 3)
+    tri_loops = _foreach(me.loop_triangles, "loops", np.int64, 3)[:, [0, 2, 1]]   # the file's winding
     tri_poly = _foreach(me.loop_triangles, "polygon_index", np.int64)
     loop_vert = _foreach(me.loops, "vertex_index", np.int64)
     poly_mat = _foreach(me.polygons, "material_index", np.int64)
@@ -297,6 +432,13 @@ def build_part(obj, data, part) -> BuiltPart:
     poly_nrm = _foreach(me.polygons, "normal", np.float64, 3)
     co = _foreach(me.vertices, "co", np.float64, 3)
     vnrm = _foreach(me.vertices, "normal", np.float64, 3)
+    mirrored = False
+    if matrix is not None:                                      # moved in Object Mode / a new part placed in the model
+        A = np.asarray(matrix, dtype=np.float64)
+        co = co @ A[:3, :3].T + A[:3, 3]
+        Nm = np.linalg.inv(A[:3, :3]).T
+        vnrm, poly_nrm = vnrm @ Nm.T, poly_nrm @ Nm.T             # normalised below
+        mirrored = bool(np.linalg.det(A[:3, :3]) < 0)
     uvl = me.uv_layers.active
     if uvl is not None:
         uv = _foreach(uvl.data, "uv", np.float64, 2)
@@ -344,37 +486,100 @@ def build_part(obj, data, part) -> BuiltPart:
     if not good.all():
         notes.append(f"{int((~good).sum())} degenerate triangles (a repeated vertex) were left out")
     tri_out, tri_mat = tri_out[good], tri_mat[good]
+    if mirrored:
+        tri_out = tri_out[:, [0, 2, 1]]
     if not len(tri_out):
         raise ValueError(f"part '{obj.name}' has no usable triangles")
     _, fi = np.unique(tri_mat, return_index=True)
     submeshes = []
     for m in tri_mat[np.sort(fi)].tolist():
+        if slot_names is not None and 0 <= m < len(slot_names) and slot_names[m]:
+            submeshes.append((slot_names[m], [tuple(t) for t in tri_out[tri_mat == m].tolist()]))
+            continue
         if not 0 <= m < len(data.materials):
             raise ValueError(f"part '{obj.name}': material slot {m + 1} has no shader in the file ({len(data.materials)} "
                              f"come from the import) -- give those faces one of the imported materials")
         submeshes.append((data.materials[m]["name"], [tuple(t) for t in tri_out[tri_mat == m].tolist()]))
 
     skin = None
+    bind = "source"
     if part.skin:                                               # a skinned part: every vertex carries bone weights
-        bone_of = {(n or f"bone{i}").lower(): i for i, n in enumerate(data.bone_names)}
-        group_bone = {g.index: bone_of.get(g.name.lower()) for g in obj.vertex_groups}
-        root = next((i for i, p in enumerate(data.bone_parents) if p < 0), 0)
-        cache, bare, skin = {}, 0, []
+        if skel is not None:                                    # the rig's bones as the export writes them (scene_skeleton)
+            group_bone = {g.index: skel.target_of(g.name) for g in obj.vertex_groups}
+            dead = {g.index: skel.deleted_groups[g.name] for g in obj.vertex_groups
+                    if group_bone[g.index] is None and g.name in skel.deleted_groups}
+            root = next(t for t, b in enumerate(skel.edit.bones) if b.src == 0)
+            root_name = skel.rig_names[root]
+        else:
+            bone_of = {(n or f"bone{i}").lower(): i for i, n in enumerate(data.bone_names)}
+            group_bone = {g.index: bone_of.get(g.name.lower()) for g in obj.vertex_groups}
+            dead = {}
+            root = next((i for i, p in enumerate(data.bone_parents) if p < 0), 0)
+            root_name = data.bone_names[root] or root
+        cache, bare, skin, only_dead, part_dead = {}, 0, [], [], set()
         for vi in src_v.tolist():
             infl = cache.get(vi)
             if infl is None:
-                infl = [(group_bone[g.group], float(g.weight)) for g in me.vertices[vi].groups
+                groups = me.vertices[vi].groups
+                infl = [(group_bone[g.group], float(g.weight)) for g in groups
                         if group_bone.get(g.group) is not None and g.weight > 0.0]
+                gone = [dead[g.group] for g in groups if g.group in dead and g.weight > 0.0]
+                part_dead.update(gone)
                 if not infl:
+                    if gone:
+                        only_dead.append(vi)
                     infl = [(root, 1.0)]
                     bare += 1
                 cache[vi] = infl
             skin.append(infl)
+        if only_dead:
+            raise ValueError(f"{len(only_dead)} vertices of '{obj.name}' are weighted only to deleted bone(s) "
+                             f"{', '.join(repr(n) for n in sorted(part_dead)[:3])}, so they follow no bone in Blender. "
+                             "Undo the delete and use Armature > Delete Bones, Merge Weights (it hands the weights to "
+                             "the parent), or weight those vertices to another bone")
+        if part_dead:
+            notes.append(f"weights on deleted bone(s) {', '.join(repr(n) for n in sorted(part_dead)[:3])} were left out, "
+                         "as Blender ignores them")
         if bare:
             notes.append(f"{bare} vertices have no bone weights; they were bound to the root bone "
-                         f"'{data.bone_names[root] or root}' (they would not follow the skeleton in Blender)")
+                         f"'{root_name}' (they would not follow the skeleton in Blender)")
+    elif skel is not None and (part.bind is not None or len(obj.vertex_groups)):
+        bind = _rigid_bind(obj, me, src_v, skel, notes)
     return BuiltPart(positions=core.blender_to_sgm(co[src_v]), normals=core.blender_to_sgm(nrm), uvs=out_uv, skin=skin,
-                     submeshes=submeshes, source_vertex=src_v, notes=notes)
+                     submeshes=submeshes, source_vertex=src_v, notes=notes, bind=bind)
+
+
+def _rigid_bind(obj, me, src_v, skel, notes):
+    """The bone a rigid part follows, read like Blender deforms it: the live vertex group every vertex has at full weight
+    (or the heaviest one, with a note), None when no group names a bone of the rig."""
+    used = np.unique(src_v)
+    total = {}
+    for vi in used.tolist():
+        for g in me.vertices[vi].groups:
+            if g.weight > 0.0:
+                total.setdefault(g.group, []).append(float(g.weight))
+    best, best_w = None, 0.0
+    for g in obj.vertex_groups:
+        t = skel.target_of(g.name)
+        ws = total.get(g.index, [])
+        if t is None or not ws:
+            continue
+        if len(ws) == len(used) and min(ws) >= 0.999:
+            return t
+        if sum(ws) > best_w:
+            best, best_w = t, sum(ws)
+    if best is None:
+        dead = sorted({skel.deleted_groups[g.name] for g in obj.vertex_groups
+                       if g.name in skel.deleted_groups and skel.target_of(g.name) is None and total.get(g.index)})
+        if dead:
+            raise ValueError(f"'{obj.name}' is a rigid part that follows only deleted bone(s) "
+                             f"{', '.join(repr(n) for n in dead[:3])}, so it would follow no bone. Undo the delete and use "
+                             "Armature > Delete Bones, Merge Weights (the part then follows the parent), or assign the "
+                             "part to another bone's vertex group")
+    if best is not None:
+        notes.append(f"is a rigid part (the game moves it with one bone) but its vertices are weighted to several bones or "
+                     f"below full weight: it follows '{skel.rig_names[best]}', its heaviest group")
+    return best
 
 
 def _source_submeshes(data, part, remap=None):
@@ -385,7 +590,8 @@ def _source_submeshes(data, part, remap=None):
         if mi not in subs:
             subs[mi] = []
             seen.append(mi)
-        subs[mi].append(tuple(int(remap[i]) for i in tri) if remap is not None else tuple(tri))
+        tri = (tri[0], tri[2], tri[1])                          # the file's winding
+        subs[mi].append(tuple(int(remap[i]) for i in tri) if remap is not None else tuple(int(i) for i in tri))
     return [(data.materials[mi]["name"] if mi < len(data.materials) else f"mat{mi}", subs[mi]) for mi in seen]
 
 
@@ -395,7 +601,7 @@ def _skin_key(infl):
     return {int(b): w / total for b, w in top if w / total > 5e-4}
 
 
-def part_unchanged(built: BuiltPart, data, part) -> bool:
+def part_unchanged(built: BuiltPart, data, part, skel=None) -> bool:
     """True when the part's mesh is what the file already holds (vertices, UVs, triangles per shader, weights), so
     its bytes need not be rewritten. Normals are derived from the geometry and are not compared."""
     n = len(part.verts)
@@ -422,13 +628,17 @@ def part_unchanged(built: BuiltPart, data, part) -> bool:
         if built.skin is None or len(built.skin) != len(skin0):
             return False
         for a, b in zip(built.skin, skin0):
+            if skel is not None:                    # compare bones by identity: the part keeps its bytes through a rename
+                a = [(skel.src_of(t) if skel.src_of(t) is not None else -1 - t, w) for t, w in a]
             ka, kb = _skin_key(a), _skin_key(b)
             if ka.keys() != kb.keys() or any(abs(ka[k] - kb[k]) > 2e-3 for k in ka):
                 return False
     return True
 
 
-def export_scene_object(obj, legacy: bool = True, only=None, force: bool = False, drop_morphs: bool = False) -> SceneExport:
+def export_scene_object(obj, legacy: bool = True, only=None, force: bool = False, drop_morphs: bool = False,
+                        entity: str = "", carry_over: bool = False, remove_missing: bool = False,
+                        refuse_errors: bool = True) -> SceneExport:
     """The scene object ``obj`` belongs to, as ``.sgm`` bytes: every part whose mesh was edited is rebuilt from its Blender
     object (any topology -- new or deleted faces, seams, UV edits, new bone weights, changed material slots) into the
     source file, and every part left as imported keeps the source's bytes, so an unedited object comes back byte-identical.
@@ -439,31 +649,57 @@ def export_scene_object(obj, legacy: bool = True, only=None, force: bool = False
     ``legacy=True`` writes the v1.2 layout so the engine rebuilds the detail ladder itself (the path through the real
     game); ``False`` keeps v2.0 with one full-detail record (loads in the Object Editor, not yet seen in the game).
 
-    A part with damage states (morph targets: stored shapes the game blends in, which name its vertices by number) cannot
-    be edited yet without breaking them: an edited one is refused, unless ``drop_morphs`` writes it without them (counted
-    in ``damage_states_dropped`` and the notes). Parts left as imported keep theirs byte for byte. Every rebuilt part gets
+    Damage states (morph targets) are the part's shape keys (``scene_damage``): unedited keys keep their stored bytes,
+    edited ones are re-encoded over the written vertices, added and deleted keys add and remove targets (the clips follow),
+    and a part that carries any is written in the v2.0 layout; ``morphs`` reports it per part. A part whose source has
+    damage states but which has no shape keys (imported by an older version) keeps them while unedited; edited, it is
+    refused, unless ``carry_over`` carries them onto the new mesh or ``drop_morphs`` leaves them out (counted in
+    ``damage_states_dropped``). Edited shape-key Actions write their clip's weights. Every rebuilt part gets
     the bounding volumes the game builds (its own, one per palette bone), and the entity box follows it (ICParse
-    ``write_scene_part``)."""
+    ``write_scene_part``).
+
+    Materials and textures go first (``scene_materials.export_materials``): an untouched material keeps its shader's bytes;
+    a painted or replaced image, a new material, an opacity or team-colour change is written, and the texture files the
+    model then needs are returned in ``files`` (named after ``entity``, default the source's name), with any texture the
+    model loads that the game lacks copied from the source's own Data folder (an earlier export's).
+
+    Parts (ICParse ``sgm.scene.parts``): every part is read in model space (:func:`part_matrix`), so a part moved in
+    Object Mode is written where it is. The meshes of :func:`new_part_objects` become NEW parts after the file's own
+    (a rigid part following one bone, a skinned one, or one that does not move: :func:`new_part_binding`), each visible in
+    every clip (or showing and hiding like ``bz_part_like``); a model with one top-level mesh is put into a part group
+    first. ``remove_missing``: the parts whose object was deleted are removed from the file (with their clip channels)
+    instead of keeping the source's geometry. ``parts_added``, ``parts_removed`` and ``converted`` report it.
+
+    ``refuse_errors=False`` ("Export anyway"): an error of the load validation is kept as a note ("written anyway: ...") instead of refusing the export."""
     from ICParse.sgm.scene import model as SM
+    from . import scene_materials
     from ICParse.sgm.scene.validate import validate_scene_sgm
 
     src = obj.get("bz_source", "")
     if not src or obj.get(KEY_SCENE_PART) is None:
-        raise ValueError("not an imported scene part (no bz_source / bz_scene_part)")
+        raise ValueError("not an imported scene part")
     data = core.load_scene(src)
     raw = open(core.resolve_source(src), "rb").read()
     objs = part_objects(obj)
-    bones = bone_changes(obj)
-    if bones:
-        raise ValueError("bone changes can't be saved yet, so nothing was written. Undo these first: " + "; ".join(bones[:4])
-                         + (f" (and {len(bones) - 4} more)" if len(bones) > 4 else ""))
+    from . import scene_skeleton
+    why = store.axes_refusal(*objs, scene_skeleton.rig_of(obj))     # an object imported before the axis flip is in the old axes
+    if why:
+        raise ValueError(why)
+    root = model_root(obj)
+    new_objs = new_part_objects(obj) if only is None else []
+    skel = scene_skeleton.read_rig(obj, raw)          # the rig's bone edits (renames, moves, adds, deletes, re-parents)
     src_forms = SM.scene_pmsh_forms(SM.IffDocument.from_bytes(raw))
     n_forms = len(src_forms)
     rebuilt, kept, notes, present, dropped = [], [], [], set(), {}
-    lost = unsaved_looks(objs)
-    if lost:
-        notes.append("NOT SAVED, because materials and textures can't be saved yet: " + "; ".join(lost[:6])
-                     + (f" (and {len(lost) - 6} more)" if len(lost) > 6 else ""))
+    from . import scene_damage
+    morph_report, written_keys, source_raw = {}, {}, raw
+    archives = scene_materials.game_archives()        # 1. materials and textures (SHDR, TXRF, TXTR)
+    looks = scene_materials.export_materials(objs + new_objs, data, raw, entity=entity, resolver=archives,
+                                             loose_root=scene_materials.data_folder_of(core.resolve_source(src)))
+    files = {**looks.carried, **looks.files}
+    raw = looks.sgm
+    notes += looks.notes + scene_materials.other_edits(objs)
+    jobs, binds = [], {}
     for o in objs:
         pi = int(o[KEY_SCENE_PART])
         if pi >= len(data.parts):
@@ -472,38 +708,167 @@ def export_scene_object(obj, legacy: bool = True, only=None, force: bool = False
         if only is not None and pi not in only:
             continue
         part = data.parts[pi]
-        built = build_part(o, data, part)
+        placed = part_matrix(o, root)
+        built = build_part(o, data, part, looks.slot_names.get(o.name), skel, matrix=placed)
         notes += [f"{o.name}: {n}" for n in built.notes]
-        unchanged = part_unchanged(built, data, part)
-        if not force and unchanged:
+        unchanged = part_unchanged(built, data, part, skel)
+        if placed is not None and not unchanged:
+            notes.append(f"{o.name}: was moved, turned or scaled in Object Mode; written where it is now in the model")
+        if skel is not None and built.bind != "source" and 0 <= part.mesh_index < n_forms:
+            was = next((t for t, b in enumerate(skel.edit.bones) if part.bind is not None and b.src == int(part.bind)), None)
+            if built.bind != was:
+                binds[part.mesh_index] = built.bind        # a rigid part re-bound (Ctrl+G, a deleted bone)
+        src_form = src_forms[part.mesh_index] if 0 <= part.mesh_index < n_forms else None
+        mplan = scene_damage.plan_part(o, data, part, built, unchanged, src_form, drop_morphs, carry_over)
+        if not force and unchanged and mplan.untouched:
             kept.append(pi)
             continue
-        if not 0 <= part.mesh_index < n_forms:
-            raise ValueError(f"'{o.name}' is not a PMSH mesh of the file (a GEOM block, as in projectiles and effects); "
+        if src_form is None:
+            raise ValueError(f"'{o.name}' is not a mesh of the model file (it is a projectile or effect model); "
                              f"rebuilding those is not supported")
-        n_morphs = SM.morph_target_count(src_forms[part.mesh_index])
-        if n_morphs and not drop_morphs and (legacy or not unchanged):
-            raise ValueError(damage_states_refusal(o.name, n_morphs))
+        jobs.append((o, pi, part, built, mplan, unchanged))
+    new_jobs = []                                           # new parts: read now (the rig's targets), written after the rest
+    for o in new_objs:
+        kind, target = new_part_binding(o, skel)
+        like_part = SimpleNamespace(skin=[[(0, 1.0)]] if kind == "skin" else [], bind=None)
+        built = build_part(o, data, like_part, looks.slot_names.get(o.name), skel if kind == "skin" else None,
+                           matrix=part_matrix(o, root))
+        if kind == "rigid":
+            built.bind = target
+        if not o.material_slots:
+            notes.append(f"{o.name}: has no material; its faces use the model's first, '{data.materials[0]['name']}'"
+                         if data.materials else f"{o.name}: has no material")
+        notes += [f"{o.name}: {n}" for n in built.notes]
+        new_jobs.append((o, built, kind))
+    skeleton = None                                         # 2. the skeleton (SKEL, XFRM, palettes, binds, MRKR bones, clips)
+    if skel is not None and (skel.changed or binds or jobs):
+        from ICParse.sgm.scene import skeleton as SK
+        skel.edit.part_bones = {part.mesh_index: sorted({t for infl in built.skin for t, _w in infl})
+                                for _o, _pi, part, built, _mp, _u in jobs if built.skin}
+        skel.edit.binds = binds
+        raw, skeleton = SK.write_skeleton(raw, skel.edit)
+        notes += [f"skeleton: {line}" for line in skeleton.summary()]
+    for o, pi, part, built, mplan, unchanged in jobs:      # 3. the parts, with their damage states (morph targets)
+        skin = built.skin
+        if skin and skel is not None:                       # skeleton bones -> this part's palette slots
+            skin = scene_skeleton.skin_slots(raw, part.mesh_index, skel, skin)
         report = {}
-        raw = SM.write_scene_part(
-            raw, part.mesh_index, [tuple(p) for p in built.positions.tolist()], [tuple(n) for n in built.normals.tolist()],
-            [tuple(t) for t in built.uvs.tolist()], built.skin, built.submeshes, legacy=legacy,
-            morphs="drop" if drop_morphs else "check", report=report)
-        if report.get("morphs_dropped"):
-            dropped[pi] = report["morphs_dropped"]
-            notes.append(f"{o.name}: its {report['morphs_dropped']} damage states were left out (the part was edited)")
+        raw = scene_damage.write_part(raw, part, built, mplan, legacy, unchanged, force, report, skin=skin)
+        notes += mplan.notes
+        mw = report.get("morphs")
+        if mw is not None:
+            raw = scene_damage.after_write(raw, scene_damage.mesh_name(data, part), mw, notes)
+            morph_report[pi] = {"kept": mw.kept, "encoded": mw.encoded, "added": mw.added, "removed": len(mw.removed),
+                                "forced_v2": bool(report.get("forced_v2"))}
+            written_keys[pi] = mplan.names
+            if mplan.left_out:
+                dropped[pi] = mplan.left_out
+            if report.get("forced_v2"):
+                notes.append(f"{o.name}: written in the v2.0 layout, because it has damage states (one detail level; not yet "
+                             f"seen in the game)")
         rebuilt.append(pi)
-    if rebuilt:
-        problems = validate_scene_sgm(raw)
-        errors = [p for p in problems if p.startswith("ERROR")]
-        if errors:
-            raise ValueError("the exported model would not load: " + "; ".join(e[:160] for e in errors))
-        notes += [p for p in problems if not p.startswith("ERROR")]
+    raw = scene_damage.write_key_clips(raw, objs if only is None else [o for o in objs if int(o[KEY_SCENE_PART]) in only],
+                                       data, written_keys, notes)  # 4. edited shape-key Actions: their clips' weights
+    from .sceneobj import slice_markers                     # 5. the markers (MRKR), against the written skeleton
+    raw, marker_report, marker_notes = slice_markers.apply_to_export(obj, data, raw)
+    notes += marker_notes
+    moved = [part.mesh_index for _o, _pi, part, _b, _m, unchanged in jobs if not unchanged and 0 <= part.mesh_index < n_forms]
+    if moved:                       # a part whose geometry changed may outgrow the clips' stored boxes: it would be culled and
+        from ICParse.sgm.scene import parts as SP_      # picked by the old size (AnimPlayList::GetBounds), so the boxes grow
+        raw = SP_.grow_bounds_for_parts(raw, moved, before=source_raw)    # by what the edit added to the part, no more
+    shown = [(o, int(o[KEY_SCENE_PART])) for o in objs if o.get(KEY_SHOW_ALWAYS) and only is None
+             and 0 <= data.parts[int(o[KEY_SCENE_PART])].mesh_index < n_forms]
+    if shown:                       # a mesh that is the whole model must not be hidden by the clips that hid its old stage
+        from ICParse.sgm.scene import parts as SP_
+        for o, pi in shown:
+            doc_ = SM.IffDocument.from_bytes(raw)
+            clips_ = SP_.show_mesh_always(doc_, data.parts[pi].mesh_index)
+            raw = doc_.to_bytes()
+            if clips_:
+                notes.append(f"{o.name}: made visible in {len(clips_)} clip(s) that hid it ({', '.join(clips_[:4])}"
+                             f"{' ...' if len(clips_) > 4 else ''})")
     missing = [pi for pi in range(len(data.parts)) if pi not in present and (only is None or pi in only)]
+    explicit = {int(x) for o in objs for x in (o.get(KEY_REMOVE_PARTS) or [])} if only is None else set()
+    drop = missing if remove_missing else [pi for pi in missing if pi in explicit]
+    # 6. the parts that leave go first, so a new part may take the name of one deleted in the same export (the clips find a mesh by
+    # name, and add_scene_part refuses a name the model still has). An object of the model is always left (this export is called
+    # on one, and it is never in ``missing``), so the model never loses its last node here. 7. then the new parts, appended after
+    # the parts that stay, so the number each reports is the one in the file as written.
+    raw, removed, left, gone = _remove_parts(raw, data, drop, n_forms, notes)
+    raw, added, converted = _add_parts(raw, new_jobs, skel, legacy, notes)
+    missing = sorted([pi for pi in missing if pi not in drop] + left)
+    if rebuilt or raw != source_raw:
+        problems = validate_scene_sgm(raw, files=files, resolver=archives, new_refs=looks.new_refs,
+                                      new_submesh_shaders=looks.new_shaders)
+        errors = [p for p in problems if p.startswith("ERROR")]
+        if errors and refuse_errors:
+            raise ValueError("the exported model would not load: " + "; ".join(e[:160] for e in errors))
+        notes += [("written anyway, the game may refuse it: " + p) if p.startswith("ERROR") else p for p in problems]
     if missing:
         notes.append(f"{len(missing)} part(s) of the file have no object here ({', '.join(str(p) for p in missing[:6])}"
-                     f"{'...' if len(missing) > 6 else ''}); they keep the source's geometry")
-    return SceneExport(raw, rebuilt, kept, missing, notes, dropped)
+                     f"{'...' if len(missing) > 6 else ''}); they keep the source's geometry"
+                     + ("" if remove_missing or only is not None or not [p for p in missing if p not in explicit] else
+                        " (turn on 'Remove parts deleted in Blender' to remove them)"))
+    return SceneExport(raw, rebuilt, kept, missing, notes, dropped, files=files, skeleton=skeleton, rig_edit=skel,
+                       markers=marker_report, morphs=morph_report, parts_added=added, parts_removed=removed,
+                       converted=converted)
+
+
+def _written_bone(skel, t) -> str:
+    """The name the written skeleton gives rig-edit target ``t`` (as a C string: the game reads one)."""
+    return skel.plan.names[skel.plan.new_of_target[t]].split("\x00", 1)[0]
+
+
+def _remove_parts(raw, data, missing, n_forms, notes):
+    """Remove the parts ``missing`` (part numbers of ``data``) from ``raw``, the highest mesh number first so the others
+    keep theirs. Returns ``(bytes, removed names, parts left as they were, the mesh numbers removed)``."""
+    from ICParse.sgm.scene import parts as SP
+    removed, kept, gone = [], [], []
+    for pi in sorted(missing, key=lambda p: -data.parts[p].mesh_index):
+        part = data.parts[pi]
+        if not 0 <= part.mesh_index < n_forms:
+            notes.append(f"part '{part.name}' (a projectile or effect model) was deleted in Blender but cannot be removed; it stays")
+            kept.append(pi)
+            continue
+        rep = SP.PartReport()
+        try:
+            raw = SP.remove_scene_part(raw, part.mesh_index, report=rep)
+        except SP.PartError as e:
+            raise ValueError(f"part '{part.name}' was deleted in Blender but cannot be removed: {e}")
+        removed.append(part.name)
+        gone.append(part.mesh_index)
+        notes += [f"removing '{part.name}': {n}" for n in rep.notes]
+    if removed:
+        notes.append(f"{len(removed)} part(s) deleted in Blender were removed, with their clip channels: "
+                     + ", ".join(repr(n) for n in removed[:6]) + (" ..." if len(removed) > 6 else ""))
+    return raw, removed, sorted(kept), gone
+
+
+def _add_parts(raw, new_jobs, skel, legacy, notes):
+    """Write the new parts ``new_jobs`` (``(object, BuiltPart, kind)``) into ``raw`` (ICParse ``parts.add_scene_part``).
+    Returns ``(bytes, [(name, part number)], whether the model was put into a part group)``."""
+    if not new_jobs:
+        return raw, [], False
+    from ICParse.sgm.scene import parts as SP
+    added, converted = [], False
+    for o, built, kind in new_jobs:
+        skin = [[(_written_bone(skel, t), w) for t, w in infl] for infl in built.skin] if kind == "skin" else None
+        bind = _written_bone(skel, built.bind) if kind == "rigid" and built.bind is not None else None
+        rep = SP.PartReport()
+        try:
+            raw = SP.add_scene_part(raw, SP.NewPart(o.name, built.positions, built.normals, built.uvs, built.submeshes,
+                                                    skin=skin, bind=bind, like=o.get(KEY_PART_LIKE) or None),
+                                    legacy=legacy, report=rep)
+        except SP.PartError as e:
+            raise ValueError(f"new part '{o.name}': {e}")
+        added.append((o.name, rep.part))
+        converted = converted or rep.converted
+        how = (f"skinned to {len(rep.palette)} bone(s)" if kind == "skin" else
+               f"follows bone '{rep.bind}'" if rep.bind else "does not move with any bone")
+        notes.append(f"{o.name}: added as part {rep.part}, {how}; visible in {len(rep.clips_named)} clip(s)"
+                     + (f", {len(rep.clips_grown)} clip box(es) grown to hold it" if rep.clips_grown else ""))
+        notes += rep.notes
+    return raw, added, converted
 
 
 def export_part_geometry(obj, legacy: bool = True) -> bytes:

@@ -2,7 +2,10 @@
 
 One front door for starting work on every kind of .sgm the game has, so that what a project IS decides what the add-on does with it:
 
-* **Creature** -- the default skeleton (ICParse's canonical 48 bones) with a connected scaffold body, as New Creature builds it.
+* **Creature** -- the default skeleton (ICParse's canonical 48 bones) with a connected scaffold body, as New Creature builds it,
+  or a copy of one of **the game's own animals** (Start from: the base game's 61, the expansions' and the installed mods';
+  ``ICParse.sgm.creature.stock_donor``): the model is written as ``<name>.sgm`` and the animal's blueprint, stats and combiner rules
+  as ``<name>.ebp`` / ``.lua`` / ``.lsc`` beside it, and the creature is stamped ``bz_stock_donor`` / ``bz_stock_archive``.
   Animations: the template's own, none, or **borrowed from existing creatures** (:func:`borrow_clips`).
 * **Gatherer / character** and **Structure / prop** -- SCENE objects: another file layout (triangle meshes with stored normals,
   materials, a bounding volume, rigid-part or skinned binding) and another controller (.ebp). The engine cannot load a scene object
@@ -33,10 +36,15 @@ KINDS = (
     ("CREATURE", "Creature", "A creature: the default skeleton with a simple connected starting body made of patches", "OUTLINER_OB_ARMATURE", 0),
     ("CHARACTER", "Gatherer / character", "A skinned model on a skeleton, like the henchmen and story characters", "ARMATURE_DATA", 1),
     ("STRUCTURE", "Structure / prop", "A building, prop or scenery made of rigid parts on bones", "HOME", 2),
+    ("PROJECTILE", "Projectile", "Something the game throws or fires (a rock, a quill, a spit): a small model with a blueprint, in art/ebps/projectiles",
+     "FORCE_FORCE", 3),
+    ("EFFECT", "Effect model", "A small mesh an effect draws (a rock, a shard, a ring): a model with no blueprint, in art/fx", "PARTICLES", 4),
 )
-_NAMES = {"CREATURE": "NewCreature", "CHARACTER": "NewGatherer", "STRUCTURE": "NewStructure"}
-# where the game keeps each kind of scene object, in its archives
-_DONOR_DIRS = {"CHARACTER": ("art/ebps/gatherers/", "art/ebps/characters/"), "STRUCTURE": ("art/ebps/structures/", "art/ebps/nature/")}
+_NAMES = {"CREATURE": "NewCreature", "CHARACTER": "NewGatherer", "STRUCTURE": "NewStructure", "PROJECTILE": "NewProjectile", "EFFECT": "NewEffectModel"}
+# where the game keeps each kind of scene object, in its archives. A projectile is an ordinary small entity (art/ebps/projectiles: a model, a
+# blueprint and a stats .lua); an effect mesh is only a model that an effect's "Mesh" names (art/fx: 145 of them, no blueprint).
+_DONOR_DIRS = {"CHARACTER": ("art/ebps/gatherers/", "art/ebps/characters/"), "STRUCTURE": ("art/ebps/structures/", "art/ebps/nature/"),
+               "PROJECTILE": ("art/ebps/projectiles/",), "EFFECT": ("art/fx/",)}
 
 _ITEMS: list = []                 # enum items must stay referenced while Blender shows them
 _BORROW_ITEMS: list = []
@@ -126,6 +134,25 @@ def scene_donors(kind: str, context=None) -> list:
     return out
 
 
+_CREATURE_DONORS: dict = {}       # game folder -> (archive stamps, [StockDonor])
+
+
+def creature_donors(context=None) -> list:
+    """The game's own animals a creature project can start from (:func:`ICParse.sgm.creature.stock_donor.list_donors`): the base
+    game's, the expansions' and the installed mods', from the game folder (:func:`game_dir`). Kept until an archive changes."""
+    from ICParse.sgm.creature import stock_donor
+    root = game_dir(context)[0]
+    if not root:
+        return []
+    archives = stock_donor.archives_in(root, mods=True)
+    stamp = tuple((a, os.path.getmtime(a)) for a in archives if os.path.isfile(a))
+    hit = _CREATURE_DONORS.get(root)
+    if hit is None or hit[0] != stamp:
+        hit = (stamp, stock_donor.list_donors(root, mods=True))
+        _CREATURE_DONORS[root] = hit
+    return hit[1]
+
+
 def read_donor(archive: str, member: str):
     """(sgm bytes, its sibling .ebp bytes or None) of a stock scene object: ``archive`` is one of the game folder's archives, as
     :func:`scene_donors` lists them."""
@@ -142,6 +169,8 @@ def read_donor(archive: str, member: str):
 def _label(member: str) -> str:
     stem = member.rsplit("/", 1)[-1][:-4]
     where = member.split("/")[2] if member.count("/") >= 3 else ""
+    if member.startswith("art/fx/"):                                       # an effect mesh: show the effect set it belongs to
+        where = member[len("art/fx/"):].rpartition("/")[0] or "art/fx"
     return f"{stem.replace('_', ' ').title()}  ({where})"
 
 
@@ -150,6 +179,9 @@ def _donor_items(self, context):
     if self.project_type == "CREATURE":
         items.append(("DEFAULT", "Default skeleton", "The standard 48-bone creature skeleton with a simple connected starting body",
                       "OUTLINER_OB_ARMATURE", 0))
+        for i, d in enumerate(creature_donors(context)):
+            items.append((d.key, d.label, f"A copy of the game's {d.name.replace('_', ' ')} ({d.archive_name}): its model, blueprint, "
+                                          "stats and combiner rules, under your creature's name", "", i + 1))
     else:
         for i, (ap, member) in enumerate(scene_donors(self.project_type, context)):
             items.append((member, _label(member), f"{os.path.basename(ap)}: {member}", "", i + 1))
@@ -187,14 +219,15 @@ def _skeleton(model):
     return names, parents
 
 
-def borrow_clips(arm, target_model, donor_model, only=None) -> dict:
+def borrow_clips(arm, target_model, donor_model, only=None, as_name=None) -> dict:
     """Give the rig the donor creature's clips, as new Actions (and NLA strips), matched BY BONE NAME.
 
     Each bone the two skeletons share gets the donor's pose in the bone's own frame (the matrix_basis the donor's clip gives it,
     exactly what the Action Editor shows), its translation scaled by the ratio of the two bones' lengths; a bone the donor lacks
     stays at its bind pose. This is faithful when the skeletons share their bone names AND axes (every creature built on the
     standard skeleton does); a different skeleton moves in the donor's directions, not its own, and the report says how many bones
-    matched. Returns {clips, matched, unmatched_target, unmatched_donor, skipped}."""
+    matched. ``as_name``: for ONE clip, the name it gets on this rig (a donor's Walk next to a Walk of your own). Returns {clips, matched,
+    unmatched_target, unmatched_donor, skipped}."""
     from ICParse.codecs import reconstruct as R
     t_names = rig.current_bone_names(arm, target_model)
     _, t_par = _skeleton(target_model)
@@ -215,13 +248,15 @@ def borrow_clips(arm, target_model, donor_model, only=None) -> dict:
     overall = float(np.median(list(ratios.values()))) if ratios else 1.0
     scale = {ti: float(min(5.0, max(0.2, ratios.get(ti, overall)))) for ti in match}
 
-    have = {str(a.get(bzactions.KEY_CLIP, "")).lower() for a in bzactions.actions_of(arm)}
+    have = {str(a.get(bzactions.KEY_CLIP, "")).lower() for a in bzactions.actions_of(arm)} | {a.name.lower() for a in bzactions.actions_of(arm)}
+    # (a clip borrowed earlier has no source-clip stamp: its Action's name is what says the rig has it already)
     wanted = {s.strip().lower() for s in (only or []) if s.strip()}
     made, skipped = [], []
     for ai, anim in enumerate(donor_model.animations):
         name = anim.name or f"clip{ai}"
         if wanted and name.lower() not in wanted:
             continue
+        name = as_name or name
         if name.lower() in have:
             skipped.append(name)
             continue
@@ -274,6 +309,34 @@ def drop_all_clips(arm) -> int:
 
 
 # ---- the operator ----------------------------------------------------------------------------------------------------------------------
+_REPLACE_ITEMS: list = []           # enum items must stay referenced while Blender shows them
+_OWN_ARCHIVES = ("engine.sga", "icdata.sga", "insectdata.sga")     # the archives the hub's stock index (and Export for the Game) knows
+
+
+def replaceable(self, context):
+    """The game animal this project would REPLACE (its name), or None: only for a creature started from an animal of the base game's own
+    archives (``ICParse.hub.stock.STOCK_ARCHIVES``): the expansions' and the mods' animals are not offered."""
+    if self.project_type != "CREATURE" or self.donor == "DEFAULT":
+        return None
+    found = [d for d in creature_donors(context) if d.key == self.donor]
+    return found[0].name if found and found[0].archive_name.lower() in _OWN_ARCHIVES else None
+
+
+def _replace_items(self, context):
+    """Start as a creature of its own (the default: nothing of the game changes unless you say so) or as the replacement of the animal."""
+    items = [("NEW", "A new creature of my own", "A copy under a name you choose; the game's own animals stay as they are")]
+    try:
+        target = replaceable(self, context)
+    except Exception:                                          # noqa: BLE001 -- a draw never fails for this
+        target = None
+    if target:
+        items.append(("REPLACE", f"Replace the original {target}",
+                      f"Start the game's own {target} again under its own name: when you export it for the game and install it, "
+                      f"every army and skirmish uses your version"))
+    _REPLACE_ITEMS[:] = items
+    return _REPLACE_ITEMS
+
+
 def _type_changed(self, context):
     if self.project_name in _NAMES.values():
         self.project_name = _NAMES[self.project_type]
@@ -298,6 +361,8 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
                         description="Start from the default creature skeleton or a copy of a game model")
     donor_file: StringProperty(name="File to start from", subtype="FILE_PATH",
                                description="A model .sgm to start from; its .ebp is copied too")
+    replace: EnumProperty(name="As", items=_replace_items, options={"SKIP_SAVE"},
+                          description="A creature of your own under a new name, or the game's own animal changed in place")
     anim_source: EnumProperty(name="Animations", default="OWN", items=(
         ("OWN", "Keep its own", "The animations the default skeleton or the game's model already has"),
         ("NONE", "None", "No animations: add your own in the Action Editor"),
@@ -321,7 +386,21 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
         col.prop(self, "donor")
         if self.donor == "FILE":
             col.prop(self, "donor_file")
-        if self.project_type != "CREATURE":                                 # where the list of the game's own models comes from
+        if self.project_type == "CREATURE" and self.donor != "DEFAULT":
+            target = replaceable(self, context)
+            if target:
+                col.prop(self, "replace", expand=True)
+            sub = col.column(align=True)
+            sub.scale_y = 0.85
+            if target and self.replace == "REPLACE":
+                text = (f"The files are called {target} (the original's own name, whatever you type above). Export Creature for the Game "
+                        f"then writes a replacement of the game's {target}: it changes that animal for every army, and other players "
+                        f"without your files will not match you in multiplayer.")
+            else:
+                text = "The model is written under the file name (lower case) and the animal's blueprint, stats and combiner rules beside it."
+            for line in textwrap.wrap(text, 40):
+                sub.label(text=line, icon="INFO" if line.startswith(("The model", "The files")) else "BLANK1")
+        if self.project_type != "CREATURE" or self.donor != "DEFAULT":      # where the list of the game's own models comes from
             sub = col.column(align=True)
             sub.scale_y = 0.85
             lines = textwrap.wrap(game_dir_line(context), 40, break_long_words=False, break_on_hyphens=False)
@@ -329,6 +408,12 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
                 sub.label(text=line, icon="FILE_FOLDER" if i == 0 else "BLANK1")
         col.separator()
         col.prop(self, "anim_source")
+        if self.anim_source == "NONE" and self.project_type == "CREATURE" and self.donor != "DEFAULT":
+            sub = col.column(align=True)
+            sub.scale_y = 0.85
+            for line in textwrap.wrap("The copied blueprint still has the animal's motion nodes: with no clips they play nothing "
+                                      "(Validate lists them) until you add clips of the same names.", 40):
+                sub.label(text=line, icon="ERROR" if line.startswith("The copied") else "BLANK1")
         if self.anim_source == "BORROW":
             if self.project_type != "CREATURE":
                 col.label(text="Borrowing animations works only for creature projects", icon="INFO")
@@ -336,7 +421,7 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
             if self.borrow == "FILE":
                 col.prop(self, "borrow_file")
             col.prop(self, "borrow_names")
-        if self.project_type == "CREATURE":
+        if self.project_type == "CREATURE" and self.donor == "DEFAULT":
             col.separator()
             col.prop(self, "detail")
             col.prop(self, "with_ik")
@@ -350,6 +435,33 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
         with open(path, "wb") as f:
             f.write(sgm_parser.write(model))
         return name
+
+    def _creature_donor(self, context):
+        found = [d for d in creature_donors(context) if d.key == self.donor]
+        if not found:
+            raise ValueError(f"{self.donor.split('|')[-1]} is not in the game's archives. {game_dir_line(context)}")
+        return found[0]
+
+    def _write_stock_creature(self, path, context):
+        """A copy of one of the game's animals: ``<stem>.sgm`` (the model), ``.ebp``, ``.lua`` and ``.lsc`` beside it, under the
+        file's own name. Returns (the donor, the .sgm path written). Nothing is overwritten."""
+        from ICParse.sgm.creature import stock_donor
+        donor = self._creature_donor(context)
+        folder, stem = os.path.split(path)
+        stem = os.path.splitext(stem)[0].lower()
+        if self.replace == "REPLACE":
+            if replaceable(self, context) != donor.name:
+                raise ValueError("Only an animal of the game's own archives can be replaced: choose 'A new creature of my own'")
+            stem = donor.name                                  # the original's own name: the game finds it by that name
+        else:
+            why = stock_donor.name_problem(stem, creature_donors(context))
+            if why:
+                raise ValueError(why)
+        try:
+            written = stock_donor.write_project(donor, folder, stem)
+        except FileExistsError as e:
+            raise ValueError(f"{os.path.basename(str(e))} is already there: choose another name (nothing was overwritten)") from None
+        return donor, written[0]
 
     def _write_scene(self, path):
         if self.donor == "FILE":
@@ -378,6 +490,11 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
         path = bpy.path.abspath(self.filepath)
         if not path.lower().endswith(".sgm"):
             path += ".sgm"
+        if not (kind == "CREATURE" and self.donor != "DEFAULT"):       # the game's-animal path refuses an existing file itself
+            taken = [x for x in (path, path[:-4] + ".ebp" if kind != "CREATURE" else None) if x and os.path.exists(x)]
+            if taken:                                                   # a new project never replaces the files of an earlier one
+                self.report({"ERROR"}, f"{os.path.basename(taken[0])} is already there. Choose another name; nothing was overwritten.")
+                return {"CANCELLED"}
         donor_model = None
         if self.anim_source == "BORROW":
             bpath = bpy.path.abspath(self.borrow_file) if self.borrow == "FILE" else self.borrow
@@ -389,8 +506,17 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
             if core.is_scene_model(donor_model) or not len(donor_model.animations):
                 self.report({"ERROR"}, "That file is not a creature with animations")
                 return {"CANCELLED"}
+        stock = None                                          # the game's animal this creature is a copy of
+        replacing = False                                     # ... and this project is the replacement of that animal
+        written = []
         try:
-            name = self._write_creature(path) if kind == "CREATURE" else self._write_scene(path)
+            if kind == "CREATURE" and self.donor != "DEFAULT":
+                stock, path = self._write_stock_creature(path, context)
+                name = os.path.basename(path)[:-4]
+                replacing = self.replace == "REPLACE"
+                written = [path[:-4] + e for e in (".sgm", ".ebp", ".lua", ".lsc")]
+            else:
+                name = self._write_creature(path) if kind == "CREATURE" else self._write_scene(path)
             if kind != "CREATURE" and (not core.is_scene_model(core.read_source(path))):
                 for leftover in (path, path[:-4] + ".ebp"):        # nothing of a refused project stays on disk
                     if os.path.isfile(leftover):
@@ -407,7 +533,7 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
         except RuntimeError as e:                           # the import reports its refusal as an error
             res, why = set(), str(e).replace("Error:", "").strip()
         if "FINISHED" not in res:
-            for leftover in (path, path[:-4] + ".ebp"):      # nothing of a refused project stays on disk
+            for leftover in written or (path, path[:-4] + ".ebp"):      # nothing of a refused project stays on disk
                 if os.path.isfile(leftover):
                     os.remove(leftover)
             self.report({"ERROR"}, f"Could not start the project: {why or 'the file could not be imported'}"
@@ -433,6 +559,13 @@ class BZ_OT_new_project(bpy.types.Operator, ExportHelper):
             for o in bpy.data.objects:
                 if o.get("bz_scene") and o.get("bz_source") == path:
                     o["bz_donor"] = self.donor
+        if stock is not None and obj is not None:             # a1package looks for the donor beside the .sgm first, then by this stamp
+            obj["bz_stock_donor"] = stock.name
+            obj["bz_stock_archive"] = stock.archive_name
+            note = f" (a copy of the game's {stock.name} with its blueprint, stats and rules beside it)" + note
+            if replacing:                                     # Export Creature for the Game offers "Replace the original" first
+                obj["bz_game_mode"] = "REPLACE"
+                note += f"; it replaces the game's own {stock.name} when you export it for the game"
         label = dict((k[0], k[1]) for k in KINDS)[kind]
         self.report({"INFO"}, f"Started the {label.lower()} project {name} in {os.path.basename(path)}{note}")
         return {"FINISHED"}

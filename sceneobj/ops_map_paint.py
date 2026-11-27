@@ -564,6 +564,7 @@ def new_handle(context, top, mv, name: str, picture: str, x: float, z: float, sc
     coll.objects.link(obj)
     obj.matrix_world = rig.to_blender_matrix(game)
     obj[P.KEY_DECAL] = int(eid)
+    M.stamp(obj)
     obj[P.KEY_DECAL_PICTURE] = picture
     obj["ic_decal_scale"] = abs(float(scale))
     obj["ic_decal_mirror"] = bool(scale < 0)
@@ -774,7 +775,7 @@ class BZ_OT_map_stamp(bpy.types.Operator):
         gx, _gy, gz = core.blender_to_sgm(np.array([[cur.x, cur.y, cur.z]]))[0]
         hs_px, ws_px = stamp.shape[:2]
         half_u, half_v = ws_px * 0.0625 * self.scale, hs_px * 0.0625 * self.scale      # half of a decal's width and height
-        rot = math.radians(-self.turn)                                # Blender turns the other way round the game's vertical axis
+        rot = math.radians(self.turn + 180.0)                         # the game's +x is Blender's -x: turn 0 runs along Blender's +x
         changed = 0
         for k in range(self.count):
             along = k * self.spacing

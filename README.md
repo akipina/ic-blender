@@ -1,90 +1,148 @@
 # IC Blender
 
-*Impossible Creatures* is a 2003 real-time strategy game by Relic Entertainment in which players combine two animals
-into new units. IC Blender is a Blender add-on for modding it: open the game's models and maps in Blender, edit them,
-and export them back in the game's own formats.
+IC Blender is a Blender add-on for modding *Impossible Creatures* (Relic Entertainment, 2003). It imports the game's creatures,
+structures, units, props, effects and maps into Blender, lets you edit them with purpose-built tools, and exports them in the game's own
+formats, ready to install.
 
-![A creature from the game opened in Blender](docs/guide/img/start_import.jpg)
+This is an unofficial fan project. It is not affiliated with or endorsed by the owners of the game.
 
-**Alpha release: expect bugs.** This is a fan project, not affiliated with the game's owners.
+> **Status: alpha (0.9.2).** The feature set is complete enough to make and play content, but it has had limited testing.
+> See [Verification status](#verification-status) and [Known limitations](#known-limitations) before relying on it.
 
 ## Features
 
-| Area | What you can do |
+| Content | What you can do |
 |---|---|
-| **Creatures** | Reshape the surface, add or remove pieces of it, edit the skeleton, textures and animations, preview a creature combined with another, and check it for problems before export |
-| **New creatures** | Start from a template, convert a Blender mesh, reshape a creature to match your own mesh, or sculpt (the model only; see [Known limitations](#known-limitations)) |
-| **Buildings, characters and props** | Edit meshes and animations, change the name, category, size and sounds, and export a folder you can copy into the game |
-| **Maps** | Create or open maps, edit terrain, water, textures, objects, settings, triggers, dialogue and cut-scenes, and play cut-scenes back |
+| **Creatures** | Start from any stock animal or from the built-in template. Reshape the body, repaint the skin, edit the skeleton, limbs and connection points, edit animations, and change gameplay numbers (hit points, speed, attacks, abilities) with rank and cost shown as you edit. Preview combinations with other animals. Export as a new creature or as a replacement for the original. |
+| **Structures, gatherers, characters and props** | Edit meshes, add and remove parts, materials and textures (including team colour), bones, attachment points, damage states, animations, footprint and gameplay numbers. Export as a replacement for the original or under a new name. |
+| **Animations** | Edit clips in Blender's Action Editor, add new clips, connect them to the game's motion states, set walk and run speeds, and borrow clips from another model with a matching skeleton. |
+| **Effects, events and sounds** | Copy and retune the game's effects, attach effects and sounds to moments of an animation, create a sound from a WAV file, and preview effects in the viewport. |
+| **Install and share** | Create a separate test copy of the game, install and remove content with full undo, pack an item as a zip for other players, and install zips made by others. |
+| **Maps** | Open, edit and save maps, including terrain painting, placed objects, triggers and cut-scenes. Experimental. |
+
+Unmodified game files are written back byte for byte: only what you change is re-encoded.
 
 ## Requirements
 
-* Blender 5.3 or newer
-* Your own copy of Impossible Creatures (tested with the Steam release)
-* Linux. Windows and macOS are untested.
+- Blender 5.3 or newer.
+- A copy of *Impossible Creatures* (the Steam release). The add-on reads the game's files; it does not include any.
+- About 0.5 GB of free disk space for the test copy of the game.
+- Linux. Windows and macOS builds are included but untested.
 
-## Install
+## Installation
 
-1. Download `ic_blender-<version>.zip` from the
-   [latest release](https://github.com/akipina/ic_blender/releases/latest) (not "Source code").
-2. In Blender, open **Edit > Preferences > Get Extensions**, choose **Install from Disk...** from the menu at the top
-   right, and select the zip.
-3. If the game is not in the default Steam folder, set **Game folder** in the add-on's preferences.
-4. In the 3D Viewport, press **N** and open the **IC** tab.
+1. Download `ic_blender-<version>.zip` from the [latest release](https://github.com/akipina/ic_blender/releases/latest)
+   (not the "Source code" archive).
+2. In Blender, open **Edit > Preferences > Get Extensions**, open the menu at the top right and choose **Install from Disk...**.
+   Select the zip.
+3. In **Edit > Preferences > Add-ons**, confirm that **IC Blender** is enabled.
+4. In the 3D Viewport, press **N** to open the sidebar. The add-on adds the tabs **IC Model** and **IC Game**, and **IC Map** when a
+   map is open.
+
+If the tabs do not appear, open **Edit > Preferences > Add-ons > IC Blender**; a box there lists any part of the add-on that failed
+to load.
+
+## Setup
+
+1. **Game folder.** In **Edit > Preferences > Add-ons > IC Blender**, check **Game folder**. A Steam installation is usually found
+   automatically; otherwise select the folder that contains `IC.exe`.
+2. **Test copy.** In the sidebar, open **IC Game > Game > 3. Install into Test Game** and press **Create Test Game Copy**.
+   The add-on installs content only into this copy, never into the original game, because Steam may overwrite files it did not install.
+   The copy links to the original's large archives, so the original must stay in place (a full copy of about 5 GB is available as an
+   option).
 
 ## Quick start
 
-A `.sgm` file is a model. A `.ebp` file is a blueprint: an object's settings in the game.
+This replaces the stock wolf with an edited one. The [guide](docs/guide/index.html#replace) covers each step in detail.
 
-**Edit a creature**
+1. **File > New > Impossible Creatures Project...** Choose **Creature**, start from **Wolf**, select **Replace the original wolf**,
+   pick an empty folder and create the project.
+2. Edit the creature. For example, enter Edit Mode and move some points.
+3. In **IC Game > Game**, work through the numbered steps: **1. Check**, **2. Export for the Game**, **3. Install into Test Game**.
+4. Start the game from the test copy and look at the wolf in the creature creator or a skirmish.
+5. To undo, press **Remove** next to the item under **Installed here**.
 
-1. To get the game's creatures as files, press **Extract Stock Creatures** in the **Combine Preview** panel. The
-   message shows where they were saved.
-2. Choose **File > Import > Impossible Creatures Model (.sgm / .ebp)**.
-3. Press **Tab** and drag control points to reshape the surface.
-4. In the **IC** tab, press **Validate (will it load?)**, then **Export Model**.
+To make a new creature instead of a replacement, choose **A new creature of my own** in step 1. It appears in the creature creator
+alongside the stock animals.
 
-**Edit a building, character or prop**
+## Documentation
 
-1. Choose **File > New > Impossible Creatures Project...**, then pick a type, an existing game model to start from and an
-   empty folder.
-2. Edit the mesh with Blender's tools.
-3. In the **Blueprint** panel, press **Load Blueprint**, change the settings and press **Export Entity Folder...**.
+The user guide is in [docs/guide/index.html](docs/guide/index.html). Each chapter follows one task from a new project to the game:
 
-**Edit a map**
+- [Getting started](docs/guide/index.html#start)
+- [Replacing a stock animal](docs/guide/index.html#replace)
+- [A new creature from a stock animal](docs/guide/index.html#newcreature)
+- [A creature from your own mesh](docs/guide/index.html#mesh)
+- [Gameplay numbers](docs/guide/index.html#numbers)
+- [Animations and motions](docs/guide/index.html#anim)
+- [Structures and props](docs/guide/index.html#structures)
+- [Gatherers and characters](docs/guide/index.html#gatherers)
+- [Effects, events and sounds](docs/guide/index.html#effects)
+- [Checking, exporting, installing and sharing](docs/guide/index.html#ship)
+- [Troubleshooting](docs/guide/index.html#trouble)
+- [Maps](docs/guide/index.html#maps)
 
-1. Choose **File > Import > Impossible Creatures Map from the Game...**.
-2. Edit it with the tools in the **Map** panel.
-3. Press **Save ready-to-drop folder...** to get a folder you can copy into the game.
+Parts of the guide and its screenshots predate the latest interface changes. [docs/TODO.md](docs/TODO.md) lists what is out of date.
 
-The [user guide](docs/guide/index.html) covers each feature with screenshots. To read it, download this repository and
-open the file in a browser.
+## Sharing
 
-## Using your files in the game
+**IC Game > Game > 4. Share > Pack for Sharing** writes a zip of an exported item with installation instructions.
+**Install From Zip** installs an item made by someone else into your test copy; it is checked before installation and can be removed
+again.
 
-Use a separate copy of the game, because Steam can overwrite files in its own folder. Copy the exported `Data` folder
-into the copy's main folder. The game then uses your files instead of the originals; delete them to undo. To replace an
-existing object, export it with the same folder and file name. If something does not appear, look in `warnings.log` in
-the game folder.
+## Verification status
+
+- Exported content has been load-tested by script in a development build of the game engine: creatures appear in the creature creator
+  for each installed mod, combine with stock animals and run in a skirmish; replaced structures and units load; edited gameplay numbers
+  are reflected in the game's own figures; install and removal restore the game folder exactly.
+- The results have not been reviewed visually in the game, and the interface has been exercised by automated tests rather than by hand.
+- The retail Steam executable, Windows and macOS have not been tested.
 
 ## Known limitations
 
-* **Creatures:** only the model (`.sgm`) is exported. A new creature also needs other files (`.ebp`, `.lua`, `.lsc`)
-  and a mod package, which you have to make yourself. Materials and smoothing groups (which edges look sharp) cannot be
-  edited.
-* **Buildings, characters and props:** material and texture changes are not saved (export warns you), and the skeleton
-  cannot be changed. You cannot add mesh parts, or edit attachment points or damaged appearances.
-* **Maps:** there is no script editor, and a map's size cannot be changed. The preview does not show ground lighting,
-  shadows or moving water.
-* **3D view:** models and maps appear mirrored compared with the game, so new shapes and text come out reversed in the
-  game.
+**Imposed by the game**
 
-## More
+- New kinds of structure or unit, new abilities and build-menu entries require changes to the game's code and are out of scope.
+  Existing structures and units can be replaced.
+- A structure, unit or prop exported under a new name appears only where a map or script places it.
+- New creatures appear in the creature creator and in skirmish, not in the campaign's army builder.
+- Replaced or edited content must be installed by every player in a multiplayer game.
 
-* [Architecture](docs/ARCHITECTURE.md): how the code is organised
-* [Issues](https://github.com/akipina/ic_blender/issues): include your operating system, Blender and add-on versions,
-  the steps you took and the exact error message
+**Creatures**
+
+- A creature built from an arbitrary mesh with **Fit Patches to Mesh** has no connection points and cannot be combined or exported
+  for the game. Use **Retarget** onto a stock animal to obtain a combinable creature.
+- Only animals of the base game and of *Insect Invasion* can be replaced. Animals from other mods can be used as the starting point
+  for a new creature.
+- Limb scaling rules used when combining are copied from the original animal and cannot be edited.
+- A connection ring on a wing that is picked in the reverse direction is reported but not corrected automatically.
+
+**Effects and sounds**
+
+- The effect preview is approximate, and sounds cannot be auditioned in Blender.
+- Effect items and replaced animals cannot be published to the Steam Workshop; share them as a zip.
+
+**Projects**
+
+- Projects saved with versions before 0.9.2 store models mirrored and are refused with a message; import the original file again.
+
+**Maps**
+
+- Map editing is experimental and has not been tested in the game. Maps cannot be enlarged.
+
+## Support
+
+Blender shows the add-on's messages in the status bar and keeps them in the **Info** editor. A greyed-out button explains why in its
+tooltip. The [troubleshooting chapter](docs/guide/index.html#trouble) lists common messages. If the game does not start or does not
+show your content, see `warnings.log` in the test copy's folder.
+
+To report a problem, open an [issue](https://github.com/akipina/ic_blender/issues) with your operating system, Blender version and
+add-on version, the steps to reproduce it, the exact message, and the end of `warnings.log` if the game was involved.
+
+## Development
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes how the code is organised. Open work is listed in [docs/TODO.md](docs/TODO.md).
 
 ## Licence
 
-GNU General Public License v3 or later (see `LICENSE`). The bundled `construct` and `lupa` libraries are MIT licensed.
+GNU General Public License v3 or later; see `LICENSE`. The bundled `construct` and `lupa` libraries are MIT licensed.

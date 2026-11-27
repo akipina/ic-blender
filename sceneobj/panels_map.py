@@ -1,4 +1,4 @@
-"""sceneobj.panels_map -- the Map panel (3D View sidebar, IC tab): edit an imported Impossible Creatures map and save it.
+"""sceneobj.panels_map -- the Map panel (3D View sidebar, IC Map tab): edit an imported Impossible Creatures map and save it.
 
 It shows when the scene holds an imported map (File > Import > Impossible Creatures Map). It says which map it is, its size and what
 it holds, and gives the actions of ``ops_map_export``: sculpt the ground, move the water, give faces a ground texture, move / copy /
@@ -105,7 +105,7 @@ def draw_ground(layout, context, top) -> None:
 
 
 def draw_objects(layout, context, top) -> None:
-    _hint(layout, "Move, turn, delete or copy (Shift+D) objects to edit the placed objects.", width=44)
+    _hint(layout, "Move, turn, delete or copy (Shift+D) objects to edit the placed objects. Copies of creatures combined in the map are not saved.", width=44)
     col = layout.column(align=True)
     col.operator("bz.map_add_object", text="Add object at the 3D cursor...", icon="ADD")
     col.operator("bz.map_set_owner", text="Set owner of the selected...", icon="USER")
@@ -132,7 +132,7 @@ def draw_save(layout, context, top) -> None:
 class _MapPanel:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = ui_kit.TAB_MAP
 
     @classmethod
     def poll(cls, context):

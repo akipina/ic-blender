@@ -168,6 +168,7 @@ def remove_look(top) -> None:
 
 def _mark(obj, piece: str) -> None:
     obj[KEY_PIECE] = piece
+    M.stamp(obj)
 
 
 # ---------------------------------------------------------------------------------------------------- sun, world, sky
@@ -319,13 +320,13 @@ def _water_game_material(mat_name, sky_img, ripple_img, floor):
     nt.links.new(geo.outputs["Incoming"], inc.inputs["Vector"])
     pos = _node(nt, "ShaderNodeSeparateXYZ")
     nt.links.new(geo.outputs["Position"], pos.inputs["Vector"])
-    # the reflected view, in the game's axes: x = -Ix, up = Iz, z = Iy (I points from the water to the eye)
+    # the reflected view, in the game's axes: x = Ix, up = Iz, z = Iy (I points from the water to the eye; Blender's x is the game's -x)
     down = _math(nt, "MAXIMUM", _math(nt, "ADD", inc.outputs["Z"], 1.0), 0.001)
-    u = _math(nt, "ADD", _math(nt, "MULTIPLY", _math(nt, "DIVIDE", inc.outputs["X"], down), -0.5), 0.5)
+    u = _math(nt, "ADD", _math(nt, "MULTIPLY", _math(nt, "DIVIDE", inc.outputs["X"], down), 0.5), 0.5)
     v = _math(nt, "ADD", _math(nt, "MULTIPLY", _math(nt, "DIVIDE", inc.outputs["Y"], down), 0.5), 0.5)
     sky = _image_node(nt, sky_img, _combine(nt, u, _math(nt, "SUBTRACT", 1.0, v)), "IC water sky") if sky_img else None
     # ripple coordinates: the game's (x, z) / 32, here at the animation's first moment; the bitmap is stored bottom up
-    ru = _math(nt, "DIVIDE", pos.outputs["X"], 32.0)
+    ru = _math(nt, "DIVIDE", pos.outputs["X"], -32.0)
     rv = _math(nt, "ADD", _math(nt, "DIVIDE", pos.outputs["Y"], -32.0), 0.025)
     ripple = _image_node(nt, ripple_img, _combine(nt, ru, rv), "IC water ripple", repeat=True) if ripple_img else None
     grey = _node(nt, "ShaderNodeAttribute", attribute_name="ic_water_grey")
@@ -374,7 +375,7 @@ def grey_water(obj, mv, look) -> None:
     co = np.empty(n * 3, np.float32)
     me.vertices.foreach_get("co", co)
     co = co.reshape(-1, 3).astype(np.float64)
-    game = np.stack([co[:, 0], co[:, 2], -co[:, 1]], -1)              # Blender (x, -z, y) back to the game's axes
+    game = _addon("core").blender_to_sgm(co)                        # back to the game's axes
     depth = np.zeros(n, np.float32)
     att = me.attributes.get("ic_water_depth")
     if att is not None:
@@ -414,7 +415,7 @@ def _sea(context, coll, name, mv, look, level_m, material):
     flip = np.cross(vb[quads[:, 1]] - vb[quads[:, 0]], vb[quads[:, 2]] - vb[quads[:, 0]])[:, 2] < 0
     quads = quads.copy()
     quads[flip] = quads[flip][:, ::-1]
-    me = M._mesh(f"{name} sea", vb, quads)
+    me = M._mesh(f"{name} sea", vb, quads, game_quads=False)
     _set_grey(me, grey)
     me.materials.append(material)
     obj = bpy.data.objects.new(f"{name} sea", me)
@@ -490,8 +491,9 @@ def _ground_group(name: str, image, mv, look, colour):
     xyz = _node(nt, "ShaderNodeSeparateXYZ")
     nt.links.new(co.outputs["Object"], xyz.inputs["Vector"])
     half, w, h = _half(mv), float(image.size[0]), float(image.size[1])
-    # the picture's texels sit on fraction x (size - 1); v runs with the game's z = -Blender y, and Blender's v = 1 - that
-    u = _math(nt, "ADD", _math(nt, "MULTIPLY", _math(nt, "ADD", xyz.outputs["X"], half), (w - 1) / w / (2 * half)), 0.5 / w)
+    # the picture's texels sit on fraction x (size - 1); u runs with the game's x = -Blender x, v with the game's z = -Blender y,
+    # and Blender's v = 1 - that
+    u = _math(nt, "ADD", _math(nt, "MULTIPLY", _math(nt, "SUBTRACT", half, xyz.outputs["X"]), (w - 1) / w / (2 * half)), 0.5 / w)
     gz = _math(nt, "SUBTRACT", half, xyz.outputs["Y"])
     v = _math(nt, "ADD", _math(nt, "MULTIPLY", gz, (h - 1) / h / (2 * half)), 0.5 / h)
     base = _image_node(nt, image, _combine(nt, u, _math(nt, "SUBTRACT", 1.0, v)), "IC ground picture")
@@ -721,7 +723,7 @@ def _decals(context, coll, name, mv, look, data, tmp):
         vb = core.sgm_to_blender(V)
         flip = np.cross(vb[Q[:, 1]] - vb[Q[:, 0]], vb[Q[:, 2]] - vb[Q[:, 1]])[:, 2] < 0     # every face looks up
         Q[flip] = Q[flip][:, ::-1]
-        me = M._mesh(f"{name} decal {key}", vb, Q)
+        me = M._mesh(f"{name} decal {key}", vb, Q, game_quads=False)
         uvl = me.uv_layers.new(name="Decal")
         uvl.data.foreach_set("uv", M._loop_values(me, UV).astype(np.float32).ravel())
         fa = me.attributes.new("ic_decal_index", "INT", "FACE")
@@ -862,6 +864,7 @@ def add_water(context, top, mv, level_m: float | None = None, *, look=None) -> d
     me = bpy.data.meshes.new(f"{name} water")
     me.materials.append(M._water_material(mv.board))
     obj = bpy.data.objects.new(f"{name} water", me)
+    M.stamp(obj)
     _set_water_mesh(obj, mv, pos, quads, ids, depth, look)
     own = next((c for c in top.children if c.name.endswith(" water")), None) or M._new_collection(f"{name} water", top)
     own.objects.link(obj)

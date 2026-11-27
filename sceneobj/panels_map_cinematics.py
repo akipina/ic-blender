@@ -131,7 +131,7 @@ class BZ_PT_map_cinematics(bpy.types.Panel):
     bl_idname = "BZ_PT_map_cinematics"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = ui_kit.TAB_MAP
     bl_parent_id = H.MAP_PANEL_ID
     bl_options = {"DEFAULT_CLOSED"}
 

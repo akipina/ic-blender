@@ -283,13 +283,14 @@ def _rows_from_selection(obj, patches):
     return [p for p in range(len(patches)) if all(int(c) in sel for c in corners[p])]
 
 
-def add_face(bm, patch_cp) -> bool:
-    """Append the corner quad of a new patch (Extrude Patch); False for a degenerate patch (no face, by the rule)."""
+def add_face(bm, patch_cp, material=0) -> bool:
+    """Append the corner quad of a new patch (Extrude Patch), in material slot ``material``; False for a degenerate patch
+    (no face, by the rule)."""
     q = [int(patch_cp[s]) for s in FACE_SLOTS]
     if len(set(q)) < 4:
         return False
     bm.verts.ensure_lookup_table()
-    bm.faces.new([bm.verts[i] for i in q])
+    bm.faces.new([bm.verts[i] for i in q]).material_index = int(material)
     return True
 
 

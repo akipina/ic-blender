@@ -38,8 +38,8 @@ def _mod(name: str):
     try:
         return importlib.import_module(f"ICParse.sgb.{name}")
     except ImportError as exc:
-        raise ToolError(f"This feature needs a newer ICParse than the one installed (ICParse.sgb.{name} is missing: {exc}). "
-                        "Update the add-on's ICParse and try again.") from exc
+        raise ToolError(f"Part of this add-on is out of date, so this tool cannot run ({name} is missing: {exc}). "
+                        "Install the newest version of the add-on and try again.") from exc
 
 
 def heightmap_io():
@@ -354,6 +354,9 @@ def selected_entity_objects(context, top) -> list:
 
 def entity_file_records(context, top, objects: list):
     """``(blueprints, records, left out)`` for an ``.ent`` file from placed objects of the scene (position and turn as they are now)."""
+    why = M.axes_refusal(*objects)
+    if why:
+        raise ToolError(why)
     E = entities_io()
     raw, mv, gm = X.read_source(context, top)
     players = {int(p.index): int(p.player_id) for p in mv.board.players}
@@ -408,7 +411,7 @@ def add_entities_from_file(context, top, ent_bytes: bytes, *, mode: str = "WHERE
         cur = context.scene.cursor.location
         cx = float(np.mean([r.position[0] for r in usable]))
         cz = float(np.mean([r.position[2] for r in usable]))
-        dx, dz = float(cur.x) - cx, float(-cur.y) - cz              # the game's z is Blender's -y
+        dx, dz = float(-cur.x) - cx, float(-cur.y) - cz             # the game's x, z are Blender's -x, -y
     out["moved"] = (dx, dz)
     terrain = X.terrain_of(top)
     for r in usable:
@@ -421,7 +424,7 @@ def add_entities_from_file(context, top, ent_bytes: bytes, *, mode: str = "WHERE
         m[:3, 3] = (x, y, z)
         obj, why = X.new_entity_object(context, top, mv, ref, (0.0, 0.0, 0.0), game_dir)
         if drop_to_ground and terrain is not None:
-            g = X.ground_height_at(terrain, x, -z)
+            g = X.ground_height_at(terrain, -x, -z)
             if g is not None:
                 m[1, 3] = g
         obj.matrix_world = rig.to_blender_matrix(m)

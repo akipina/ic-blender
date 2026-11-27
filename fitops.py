@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import time
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -47,7 +48,7 @@ def budget_advice(budget: int):
     budget = int(budget)
     if budget > MAX_PATCHES:
         return (f"Patch budget {budget} cannot load: {MAX_PATCHES} patches is the ceiling ({ICV.MAX_DISPLAY_VERTICES} "
-                f"display vertices; Size too large for VertexSet::Create()). About {SPLIT_UV_PATCHES} patches load with "
+                f"display vertices). About {SPLIT_UV_PATCHES} patches load with "
                 f"split UVs, about {COMBINABLE_PATCHES} still combine", None)
     if budget > SPLIT_UV_PATCHES:
         return (None,
@@ -58,11 +59,20 @@ def budget_advice(budget: int):
                 f"Patch budget {budget} is over {COMBINABLE_PATCHES}: it will load, but may not combine, as the combiner "
                 f"adds a donor's limbs (up to {ICV.WORST_STOCK_LIMB_SET} display vertices)")
     return (None, None)
+KEY_FIT_SRC = "bz_fit_src"        # where the template's body was (landmarks, flat x y z ...), for Move Skeleton to the Body
+KEY_FIT_TAGS = "bz_fit_src_tags"  # per landmark: -1 = a corner of the body's box, else the limb row whose centre it is
+KEY_FIT_MOVED = "bz_fit_skeleton_moved"
+# What every Fit result is, said the same way everywhere (the report, the panel, the guide).
+FIT_RESULT_NOTE = ("This creature is shape only: it has the template's skeleton and limbs, and no connection rings, so the "
+                   "game cannot combine it with other animals. Press Move Skeleton to the Body to put the bones inside the "
+                   "new shape. For a creature that can be combined, use Retarget Creature to Mesh or Landmark Retarget on a "
+                   "stock animal instead")
 SYMMETRY_EPS = 1e-3         # of the bounding diagonal: a point pairs with its mirror image within this
 SYMMETRIC_FRACTION = 0.99   # a target is X-symmetric when this fraction of its vertices has a mirror partner
 HEAT_FULL = 0.01            # the heat map's red = an error of 1 % of the diagonal (or more)
 FEW_SAMPLES = 4             # below this many target points per patch the fit is mostly the fairness term (a warning)
 WELD_EPS = 1e-5             # of the bounding diagonal: vertices this close are one point of the surface
+SEAM_REACH = 0.25           # of the median layout edge: a QuadriFlow vertex this near the X plane belongs to the seam
 
 
 class FitError(ValueError):
@@ -180,16 +190,88 @@ def symmetrize_pairs(pool, pairs) -> np.ndarray:
     return out
 
 
+def _edge_runs(faces) -> dict:
+    """{(a, b) with a < b: one entry per face on that edge, True where the face runs it from a to b}."""
+    out = {}
+    for f in faces:
+        for k in range(len(f)):
+            a, b = int(f[k - 1]), int(f[k])
+            out.setdefault((a, b) if a < b else (b, a), []).append(a < b)
+    return out
+
+
 def boundary_edges(faces) -> int:
     """How many edges of the polygon list belong to one face only (0 = closed)."""
-    count = {}
+    return sum(1 for runs in _edge_runs(faces).values() if len(runs) == 1)
+
+
+def _vertex_parts(faces) -> int:
+    """How many groups of faces share no vertex with each other."""
+    parent = {}
+
+    def root(i):
+        while parent.setdefault(i, i) != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
     for f in faces:
-        n = len(f)
-        for k in range(n):
-            e = (int(f[k]), int(f[(k + 1) % n]))
-            e = e if e[0] < e[1] else (e[1], e[0])
-            count[e] = count.get(e, 0) + 1
-    return sum(1 for c in count.values() if c == 1)
+        first = root(int(f[0]))
+        for i in f[1:]:
+            parent[root(int(i))] = first
+    return len({root(i) for i in list(parent)})
+
+
+def layout_problems(faces) -> str:
+    """Why a face list cannot be a creature's patch layout, in a few words; "" when it can: quads on four different
+    vertices, one part, every edge shared by two faces that run it in opposite directions, and at most
+    ``ICV.MAX_CORNER_PATCHES`` faces at a vertex."""
+    if not len(faces):
+        return "no faces"
+    runs = list(_edge_runs(faces).values())
+    valence = Counter(int(i) for f in faces for i in f)
+    found = ((sum(1 for f in faces if len(f) != 4 or len(set(f)) != 4), "non-quad faces"),
+             (sum(1 for r in runs if len(r) == 1), "open edges"),
+             (sum(1 for r in runs if len(r) > 2), "edges with more than two faces"),
+             (sum(1 for r in runs if len(r) == 2 and r[0] == r[1]), "edges between faces that face opposite ways"),
+             (sum(1 for k in valence.values() if k > ICV.MAX_CORNER_PATCHES),
+              f"vertices with more than {ICV.MAX_CORNER_PATCHES} faces"))
+    text = [f"{n} {what}" for n, what in found if n]
+    parts = _vertex_parts(faces)
+    if parts > 1:
+        text.append(f"{parts} separate parts")
+    return ", ".join(text)
+
+
+def mirrored_layout(coords, faces):
+    """(coords, faces) of QuadriFlow's symmetric remesh as one exactly X-mirrored surface. QuadriFlow remeshes one
+    half and mirrors it without welding the two: their rims drift a little off the plane, and a short rim comes
+    closed with faces lying in the plane, which a weld would turn into a wall inside the body. So the +X half is kept
+    without the faces in the plane, its rim is put on the plane and that half is mirrored. A hole away from the plane
+    stays open (:func:`layout_problems`)."""
+    V = np.asarray(coords, dtype=np.float64).reshape(-1, 3)
+    faces = [[int(i) for i in f] for f in faces]
+    if not faces:
+        return V, faces
+    reach = SEAM_REACH * np.median([np.linalg.norm(V[f[k]] - V[f[k - 1]]) for f in faces for k in range(len(f))])
+    near = np.abs(V[:, 0]) <= reach
+
+    def in_plane(f):
+        n = np.cross(V[f[2]] - V[f[0]], V[f[-1]] - V[f[1]])
+        return all(near[i] for i in f) and abs(n[0]) > 0.7 * np.linalg.norm(n)
+
+    half = [f for f in faces if V[f, 0].mean() > 0.0 and not in_plane(f)]
+    rim = {i for edge, runs in _edge_runs(half).items() if len(runs) == 1 for i in edge if near[i]}
+    half = [f for f in half if not all(i in rim for i in f)]      # such a face would lie on its own mirror image
+    used = sorted({i for f in half for i in f})
+    off = [i for i in used if i not in rim]
+    own = {i: k for k, i in enumerate(used)}
+    other = dict(own)                                             # a rim vertex is its own mirror image
+    other.update({i: len(used) + k for k, i in enumerate(off)})
+    out = V[used].copy()
+    out[[own[i] for i in used if i in rim], 0] = 0.0
+    out = np.concatenate([out, out[[own[i] for i in off]] * np.array([-1.0, 1.0, 1.0])])
+    return out, [[own[i] for i in f] for f in half] + [[other[i] for i in f[::-1]] for f in half]
 
 
 def layout_score(cage_coords, cage_quads, points, grid: int = 5) -> float:
@@ -222,6 +304,7 @@ class CageFit:
     paired: int = 0                      # pool points with a mirror partner in the layout
     on_plane: int = 0                    # pool points on the mirror plane
     unpaired_faces: int = 0              # layout faces without a mirror face (their points are left as fitted)
+    unmirrored: bool = False             # the target is X-symmetric but the layout is not mirrored: no symmetry applied
     history: List[tuple] = field(default_factory=list)
 
     @property
@@ -231,6 +314,8 @@ class CageFit:
     @property
     def symmetry_text(self) -> str:
         n = len(self.pool)
+        if self.unmirrored:
+            return "no symmetry applied, the layout is not mirrored"
         if not self.symmetrized:
             return "target not X-symmetric, no symmetry applied"
         missing = n - self.paired - self.on_plane
@@ -243,9 +328,10 @@ class CageFit:
 def fit_cage(cage_coords, cage_quads, points, normals=None, smooth: float = 0.02, iters: int = 10,
              symmetric: bool = False) -> CageFit:
     """The whole pipeline for a ready quad cage: ``acc.cage_to_patches`` -> ``fit.fit_points`` (the one solver)
-    -> with ``symmetric``, exact X symmetry through the layout's mirror pairs -> the metrics (``after`` and
-    ``residual`` measure the pool as exported). Refuses (``FitError``) a cage with no or non-quad faces, more than
-    ``MAX_PATCHES`` faces, a target with no or non-finite points, and a fit that ended worse than it started."""
+    -> with ``symmetric``, exact X symmetry through the layout's mirror pairs (none, and ``unmirrored`` set, when
+    those pairs contradict each other) -> the metrics (``after`` and ``residual`` measure the pool as exported).
+    Refuses (``FitError``) a cage with no or non-quad faces, more than ``MAX_PATCHES`` faces, a target with no or
+    non-finite points, and a fit that ended worse than it started."""
     quads = [list(int(i) for i in f) for f in cage_quads]
     bad = [f for f in quads if len(f) != 4]
     if bad:
@@ -254,8 +340,7 @@ def fit_cage(cage_coords, cage_quads, points, normals=None, smooth: float = 0.02
         raise FitError("the layout has no faces")
     if len(quads) > MAX_PATCHES:
         raise FitError(f"the layout has {len(quads)} quads, needing {16 * len(quads) + 2} display vertices, over "
-                       f"{ICV.MAX_DISPLAY_VERTICES}: at most {MAX_PATCHES} patches can load (dx8vertexset.c: Size too large "
-                       "for VertexSet::Create())")
+                       f"{ICV.MAX_DISPLAY_VERTICES}: at most {MAX_PATCHES} patches can load")
     pts = np.asarray(points, dtype=np.float64).reshape(-1, 3)
     if not len(pts):
         raise FitError("the target has no vertices")
@@ -280,19 +365,18 @@ def fit_cage(cage_coords, cage_quads, points, normals=None, smooth: float = 0.02
     pool = np.asarray(r.pool, dtype=np.float64)
     if not np.isfinite(pool).all():
         raise FitError("the fit produced non-finite control points (the solve failed)")
-    symmetrized = False
+    symmetrized = unmirrored = False
     paired = on_plane = unpaired_faces = 0
     residual = r.residual
     if symmetric:
         pairs, unpaired_faces, conflicts = layout_mirror_pairs(coords, quads, patches, max(SYMMETRY_EPS * diag, 1e-9))
-        if conflicts:
-            raise FitError(f"the layout's mirror pairing is inconsistent ({conflicts} control points with two mirror "
-                           "partners): the cage is not a clean mirrored mesh")
-        pool = symmetrize_pairs(pool, pairs)
-        paired = sum(1 for i, j in pairs.items() if i != j)
-        on_plane = sum(1 for i, j in pairs.items() if i == j)
-        symmetrized = True
-        _, _, _, residual = fit.project(pts, pool, patches, n=9)   # measure what is exported, not the pre-snap fit
+        unmirrored = conflicts > 0
+        if not unmirrored:
+            pool = symmetrize_pairs(pool, pairs)
+            paired = sum(1 for i, j in pairs.items() if i != j)
+            on_plane = sum(1 for i, j in pairs.items() if i == j)
+            symmetrized = True
+            _, _, _, residual = fit.project(pts, pool, patches, n=9)   # measure what is exported, not the pre-snap fit
     after = stats(residual, diag)
     if after.rms > before.rms:
         raise FitError(f"the fit diverged: {after.text()} after, {before.text()} before -- try fewer "
@@ -300,13 +384,205 @@ def fit_cage(cage_coords, cage_quads, points, normals=None, smooth: float = 0.02
     return CageFit(pool0=pool0, pool=pool, patches=patches, before=before, after=after,
                    residual=np.asarray(residual, dtype=np.float64), coverage=stats(r.coverage, diag),
                    seconds=time.perf_counter() - t0, symmetrized=symmetrized, paired=paired, on_plane=on_plane,
-                   unpaired_faces=unpaired_faces, history=list(r.history))
+                   unpaired_faces=unpaired_faces, unmirrored=unmirrored, history=list(r.history))
 
 
 def report_line(n_patches: int, mesh_name: str, result: CageFit, layout: str) -> str:
     """``Fit 322 patches to Suzanne: rms ... in 31.2 s`` (the operator report, stored as ``bz_last_fit``)."""
     return (f"Fit {n_patches} patches to {mesh_name}: {result.after.text()} in {result.seconds:.1f} s "
             f"({layout}; before the fit rms {result.before.rms_pct:.2f} %; {result.symmetry_text})")
+
+
+# ------------------------------------------------------------------------------------------ separate pieces (eyes, teeth)
+# A mesh of several shells (a body, two eyes, a row of teeth) is fitted piece by piece and the pieces are joined into one
+# patch net through ``topoops.attach_plan`` (the planner behind the Attach button). The body is the piece with the most
+# surface; every other piece gets a share of the patch budget by its surface area, at least one patch per cube face.
+# A small piece is fitted from a rounded box (a cube whose vertices lie on the ellipsoid through the piece's bounding
+# box): QuadriFlow cancels or returns holes on the tiny, near-spherical meshes eyes and teeth are, a rounded box never
+# does. Pieces are fitted on their own, so none of the body's symmetry is applied to them.
+MAX_SHELLS = 32              # the body plus up to 31 eyes, teeth, claws, horns ...
+SHELL_MIN_PATCHES = 6        # the smallest closed patch surface: one patch per face of a cube
+QUADRIFLOW_MIN_SHARE = 40    # a piece with fewer patches than this is fitted from a rounded box, not remeshed
+
+
+def shell_budgets(budget: int, areas) -> List[int]:
+    """The patch budget of each piece. ``areas``: the surface area of every piece, the body (the largest) first.
+    Every other piece takes its share of ``budget`` by area, at least :data:`SHELL_MIN_PATCHES`; the body keeps the
+    rest, never less than half of ``budget`` (so the pieces can add up to a little more than ``budget``, which the
+    fit reports)."""
+    areas = [max(float(a), 0.0) for a in areas]
+    budget = int(budget)
+    if len(areas) <= 1:
+        return [budget]
+    total = sum(areas) or 1.0
+    extras = [max(SHELL_MIN_PATCHES, int(round(budget * a / total))) for a in areas[1:]]
+    return [max(budget // 2, budget - sum(extras))] + extras
+
+
+def rounded_box_cage(points, share: int):
+    """``(coords (N, 3), faces)``: a closed quad cage for a small piece. A cube of k x k quads per side, with
+    ``k = floor(sqrt(share / 6))`` (at least 1), its vertices pushed out onto the ellipsoid through the bounding box of
+    ``points``; every face wound outward, as the layouts QuadriFlow gives are."""
+    P = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    if not len(P):
+        raise FitError("the piece has no vertices")
+    k = max(1, int(np.sqrt(max(int(share), SHELL_MIN_PATCHES) / 6.0)))
+    lo, hi = P.min(0), P.max(0)
+    radii = (hi - lo) / 2.0
+    radii = np.maximum(radii, 1e-3 * max(float(radii.max()), 1e-9))     # a flat piece still gets a thin box, never a collapsed one
+    verts, index = [], {}
+
+    def vid(p):
+        key = tuple(np.round(p, 9))
+        if key not in index:
+            index[key] = len(verts)
+            verts.append(np.asarray(p, dtype=np.float64))
+        return index[key]
+
+    ts = np.linspace(-1.0, 1.0, k + 1)
+    faces = []
+    for axis in range(3):
+        for sign in (-1.0, 1.0):
+            u_axis, v_axis = [a for a in range(3) if a != axis]
+            for i in range(k):
+                for j in range(k):
+                    quad = []
+                    for a, b in ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)):
+                        p = np.zeros(3)
+                        p[axis], p[u_axis], p[v_axis] = sign, ts[a], ts[b]
+                        quad.append(vid(p))
+                    faces.append(quad)
+    U = np.array(verts)
+    for n, f in enumerate(faces):                   # outward: (b - a) x (d - a) points away from the centre
+        a, b, c, d = (U[v] for v in f)
+        if float(np.dot(np.cross(b - a, d - a), (a + b + c + d) / 4.0)) < 0.0:
+            faces[n] = f[::-1]
+    unit = U / np.linalg.norm(U, axis=1, keepdims=True)
+    return (lo + hi) / 2.0 + unit * radii, faces
+
+
+def join_pieces(pieces):
+    """``(pool, patches)`` of several fitted pieces (:class:`CageFit`, body first) as one net: each next piece is
+    appended through ``topoops.attach_plan`` (the planner behind Attach, so its patch ceiling applies). The pieces stay
+    separate surfaces: Weld would be what joins their seams."""
+    try:
+        from . import topoops
+    except ImportError:                  # imported top-level (the pure test puts ic_blender/ on sys.path)
+        import topoops  # type: ignore[no-redef]
+    pool = np.asarray(pieces[0].pool, dtype=np.float64)
+    patches = np.asarray(pieces[0].patches, dtype=np.int64).reshape(-1, 16)
+    none = (None, None, None, None, None)
+    for p in pieces[1:]:
+        plan = topoops.attach_plan(pool, patches, none, p.pool, p.patches, none, 0, 0, [0])
+        if plan.refusal:
+            raise FitError(f"joining the pieces: {plan.refusal}")
+        pool = np.vstack([pool, plan.new_points])
+        patches = np.asarray(plan.patches, dtype=np.int64).reshape(-1, 16)
+    return pool, patches
+
+
+def combine_fits(body: CageFit, extras, points, diag: float) -> CageFit:
+    """The fit of the whole target from the body's and the other pieces': the pieces joined (:func:`join_pieces`), and
+    the distances (``before``, ``after``, ``residual``) measured from ALL the target's points to the joined surface (a
+    point of an eye lands on the eye's patches, not the head's). Symmetry and layout facts stay the body's."""
+    import dataclasses
+    pieces = [body] + list(extras)
+    pool, patches = join_pieces(pieces)
+    pool0, _ = join_pieces([dataclasses.replace(p, pool=p.pool0) for p in pieces])
+    pts = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    _, _, _, d0 = fit.project(pts, pool0, patches, n=9)
+    _, _, _, d1 = fit.project(pts, pool, patches, n=9)
+    return dataclasses.replace(body, pool0=pool0, pool=pool, patches=patches, before=stats(d0, diag), after=stats(d1, diag),
+                               residual=np.asarray(d1, dtype=np.float64),
+                               seconds=sum(p.seconds for p in pieces))
+
+
+# ----------------------------------------------------------------------------------- the skeleton follows the body
+# Fit keeps the template's skeleton, which still sits where the template's body was. ``landmark_sources`` records, at fit
+# time, where the template's body is (the corners of its bounding box and the centre of every limb that got patches);
+# ``landmark_targets`` finds the same landmarks on the fitted net later, and the thin-plate warp between the two (the
+# warp Landmark Retarget moves the bones with) carries every bone to the body.
+def _limb_points(pool, patches, patch_limb, limb: int) -> np.ndarray:
+    P = np.asarray(patches, dtype=np.int64).reshape(-1, 16)
+    rows = np.nonzero(np.asarray(patch_limb, dtype=np.int64).reshape(-1) == int(limb))[0]
+    if not len(rows):
+        return np.zeros((0, 3))
+    return np.asarray(pool, dtype=np.float64)[np.unique(P[rows])]
+
+
+def _box_corners(points) -> np.ndarray:
+    lo, hi = np.min(points, axis=0), np.max(points, axis=0)
+    return np.array([[x, y, z] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])])
+
+
+def landmark_sources(pool, patches, patch_limb, n_limbs: int):
+    """``(points (K, 3), tags (K,))``: the 8 corners of the bounding box of the net (tag -1) and the centre of every
+    limb that has patches (tag = the limb row), in the net's own space."""
+    P = np.asarray(patches, dtype=np.int64).reshape(-1, 16)
+    pool = np.asarray(pool, dtype=np.float64)
+    pts = [row for row in _box_corners(pool[np.unique(P)])]
+    tags = [-1] * 8
+    for limb in range(int(n_limbs)):
+        lp = _limb_points(pool, P, patch_limb, limb)
+        if len(lp):
+            pts.append(lp.mean(axis=0))
+            tags.append(limb)
+    return np.array(pts), np.array(tags, dtype=np.int64)
+
+
+def landmark_targets(tags, pool, patches, patch_limb):
+    """``(keep (K,) bool, points (M, 3))``: where the landmarks of :func:`landmark_sources` (by ``tags``) are on this
+    net; a limb with no patches now has no landmark (``keep`` False for it)."""
+    P = np.asarray(patches, dtype=np.int64).reshape(-1, 16)
+    pool = np.asarray(pool, dtype=np.float64)
+    tags = np.asarray(tags, dtype=np.int64).reshape(-1)
+    keep = np.ones(len(tags), dtype=bool)
+    out = []
+    for i, t in enumerate(tags):
+        if t < 0:
+            continue
+        lp = _limb_points(pool, P, patch_limb, int(t))
+        if len(lp):
+            out.append((i, lp.mean(axis=0)))
+        else:
+            keep[i] = False
+    box = _box_corners(pool[np.unique(P)])
+    rows = [None] * len(tags)
+    for i, t in enumerate(tags):
+        if t < 0:
+            rows[i] = box[i]                 # the corners come first, in the same order as the sources
+    for i, c in out:
+        rows[i] = c
+    return keep, np.array([r for r, k in zip(rows, keep) if k])
+
+
+def template_landmarks(model):
+    """:func:`landmark_sources` of a template creature (an ICParse model): its control points in the bind pose, its
+    patches' limbs, in Blender's space."""
+    from ICParse.codecs import reconstruct as R
+    bw = R.bind_world_matrices(model)
+    pool = core.sgm_to_blender(R.world_vertices(model, R.vertex_bone_owners(model), bw))
+    P = np.array([p.control_points for p in model.patches], dtype=np.int64).reshape(-1, 16)
+    limb_of = np.full(len(P), -1, dtype=np.int64)
+    for j, limb in enumerate(model.limbs):
+        for p in limb.prims:
+            if 0 <= int(p) < len(P):
+                limb_of[int(p)] = j
+    return landmark_sources(pool, P, limb_of, len(model.limbs))
+
+
+def body_warp(src, tags, pool, patches, patch_limb):
+    """The warp that carries the template's skeleton to the fitted body: a thin-plate spline from the source landmarks
+    (``landmark_sources``) to their positions on this net. ``None`` when fewer than 4 landmarks survive."""
+    try:
+        from . import landmarkops
+    except ImportError:                  # imported top-level
+        import landmarkops  # type: ignore[no-redef]
+    keep, dst = landmark_targets(tags, pool, patches, patch_limb)
+    src = np.asarray(src, dtype=np.float64).reshape(-1, 3)[keep]
+    if len(src) < landmarkops.MIN_LANDMARKS:
+        return None
+    return landmarkops.tps_fit(src, dst)
 
 
 # ------------------------------------------------------------------------------------------------ Blender
@@ -337,6 +613,48 @@ def _bm_parts(bm) -> int:
             for e in x.edges:
                 stack.extend(g for g in e.link_faces if g not in seen)
     return parts
+
+
+def _split_shells(me, diag: float, eps: float = WELD_EPS):
+    """``[(mesh datablock, area)]`` of the surface's shells, the one with the most area first. The mesh is welded by
+    position on a throwaway bmesh first (as :func:`target_topology` does), so seam duplicates are not pieces; ``me``
+    is never modified. The caller removes the returned datablocks."""
+    import bmesh
+    bm = bmesh.new(); bm.from_mesh(me)
+    out = []
+    try:
+        bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=max(float(eps) * float(diag), 1e-9))
+        bm.faces.ensure_lookup_table()
+        seen = set(); comps = []
+        for f in bm.faces:
+            if f in seen:
+                continue
+            stack, part = [f], []
+            while stack:
+                x = stack.pop()
+                if x in seen:
+                    continue
+                seen.add(x); part.append(x)
+                for e in x.edges:
+                    stack.extend(g for g in e.link_faces if g not in seen)
+            comps.append(part)
+        comps = sorted(((sum(f.calc_area() for f in part), part) for part in comps), key=lambda c: -c[0])
+        for area, part in comps:
+            keep = {f.index for f in part}
+            b2 = bm.copy()
+            b2.faces.ensure_lookup_table()
+            bmesh.ops.delete(b2, geom=[f for f in b2.faces if f.index not in keep], context="FACES")
+            new = bpy.data.meshes.new("fit_piece")
+            b2.to_mesh(new); b2.free()
+            new.update()
+            out.append((new, float(area)))
+        return out
+    except BaseException:
+        for new, _a in out:
+            bpy.data.meshes.remove(new)
+        raise
+    finally:
+        bm.free()
 
 
 def _loose_parts(me) -> int:
@@ -413,12 +731,9 @@ def _mesh_arrays(me):
     return V.reshape(-1, 3), N / ln
 
 
-def _quads_of(me, join_triangles: bool, weld_plane: Optional[float] = None, weld_dist: Optional[float] = None):
+def _quads_of(me, join_triangles: bool, weld_dist: Optional[float] = None):
     """(coords (N, 3), faces as index lists, non-quad count) of a mesh; with ``join_triangles`` the faces are first
-    triangulated and paired back into quads, as Convert Mesh does. ``weld_plane`` (a distance) merges vertices
-    that close to the X mirror plane with each other and puts them on it: QuadriFlow's symmetric remesh is two
-    unwelded halves (Suzanne at 300: 68 boundary edges, 30 coincident vertex pairs up to 2e-4 apart), which ACC
-    would take as boundaries and the export as an open mesh. ``weld_dist`` merges coincident vertices everywhere
+    triangulated and paired back into quads, as Convert Mesh does. ``weld_dist`` merges coincident vertices
     first (a seam-split target -- an atlased glTF -- would otherwise turn its seams into holes in the layout);
     pass it only when there is something to weld, so a clean mesh's layout is bit-for-bit what it always was."""
     import bmesh
@@ -430,12 +745,6 @@ def _quads_of(me, join_triangles: bool, weld_plane: Optional[float] = None, weld
             bmesh.ops.triangulate(bm, faces=bm.faces)
             bmesh.ops.join_triangles(bm, faces=bm.faces, angle_face_threshold=3.14159, angle_shape_threshold=3.14159,
                                      cmp_seam=False, cmp_sharp=False, cmp_uvs=False, cmp_vcols=False, cmp_materials=False)
-        if weld_plane:
-            near = [v for v in bm.verts if abs(v.co.x) <= weld_plane]
-            bmesh.ops.remove_doubles(bm, verts=near, dist=weld_plane)
-            for v in bm.verts:
-                if abs(v.co.x) <= weld_plane:
-                    v.co.x = 0.0
         bm.verts.ensure_lookup_table()
         coords = np.array([tuple(v.co) for v in bm.verts], dtype=np.float64).reshape(-1, 3)
         faces = [[v.index for v in f.verts] for f in bm.faces]
@@ -470,21 +779,25 @@ def _scale_ladder(diag: float) -> List[float]:
     return out
 
 
-def _remesh_at(context, obj, me_eval, budget: int, symmetric: bool, seed: int, diag: float,
-               weld_dist: Optional[float], scale: float):
+def _remesh_at(context, obj, me_eval, budget: int, symmetric: bool, seed: int,
+               weld_dist: Optional[float], scale: float, fill_holes: bool = False):
     """One QuadriFlow remesh of a temporary copy of the evaluated mesh, scaled by ``scale`` (a power of two) for the
-    remesh and scaled back exactly afterwards: (coords, faces, non-quad count), or None when QuadriFlow cancelled.
-    Every length that goes with the mesh (the weld distances) is scaled with it."""
+    remesh and scaled back exactly afterwards: (coords, faces), or None when QuadriFlow cancelled. A ``symmetric``
+    remesh goes through :func:`mirrored_layout`. The weld distance is scaled with the mesh; ``fill_holes`` closes
+    the copy's openings first."""
     me = me_eval.copy()
     k = float(scale)
     if k != 1.0:
         from mathutils import Matrix
         me.transform(Matrix.Diagonal((k, k, k, 1.0)))
         me.update()
-    if weld_dist:
+    if weld_dist or fill_holes:
         import bmesh
         bm = bmesh.new(); bm.from_mesh(me)
-        bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=weld_dist * k)
+        if weld_dist:
+            bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=weld_dist * k)
+        if fill_holes:
+            bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)
         bm.to_mesh(me); bm.free()
     me.use_mirror_x, me.use_mirror_y, me.use_mirror_z = bool(symmetric), False, False   # what use_mesh_symmetry reads
     tmp = bpy.data.objects.new(f"{obj.name}_quadriflow", me)
@@ -501,13 +814,14 @@ def _remesh_at(context, obj, me_eval, budget: int, symmetric: bool, seed: int, d
             raise FitError(f"QuadriFlow could not remesh {obj.name}: {str(e).strip()[-200:]}")
         if "FINISHED" not in res:
             return None
-        coords, faces, nonquad = _quads_of(tmp.data, join_triangles=False,
-                                           weld_plane=SYMMETRY_EPS * diag * k if symmetric else None)
+        coords, faces, _ = _quads_of(tmp.data, join_triangles=False)
+        if symmetric:
+            coords, faces = mirrored_layout(coords, faces)
         if k != 1.0:
             back = coords / k
             assert np.array_equal(back * k, coords), "scaling the QuadriFlow layout back is not exact"
             coords = back
-        return coords, faces, nonquad
+        return coords, faces
     finally:
         bpy.data.objects.remove(tmp, do_unlink=True)
         bpy.data.meshes.remove(me)
@@ -517,8 +831,8 @@ def _remesh_at(context, obj, me_eval, budget: int, symmetric: bool, seed: int, d
 
 
 def _remesh_once(context, obj, me_eval, budget: int, symmetric: bool, seed: int, diag: float,
-                 weld_dist: Optional[float] = None, scale: Optional[List[float]] = None):
-    """One QuadriFlow layout of the evaluated mesh: (coords, faces, non-quad count), in the mesh's own space.
+                 weld_dist: Optional[float] = None, scale: Optional[List[float]] = None, fill_holes: bool = False):
+    """One QuadriFlow layout of the evaluated mesh: (coords, faces), in the mesh's own space.
 
     QuadriFlow refuses a mesh that is only SMALL (see :data:`QUADRIFLOW_MIN_DIAG`), so the remesh walks
     :func:`_scale_ladder` until one finishes; ``scale`` (a one-element list) carries the factor that worked to the
@@ -528,7 +842,7 @@ def _remesh_once(context, obj, me_eval, budget: int, symmetric: bool, seed: int,
     if scale and scale[0] in ladder:                 # what worked for an earlier seed, first
         ladder = [scale[0]] + [k for k in ladder if k != scale[0]]
     for k in ladder:
-        got = _remesh_at(context, obj, me_eval, budget, symmetric, seed, diag, weld_dist, k)
+        got = _remesh_at(context, obj, me_eval, budget, symmetric, seed, weld_dist, k, fill_holes)
         if got is not None:
             if scale is not None:
                 scale[0] = k
@@ -538,34 +852,74 @@ def _remesh_once(context, obj, me_eval, budget: int, symmetric: bool, seed: int,
 
 
 def _quadriflow_layout(context, obj, me_eval, budget: int, symmetric: bool, diag: float, pts,
-                       weld_dist: Optional[float] = None):
-    """The best QuadriFlow layout of the target over ``QUADRIFLOW_SEEDS`` seeds: closed and all quads (a creature
-    must be; QuadriFlow closes a mesh's small openings -- Suzanne's eye sockets -- but leaves small holes of its own
-    at random: Suzanne at 300, seeds 0-4, holes in 4 of 5 symmetric and 1 of 5 plain remeshes, and a hole of 3
-    edges cannot be quad-filled), and of those the one whose initial surface starts nearest the mesh
-    (:func:`layout_score`; the seeds differ a lot: 3.1 % vs 1.7 % start rms on Suzanne, and the fit keeps that
-    order). Returns (coords, faces, seed, note)."""
-    tried, closed = [], []
+                       weld_dist: Optional[float] = None, is_open: bool = False):
+    """The best QuadriFlow layout of the target over ``QUADRIFLOW_SEEDS`` seeds: a sound one (:func:`layout_problems`;
+    QuadriFlow fails or leaves small holes at random -- a hole of 3 edges cannot be quad-filled), and of those the one
+    whose initial surface starts nearest the mesh (:func:`layout_score`; the seeds differ a lot: 3.1 % vs 1.7 % start
+    rms on Suzanne, and the fit keeps that order). A ``symmetric`` target is remeshed mirrored, and plain when no seed
+    gives a sound mirrored layout; an open one (``is_open``) is tried as it is and then with its openings filled in
+    the copy. Returns (coords, faces, mirrored, note)."""
     scale = [1.0]
-    for seed in range(QUADRIFLOW_SEEDS):
-        coords, faces, nonquad = _remesh_once(context, obj, me_eval, budget, symmetric, seed, diag, weld_dist, scale)
-        holes = boundary_edges(faces)
-        if nonquad or holes:
-            tried.append(f"seed {seed}: {len(faces)} faces, {nonquad} non-quad, {holes} open edges")
-            continue
-        closed.append((layout_score(coords, faces, pts), seed, coords, faces))
-    if not closed:
-        raise FitError(f"QuadriFlow gave no closed all-quad layout of {obj.name} at budget {budget} in "
-                       f"{QUADRIFLOW_SEEDS} attempts ({'; '.join(tried)}): try another budget, or close the mesh "
-                       "(a creature is one closed, manifold skin)")
-    closed.sort(key=lambda c: c[0])
-    score, seed, coords, faces = closed[0]
-    note = (f"seed {seed}, the best start of {len(closed)} closed layouts from {QUADRIFLOW_SEEDS} seeds: "
-            + ", ".join(f"{100 * c[0] / diag:.1f} %" for c in closed))
+    why = failed = ""
+    passes = [(mirrored, fill) for mirrored in ((True, False) if symmetric else (False,))
+              for fill in ((False, True) if is_open else (False,))]
+    for mirrored, fill in passes:
+        good = []
+        for seed in range(QUADRIFLOW_SEEDS):
+            try:
+                coords, faces = _remesh_once(context, obj, me_eval, budget, mirrored, seed, diag, weld_dist, scale, fill)
+            except FitError as e:
+                failed = str(e)
+                continue
+            problems = layout_problems(faces)
+            if problems:
+                why = problems
+            else:
+                good.append((layout_score(coords, faces, pts), seed, coords, faces))
+        if good:
+            break
+    else:
+        if not why:                                  # QuadriFlow never returned a layout: its own reason
+            raise FitError(failed)
+        raise FitError(f"QuadriFlow made no usable layout of {obj.name} at budget {budget} ({why}): try another "
+                       "budget, or close the mesh (a creature is one closed skin)")
+    good.sort(key=lambda c: c[0])
+    score, seed, coords, faces = good[0]
+    note = (f"seed {seed}, the best start of {len(good)} closed layouts from {QUADRIFLOW_SEEDS} seeds: "
+            + ", ".join(f"{100 * c[0] / diag:.1f} %" for c in good))
     if scale[0] != 1.0:                              # said, not hidden: the layout was built on a scaled copy
         note += (f"; remeshed on a copy scaled x{scale[0]:g} and scaled back exactly (QuadriFlow cancels on a mesh "
                  "this small)")
-    return coords, faces, seed, note
+    return coords, faces, mirrored, note
+
+
+def _fit_piece(context, obj, me, share: int, layout: str, smooth: float, iterations: int):
+    """``(CageFit, how)`` for one separate piece of the target (an eye, a tooth, a horn): a layout of about ``share``
+    patches, then the usual fit, never mirrored. A piece with a real share of the budget is remeshed with QuadriFlow, a
+    small one (and any piece QuadriFlow fails on) is fitted from a rounded box (:func:`rounded_box_cage`); with the
+    Own Quads layout the piece's own quads are used when it is all quads."""
+    pts, nrm = _mesh_arrays(me)
+    diag = bounding_diagonal(pts)
+    if diag <= 0:
+        raise FitError("its vertices all coincide")
+    coords = faces = None
+    how = ""
+    if layout == "OWN_QUADS":
+        c, f, nonquad = _quads_of(me, join_triangles=True)
+        if not nonquad and not layout_problems(f):
+            coords, faces, how = c, f, "its own quads"
+    elif share >= QUADRIFLOW_MIN_SHARE:
+        topo = target_topology(me, diag)
+        try:
+            coords, faces, _mirrored, _note = _quadriflow_layout(context, obj, me, share, False, diag, pts,
+                                                                 is_open=topo.boundary > 0)
+            how = "QuadriFlow"
+        except FitError:
+            coords = faces = None
+    if coords is None:
+        coords, faces = rounded_box_cage(pts, share)
+        how = "rounded box"
+    return fit_cage(coords, faces, pts, normals=nrm, smooth=smooth, iters=iterations, symmetric=False), how
 
 
 # ---------------------------------------------------------------------------------- the template's limbs and skin
@@ -654,11 +1008,13 @@ def rig_split(model, pool_blender, patches) -> Optional[RigSplit]:
 
 
 def _default_output(obj) -> str:
-    """Next to the .blend as ``<mesh>_fit.sgm``, or ``/tmp/bz_fit_<mesh>.sgm`` for an unsaved file."""
+    """Next to the .blend as ``<mesh>_fit.sgm`` (``_fit_2`` ... when that name is taken); for an unsaved file in Blender's user data ``pyic/projects`` folder under a name
+    nothing holds yet (never the temp folder: the work must survive a reboot)."""
+    from . import startops
     safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in obj.name) or "mesh"
-    if bpy.data.filepath:
-        return os.path.join(os.path.dirname(bpy.data.filepath), f"{safe}_fit.sgm")
-    return f"/tmp/bz_fit_{safe}.sgm"
+    if bpy.data.filepath:                                  # a second fit of the same mesh must not overwrite the first: that file is the
+        return startops.startcheck.unique_path(os.path.dirname(bpy.data.filepath), f"{safe}_fit", ".sgm")      # source of the creature it made
+    return startops.project_path(safe, "_fit")
 
 
 def _paint_heat(me, residual, diag: float) -> None:
@@ -672,7 +1028,7 @@ def _paint_heat(me, residual, diag: float) -> None:
 
 
 class BZ_OT_fit_mesh(_Operator):
-    """Fit a new patch creature to the active mesh, borrowing a template's skeleton"""
+    """Fit a new patch creature to the active mesh, borrowing a template's skeleton. The result is shape only (no connection rings, so the game cannot combine it); use Retarget for a creature that combines"""
     bl_idname = "bz.fit_mesh"
     bl_label = "Fit Patches to Mesh"
     bl_options = {"REGISTER", "UNDO"}
@@ -690,12 +1046,16 @@ class BZ_OT_fit_mesh(_Operator):
                                       description="Creature whose skeleton and materials the result borrows. Empty: the "
                                                   "game's wolf")
         output_path: StringProperty(name="Output .sgm", subtype="FILE_PATH", default="",
-                                    description="Where to write the fitted creature; empty = next to the .blend, else /tmp")
+                                    description="Where to write the fitted creature; empty = next to the .blend, else Blender's user data folder (pyic/projects)")
         heat_map: BoolProperty(name="Error Heat Map", default=True,
                                description="Paint the fit error on the mesh as the 'fit_error' colour attribute")
         split_limbs: BoolProperty(name="Split into Limbs", default=True,
                                   description="Copy the template's limbs and skinning; off puts all on the Torso and root "
                                               "bone")
+        separate_pieces: BoolProperty(name="Fit Separate Pieces", default=True,
+                                      description="A mesh of several shells (a body with eyes or teeth) is fitted piece by "
+                                                  "piece: the biggest shell is the body, the others are fitted on their own "
+                                                  "and joined to it. Off: refuse a mesh with more than one shell")
 
     @classmethod
     def poll(cls, context):
@@ -735,35 +1095,77 @@ class BZ_OT_fit_mesh(_Operator):
         # Judge the surface, not the index buffer: seam-split vertices (an atlased glTF, our own bake) are
         # not damage, and welding them is what tells a UV seam from a real floater. The mesh is untouched.
         topo = target_topology(me_eval, diag)
+        pieces = []                       # [(temporary mesh, area)], the body first, when the target is several shells
         if topo.parts != 1:
-            self.report({"ERROR"}, f"{parts_reason(obj.name, topo)}: a creature is one closed skin. Separate inner shells "
-                                   "such as eyes inside sockets (Edit Mode: P > By Loose Parts) and fit the skin alone")
-            return {"CANCELLED"}
-        symmetric = is_x_symmetric(pts, diag)
-        open_edges = topo.boundary
+            if not self.separate_pieces:
+                self.report({"ERROR"}, f"{parts_reason(obj.name, topo)}: a creature is one closed skin. Tick Fit Separate "
+                                       "Pieces to fit each shell on its own (eyes, teeth) and join them, or separate the "
+                                       "extra shells (Edit Mode: P > By Loose Parts) and fit the skin alone")
+                return {"CANCELLED"}
+            if topo.parts > MAX_SHELLS:
+                self.report({"ERROR"}, f"{parts_reason(obj.name, topo)}: more than {MAX_SHELLS} separate pieces is too many "
+                                       "to fit one by one. Join the small ones (Ctrl+J) or delete what the game will not "
+                                       "show")
+                return {"CANCELLED"}
+            try:
+                pieces = _split_shells(me_eval, diag)
+            except Exception as e:
+                self.report({"ERROR"}, f"Fit failed while splitting {obj.name} into pieces: {type(e).__name__}: {e}")
+                return {"CANCELLED"}
+        # the body is the whole mesh when it is one shell, else its biggest shell
+        fit_me, fit_pts, fit_nrm, fit_diag, fit_topo = me_eval, pts, nrm, diag, topo
+        if pieces:
+            fit_me = pieces[0][0]
+            fit_pts, fit_nrm = _mesh_arrays(fit_me)
+            fit_diag = bounding_diagonal(fit_pts)
+            fit_topo = target_topology(fit_me, fit_diag)
+        budgets = shell_budgets(self.budget, [a for _m, a in pieces]) if pieces else [int(self.budget)]
+        symmetric = is_x_symmetric(fit_pts, fit_diag)
+        open_edges = fit_topo.boundary
         # The layout is built from a welded copy when (and only when) the target has seam duplicates:
         # QuadriFlow wants a closed manifold, and the mesh's own quads would inherit the seams as holes.
-        weld_dist = WELD_EPS * diag if topo.seam_split else None
+        weld_dist = WELD_EPS * fit_diag if fit_topo.seam_split else None
         note = ""
+        piece_notes, skipped = [], []
         try:
             if self.layout == "QUADRIFLOW":
-                coords, faces, _seed, note = _quadriflow_layout(context, obj, me_eval, self.budget, symmetric, diag,
-                                                                pts, weld_dist=weld_dist)
+                coords, faces, mirrored, note = _quadriflow_layout(context, obj, fit_me, budgets[0], symmetric, fit_diag,
+                                                                   fit_pts, weld_dist=weld_dist, is_open=open_edges > 0)
             else:
-                coords, faces, nonquad = _quads_of(me_eval, join_triangles=True, weld_dist=weld_dist)
+                coords, faces, nonquad = _quads_of(fit_me, join_triangles=True, weld_dist=weld_dist)
                 if nonquad:
                     raise FitError(f"{nonquad} of {obj.name}'s {len(faces)} faces are not quads after tris-to-quads: "
                                    "the layout would have holes. Make it all quads, or use the QuadriFlow layout")
-            result = fit_cage(coords, faces, pts, normals=nrm, smooth=self.smooth, iters=self.iterations,
-                              symmetric=symmetric)
+                mirrored = symmetric
+            result = fit_cage(coords, faces, fit_pts, normals=fit_nrm, smooth=self.smooth, iters=self.iterations,
+                              symmetric=mirrored)
+            result.unmirrored = result.unmirrored or (symmetric and not mirrored)
+            if pieces:                                   # the other shells, each on its own, then one net
+                extras = []
+                for n, ((me_i, _area), share) in enumerate(zip(pieces[1:], budgets[1:]), start=2):
+                    try:
+                        r_i, how = _fit_piece(context, obj, me_i, share, self.layout, self.smooth, self.iterations)
+                    except FitError as e:
+                        skipped.append(f"piece {n} ({len(me_i.polygons)} faces) left out: {e}")
+                        continue
+                    extras.append(r_i)
+                    piece_notes.append(f"piece {n}: {len(r_i.patches)} patches from {how}, {r_i.after.text()}")
+                result = combine_fits(result, extras, pts, diag)
             crowded = ICV.crowded_corners(np.asarray(result.patches, dtype=np.int64).reshape(-1, 16))
             if crowded:                                  # a layout vertex where more faces meet than the game holds
                 v, k = max(crowded, key=lambda c: c[1])
                 raise FitError(f"the layout has {len(crowded)} pole(s) where more than {ICV.MAX_CORNER_PATCHES} patches "
                                f"meet (up to {k}, at control point {v}), which the game can't hold: use QuadriFlow or "
                                "smaller fans")
+            if pieces:
+                refusal_n, warning_n = budget_advice(len(result.patches))
+                if refusal_n:
+                    raise FitError(f"the pieces together make {len(result.patches)} patches: " + refusal_n)
+                if warning_n:
+                    skipped.append(warning_n)
             tpl_path = ops.skeleton_template(context, self.template_path)
-            split = rig_split(core.read_source(tpl_path), result.pool, result.patches) if self.split_limbs else None
+            tpl_model = core.read_source(tpl_path)
+            split = rig_split(tpl_model, result.pool, result.patches) if self.split_limbs else None
             data, n_points, n_patches = core.patches_to_creature(
                 tpl_path, result.pool, result.patches,
                 vert_bone=None if split is None else split.owners,
@@ -774,6 +1176,9 @@ class BZ_OT_fit_mesh(_Operator):
         except Exception as e:
             self.report({"ERROR"}, f"Fit failed: {type(e).__name__}: {e}")
             return {"CANCELLED"}
+        finally:
+            for me_i, _area in pieces:
+                bpy.data.meshes.remove(me_i)
         out = bpy.path.abspath(self.output_path) if self.output_path else _default_output(obj)
         try:
             ops._atomic_write(out, data)
@@ -797,17 +1202,33 @@ class BZ_OT_fit_mesh(_Operator):
         if split is not None:
             line += ("; split into " + ", ".join(f"{n} {nm}" for nm, n in split.counts)
                      + f" on {split.bones} bones" + (f" (no patches: {', '.join(split.empty)})" if split.empty else ""))
+        if piece_notes:
+            line += "; separate pieces: " + "; ".join(piece_notes)
         creature["bz_last_fit"] = line
         creature["bz_fit_source"] = obj.name           # Transfer Texture's default source
-        if split is not None:
-            self.report({"INFO"}, "The limbs, skin and skeleton are the TEMPLATE's: move the bones into the shape (Boner > "
-                                  "Bones, or Retarget) before animating")
+        try:                                           # where the template's body is: Move Skeleton to the Body needs it
+            src, tags = template_landmarks(tpl_model)
+            creature[KEY_FIT_SRC] = [float(x) for x in src.reshape(-1)]
+            creature[KEY_FIT_TAGS] = [int(t) for t in tags]
+        except Exception as e:
+            self.report({"WARNING"}, f"Move Skeleton to the Body will not be offered for this creature "
+                                     f"({type(e).__name__}: {e})")
+        if pieces:
+            self.report({"INFO"}, f"{obj.name} has {len(pieces)} separate pieces: the biggest is the body, "
+                                  f"{len(piece_notes)} others were fitted on their own and joined to it "
+                                  "(each keeps its own seams: Weld joins them for good)")
+        for why in skipped:
+            self.report({"WARNING"}, why)
+        self.report({"INFO"}, FIT_RESULT_NOTE)
+        if result.unmirrored:
+            self.report({"WARNING"}, f"No clean mirrored layout for {obj.name}: fitted without symmetry")
         if topo.seam_split:
             self.report({"INFO"}, f"{obj.name} is modelled as {topo.parts_raw} parts, but {topo.welded} vertices are seam "
                                   "duplicates (UV islands): the layout used a welded copy (your mesh is untouched)")
-        if open_edges and self.layout == "OWN_QUADS":
-            self.report({"WARNING"}, f"{obj.name} is not closed ({open_edges} open edges after welding, {topo.nonmanifold} "
-                                     "true non-manifold edges): the Object Editor rejects open meshes (see Validate)")
+        if (open_edges or topo.nonmanifold) and self.layout == "OWN_QUADS":
+            self.report({"WARNING"}, f"{obj.name} is not one closed skin ({open_edges} open edges after welding, "
+                                     f"{topo.nonmanifold} true non-manifold edges): the Object Editor rejects such a mesh "
+                                     "(see Validate)")
         elif open_edges:
             self.report({"INFO"}, f"{obj.name} is not closed ({open_edges} open edges after welding); the QuadriFlow "
                                   "layout is")
@@ -825,4 +1246,93 @@ class BZ_OT_fit_mesh(_Operator):
         return {"FINISHED"}
 
 
-CLASSES = (BZ_OT_fit_mesh,)
+class BZ_OT_fit_move_skeleton(_Operator):
+    """Move the skeleton into the shape Fit Patches to Mesh made, so the bones sit inside the new body"""
+    bl_idname = "bz.fit_move_skeleton"
+    bl_label = "Move Skeleton to the Body"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        if not ops._guard_poll(cls, context):
+            return False
+        if obj.get(KEY_FIT_SRC) is None:
+            cls.poll_message_set("only for a creature made by Fit Patches to Mesh in this file (for any other creature, "
+                                 "use Landmark Retarget)")
+            return False
+        if store.rig(obj) is None:
+            cls.poll_message_set("the creature has no skeleton to move")
+            return False
+        if obj.get(KEY_FIT_MOVED):
+            cls.poll_message_set("the skeleton was already moved to the body (Undo it first to do it again)")
+            return False
+        return True
+
+    def execute(self, context):
+        obj = ops._active_native(context)
+        arm = store.rig(obj) if obj is not None else None
+        if obj is None or arm is None or obj.get(KEY_FIT_SRC) is None:
+            self.report({"ERROR"}, "Select a creature made by Fit Patches to Mesh")
+            return {"CANCELLED"}
+        if obj.mode == "EDIT":
+            obj.update_from_editmode()
+        err = store.pool_error(obj)
+        if err:
+            self.report({"ERROR"}, err)
+            return {"CANCELLED"}
+        from . import retargetops
+        src = np.array(obj[KEY_FIT_SRC], dtype=np.float64).reshape(-1, 3)
+        tags = np.array(obj[KEY_FIT_TAGS], dtype=np.int64)
+        pool = ops._mesh_verts(obj)
+        warp_fn = body_warp(src, tags, pool, store.patches(obj), store.patch_limb(obj))
+        if warp_fn is None:
+            self.report({"ERROR"}, "Too few limbs have patches to place the skeleton: the bones were not moved")
+            return {"CANCELLED"}
+        mode = obj.mode
+        if mode == "EDIT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        try:
+            M = np.array(obj.matrix_world.inverted() @ arm.matrix_world, dtype=np.float64)
+            Mi = np.linalg.inv(M)
+
+            def warp(X):                     # armature-local -> creature-local -> the body warp -> armature-local
+                X = np.asarray(X, dtype=np.float64).reshape(-1, 3)
+                Y = warp_fn(X @ M[:3, :3].T + M[:3, 3])
+                return Y @ Mi[:3, :3].T + Mi[:3, 3]
+            n_bones, bone_max, _inherited, _owning, turn = retargetops.move_rig_bones(
+                context, obj, arm, np.zeros((len(pool), 3)), warp=warp)
+        except Exception as e:
+            self.report({"ERROR"}, f"The bones were not moved ({type(e).__name__}: {e})")
+            return {"CANCELLED"}
+        finally:
+            if mode == "EDIT":
+                context.view_layer.objects.active = obj
+                bpy.ops.object.mode_set(mode="EDIT")
+        obj[KEY_FIT_MOVED] = 1
+        line = (f"Moved {n_bones} bones to the body (the most by {1000 * bone_max:.0f} mm, turned by up to "
+                f"{np.degrees(turn):.1f} degrees). Check them in the rig's Edit Mode and nudge any that sit off; "
+                "Export writes the new bone positions")
+        obj["bz_last_fit_skeleton"] = line
+        self.report({"INFO"}, line)
+        return {"FINISHED"}
+
+
+def draw_fit_help(layout, obj) -> None:
+    """The note under the Tools of a creature Fit Patches to Mesh made: what it is, and what to press next."""
+    if obj is None or not obj.get("bz_last_fit"):
+        return
+    box = layout.box()
+    box.label(text="Made by Fit Patches to Mesh: shape only", icon="INFO")
+    for text in ("No connection rings, so the game cannot combine it.",
+                 "For a creature that combines, use Retarget Creature",
+                 "to Mesh or Landmark Retarget on a stock animal."):
+        box.label(text=text)
+    if obj.get(KEY_FIT_SRC) is not None and store.rig(obj) is not None:
+        if obj.get(KEY_FIT_MOVED):
+            box.label(text="The skeleton was moved to the body.", icon="CHECKMARK")
+        else:
+            box.operator(BZ_OT_fit_move_skeleton.bl_idname, icon="ARMATURE_DATA")
+
+
+CLASSES = (BZ_OT_fit_mesh, BZ_OT_fit_move_skeleton)

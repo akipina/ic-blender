@@ -10,6 +10,7 @@ from . import actions
 from . import edittools
 from . import sculptops
 from . import fitops
+from . import hardedges
 from . import retargetops
 from . import landmarkops
 from . import texops
@@ -21,9 +22,11 @@ from . import guards
 from . import store
 from . import combocore
 from . import combopreview
+from . import startops
 from .sceneobj import ui_kit
 
 
+SHOW_IK_CHAINS = False   # the IK chain box of Boner > Bones is not drawn (its code and operators are kept)
 _alert = ui_kit.alert     # a red, wrapped message in the panel (moved to sceneobj.ui_kit so every panel shares it; same name for the callers)
 
 
@@ -113,7 +116,8 @@ class BZ_PT_panel(bpy.types.Panel):
     bl_idname = "BZ_PT_panel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = ui_kit.TAB_MODEL
+    bl_order = 0
 
     @staticmethod
     def _rig_box(layout, obj):
@@ -180,9 +184,11 @@ class BZ_PT_panel(bpy.types.Panel):
         col.operator(ops.BZ_OT_import.bl_idname, icon="IMPORT")
         col.operator(newproject.BZ_OT_new_project.bl_idname, icon="FILE_NEW")
         col.operator(newcreature.BZ_OT_new_creature.bl_idname, icon="ADD")
+        startops.draw_start_buttons(col)        # Extract Stock Creatures: the game's animals as files, no creature needed
         if (not scene_obj and context.active_object and context.active_object.type == "MESH"
                 and not store.is_native(context.active_object)):
-            col.operator(ops.BZ_OT_convert_mesh.bl_idname, icon="MOD_MESHDEFORM")
+            # Convert Mesh is not offered any more: Fit Patches to Mesh with the Own Quads layout does the same job (the
+            # operator bz.convert_mesh still exists; DESIGN.md says why)
             col.operator(fitops.BZ_OT_fit_mesh.bl_idname, icon="MOD_SHRINKWRAP")
 
         if not scene_obj:                       # the creature surface display settings
@@ -246,6 +252,8 @@ class BZ_PT_panel(bpy.types.Panel):
                 r.operator(topoops.BZ_OT_fill_hole.bl_idname, icon="MESH_GRID")
                 r = tp.row(align=True)
                 r.operator(topoops.BZ_OT_subdivide.bl_idname, icon="MOD_SUBSURF")
+                r.operator(topoops.BZ_OT_loop_cut.bl_idname, icon="MOD_MULTIRES")      # one direction: round a limb, never across a ring
+                r = tp.row(align=True)
                 r.operator(topoops.BZ_OT_extrude_region.bl_idname, icon="FULLSCREEN_ENTER")
                 tp.operator(topoops.BZ_OT_mirror_whole.bl_idname, icon="MOD_MIRROR")
 
@@ -258,6 +266,8 @@ class BZ_PT_panel(bpy.types.Panel):
                 r = sel.row(align=True)
                 r.operator(patchsel.BZ_OT_hide_patches.bl_idname, text="Hide Patches", icon="HIDE_ON")
                 r.operator(patchsel.BZ_OT_unhide_patches.bl_idname, text="Unhide", icon="HIDE_OFF")
+
+            hardedges.draw_box(layout, obj)               # Mark Sharp edges -> smoothing groups, material slots -> materials
 
             sb = layout.box()
             sb.label(text="Sculpt", icon="SCULPTMODE_HLT")
@@ -280,6 +290,7 @@ class BZ_PT_panel(bpy.types.Panel):
             lrow.operator(landmarkops.BZ_OT_landmarks_create.bl_idname, icon="EMPTY_DATA")
             lrow.operator(landmarkops.BZ_OT_landmark_retarget.bl_idname, icon="MOD_WARP")
             tools.operator(trimops.BZ_OT_trim_stray.bl_idname, icon="MOD_MASK")
+            fitops.draw_fit_help(tools, obj)              # a Fit result: shape only, and Move Skeleton to the Body
             vrow = tools.row(align=True)
             vrow.operator(edittools.BZ_OT_validate.bl_idname, icon="CHECKMARK")
             if hasattr(scene, "bz_combine"):
@@ -289,11 +300,13 @@ class BZ_PT_panel(bpy.types.Panel):
             row.operator(ops.BZ_OT_bake.bl_idname, text="Bake Textured Mesh", icon="MESH_DATA")
             if obj.get(store.KEY_TEX_IMGS):
                 row.operator(ops.BZ_OT_paint_skin.bl_idname, icon="BRUSH_DATA")
+                row.operator(startops.BZ_OT_load_skin_image.bl_idname, icon="IMAGE_DATA")
                 row.operator(texops.BZ_OT_transfer_texture.bl_idname, icon="TEXTURE")
             row.operator(ops.BZ_OT_edit_uvs.bl_idname, icon="UV")
             if obj.get("bz_uv_cage") or obj.get("bz_uv_for"):
                 row.operator(ops.BZ_OT_apply_uvs.bl_idname, icon="CHECKMARK")
             row.operator(ops.BZ_OT_export.bl_idname, icon="EXPORT")
+            layout.label(text="For the game: IC Game tab", icon="PACKAGE")
         elif sculptops.is_sculpt(obj):
             sb = layout.box()
             sb.label(text=f"Sculpt of {obj.get(sculptops.KEY_OF)}", icon="SCULPTMODE_HLT")
@@ -303,7 +316,7 @@ class BZ_PT_panel(bpy.types.Panel):
             r.operator(sculptops.BZ_OT_refit_patches.bl_idname, icon="CHECKMARK")
             r.operator(sculptops.BZ_OT_discard_sculpt.bl_idname, text="", icon="X")
         elif not scene_obj:
-            layout.label(text="Select a creature", icon="INFO")
+            layout.label(text="Select a creature (its mesh)", icon="INFO")
 
 
 class BZ_PT_boner(bpy.types.Panel):
@@ -312,7 +325,7 @@ class BZ_PT_boner(bpy.types.Panel):
     bl_idname = "BZ_PT_boner"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = ui_kit.TAB_MODEL
     bl_parent_id = "BZ_PT_panel"
 
     @classmethod
@@ -403,7 +416,8 @@ class BZ_PT_boner(bpy.types.Panel):
             layout.operator_menu_enum(ops.BZ_OT_assign_bone.bl_idname, "bone", text="Skin Selected to Bone")
         from . import ikops                                 # C8.4 / C8.5: the active bone's joint limits, the IK chains
         ikops.draw_limits_box(layout, context, obj, s.bone)
-        ikops.draw_ik_box(layout, context, obj)
+        if SHOW_IK_CHAINS:                                  # hidden (round 2 tidy): nothing in the game reads a chain a modder edits here
+            ikops.draw_ik_box(layout, context, obj)
 
     @staticmethod
     def limbs_tab(layout, context, obj):
@@ -614,7 +628,7 @@ class BZ_PT_combine(bpy.types.Panel):
     bl_idname = "BZ_PT_combine"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = ui_kit.TAB_MODEL
     bl_parent_id = "BZ_PT_panel"
     bl_options = {"DEFAULT_CLOSED"}
 
@@ -652,7 +666,7 @@ class BZ_PT_combine(bpy.types.Panel):
                 if combopreview.indexing(s):
                     col.label(text=f"indexing {st['stock_count']} stock creatures...", icon="TIME")
             else:
-                col.operator(combopreview.BZ_OT_combine_extract_stock.bl_idname, icon="IMPORT")
+                col.label(text="No stock creatures yet: press Extract Stock Creatures at the top of this panel", icon="INFO")
             col.prop(s, "stock_dir", text="")
         elif s.other_kind == "OBJECT":
             col.prop(s, "other_object", text="")

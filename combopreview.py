@@ -246,7 +246,10 @@ def _add_part_props():
     for key, label in combocore.PART_LABELS.items():
         BZCombineSettings.__annotations__[f"part_{key}"] = bpy.props.BoolProperty(
             name=label, default=key in ("head", "tail"), update=_on_setting,
-            description=f"Take the {label.lower()} from the donor (ComboTest.exe's {label} button)")
+            description=(f"Take the {label.lower()} from the other creature. The game takes them only from a creature whose mid legs are "
+                          f"not marked Non-Swappable (the stock insects' and spiders' are, so for them nothing changes)"
+                          if key in combocore.EXTRA_PARTS else
+                          f"Take the {label.lower()} from the other creature"))
 
 
 _add_part_props()
@@ -475,7 +478,7 @@ def part_availability(scene, obj, settings) -> dict:
     if not combocore.available():
         return out
     try:
-        from combotest.validate import donor_has_part
+        donor_has_part = combocore.donor_has_part
         if settings.role == combocore.ROLE_TORSO:
             if settings.other_kind == "STOCK":
                 idx = donor_index(settings)
@@ -856,7 +859,7 @@ def validate_combines(scene, obj, model=None, progress=None) -> list:
         return combocore.format_messages(None, notes, setup_error=str(e))
     summary = rep.summary()
     obj["bz_combine_summary"] = json.dumps(summary, default=str)
-    lines = combocore.format_messages(rep, notes)
+    lines = combocore.settle_winding_lines(combocore.format_messages(rep, notes), model, resolve_stock_dir(settings) or None)    # a ring the winding rule cannot judge is not an error
     lines[len(notes):len(notes)] = combocore.ring_placement_messages(model)   # with the precheck; the summary stays last
     return lines
 
@@ -899,7 +902,7 @@ class BZ_OT_combine_validate(bpy.types.Operator):
 
 
 class BZ_OT_combine_extract_stock(bpy.types.Operator):
-    """Extract the game's 61 stock creatures to use as combine donors"""
+    """Extract the game's 61 base creatures (model, blueprint, stats, rules) to Blender's user data folder: the combine donors, and files to open or study. No creature needs to be in the scene"""
     bl_idname = "bz.combine_extract_stock"
     bl_label = "Extract Stock Creatures"
 

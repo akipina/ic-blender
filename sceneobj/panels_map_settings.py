@@ -1,4 +1,4 @@
-"""sceneobj.panels_map_settings -- the Map settings, Terrain look and Map problems panels (3D View sidebar, IC tab, under Map)."""
+"""sceneobj.panels_map_settings -- the Map settings, Terrain look and Map problems panels (3D View sidebar, IC Map tab, under Map)."""
 from __future__ import annotations
 
 import bpy
@@ -20,7 +20,7 @@ def _hint(layout, text: str, icon: str = "NONE", width: int = 44) -> None:
 class _Sub:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = ui_kit.TAB_MAP
     bl_parent_id = H.MAP_PANEL_ID
 
     @classmethod
@@ -50,7 +50,7 @@ def draw_settings(layout, context, top) -> None:
         labs = starts.get(slot)
         if labs:
             t = labs[0].location
-            row.label(text=f"Player {slot + 1}: lab at {t.x:.0f}, {-t.y:.0f} m")
+            row.label(text=f"Player {slot + 1}: lab at {-t.x:.0f}, {-t.y:.0f} m")
             op = row.operator("bz.map_select_start", text="", icon="RESTRICT_SELECT_OFF")
             op.slot = slot
         else:

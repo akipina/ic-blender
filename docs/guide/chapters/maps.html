@@ -36,7 +36,7 @@ and why anything is an empty.</p>
 
 <h3>The Map panel</h3>
 
-<p>In the sidebar's <strong>IC</strong> tab (<kbd>N</kbd>), the <strong>Map</strong> panel shows the map's size, object
+<p>In the sidebar's <strong>IC Map</strong> tab (<kbd>N</kbd>), the <strong>Map</strong> panel shows the map's size, object
 counts and source, with a folding part for each tool.</p>
 
 <h3>Changing the ground and the water</h3>
@@ -76,8 +76,8 @@ texture most of its faces have; a tie changes nothing.</p>
   <li><strong>Save Map...</strong>, or <strong>File &gt; Export &gt; Impossible Creatures Map (.sgb)</strong>, writes the
   map and its companion files (triggers, dialogue, pictures) to a folder.</li>
   <li><strong>Save ready-to-drop folder...</strong> writes <code>Data/scenarios/mp</code> (or <code>sp</code>) with a
-  <code>README.txt</code> on installing into a copy of the game. Name it with lower-case letters, digits and
-  underscores.</li>
+  <code>README.txt</code> on installing into a copy of the game. The file name is made lower case and every other
+  character becomes an underscore (<code>My Map</code> becomes <code>my_map</code>).</li>
 </ol>
 
 <ul>
@@ -169,6 +169,9 @@ map without cinematics). Triggers use the animation's number. Saving writes the 
   <li>Walking, timing after speech, random countdowns and the camera's first blend are approximate.</li>
   <li>Effects, random wandering and groups filled from your units during play are skipped. Dialogue isn't drawn, and
   there is no sound.</li>
+  <li>Conditions that depend on play are guessed: the trigger that starts the cinematic is taken as true, other
+  conditions on the rest of the game (a key press, a unit dying) as never true, and random countdowns use the middle of
+  their range. You can't change these choices yet.</li>
   <li>Replays haven't been compared with the game.</li>
 </ul>
 

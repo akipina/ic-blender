@@ -636,13 +636,23 @@ def encode_actions(arm_obj, model, actions, default_fps, bone_names=None):
 
 
 def encode_scene_actions(arm_obj, data, actions, default_fps):
-    """Scene clips for the given (Action, clip name) pairs, sampled from Blender's own evaluation."""
+    """Scene clips for the given (Action, clip name) pairs, sampled from Blender's own evaluation against ``data``'s
+    skeleton (``data.bone_names``: the rig bones in the written file's order; ``data.scene``: that file). An Action whose
+    F-curves still name a renamed bone by its old name is sampled with those paths pointed at the current name."""
+    renames = {o: n for n, o in rig.rename_canon(arm_obj).items()}
     out = []
     for act, clip_name in actions:
         start, end = frame_range(act)
         if end <= start:
             end = start + 1
-        W = sample_world(arm_obj, act, data.bone_names, start, end)
+        stale = stale_bone_paths(act, renames)
+        old_paths = [(fc, fc.data_path) for fc, _p in stale]
+        try:
+            fix_stale_bone_paths(act, renames)
+            W = sample_world(arm_obj, act, data.bone_names, start, end)
+        finally:
+            for fc, path in old_paths:
+                fc.data_path = path
         K = end - start
         times = [f / K for f in range(K + 1)]
         fps = float(act.get(KEY_FPS, 0) or default_fps)

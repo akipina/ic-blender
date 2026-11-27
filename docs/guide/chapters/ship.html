@@ -1,0 +1,146 @@
+<section id="ship">
+<h2>Check, export, install, remove and share</h2>
+
+<p>Every kind of work ends the same way: in the <strong>Game</strong> panel of the <strong>IC Game</strong> tab. This chapter goes through its four boxes, in the order you use them. You need a test copy of the
+game (<a href="#start">Start here</a>).</p>
+
+<h3>1. Check</h3>
+
+<p>Check looks for what would stop the game loading your work. It writes nothing.</p>
+
+<ul>
+  <li><strong>A creature</strong>: press <strong>Check the Creature</strong>. It runs the model checks and also what <strong>Export Creature for the Game</strong> would refuse: the numbers, the motions and the events. A creature that
+  passes Check is one the export accepts. A creature that replaces a game animal is checked as that replacement.</li>
+  <li><strong>A structure, a prop, a worker, a character or an effect</strong>: press <strong>Check</strong>. It tests what <strong>Export Entity Folder</strong> would write: the model against the game's loading rules, the blueprint against its
+  rules, and the files as the Steam Workshop would see them. It also says if the model's file was changed on disk after you opened it. A project started from one of the game's things also has <strong>Check as replacing ...</strong>.</li>
+</ul>
+
+<p>The box then says &ldquo;No problems&rdquo; or lists the problems. <strong>Errors</strong> (red) mean the game would refuse or mis-load the files. <strong>Warnings</strong> are advice. For a creature the box shows the first three
+problems, and the <strong>Info</strong> editor lists them all. After you change something, press Check again: the box shows the result of the last Check.</p>
+
+<h3>2. Export for the Game</h3>
+
+<p>Export writes a folder called an <strong>item</strong>. It holds the files the game reads, all with lower-case names, inside a folder called <code>data</code>.</p>
+
+<ul>
+  <li><strong>A creature</strong>: <strong>Export Creature for the Game</strong>. A window asks for a name, a display name, a description and a picture (see <a href="#newcreature">A new creature from a game animal</a> and
+  <a href="#replace">Replace one of the game's animals</a>). The item is a folder named after the creature, beside your model (or in the <strong>Folder</strong> you choose), under <code>ic_items</code>. It holds the blueprint with your model
+  inside it, the numbers, the limb scales, the creature creator's picture and a list of the files.</li>
+  <li><strong>Anything else</strong>: <strong>Export Entity Folder</strong>. A file window asks where to make the folder. It writes the model, the blueprint, new textures, your effects and sounds, a list of files and a README.</li>
+</ul>
+
+<p>Export refuses a game folder or a folder inside Steam's, so it cannot damage your game. It also refuses to write into a folder that holds somebody's other files. It replaces only an earlier export of the same item. If export
+refuses, the message says why. See <a href="#trouble">Troubleshooting</a>.</p>
+
+<p>After a good export the box shows <strong>Last export</strong> with the item's name. The item is also the folder the next step uses.</p>
+
+<h3>3. Install into Test Game</h3>
+
+<ol>
+  <li>Look at the box <strong>3. Install into Test Game</strong>. Near the top of the box it shows your test copy's folder, and either &ldquo;A copy of the game made here on ...&rdquo; (a copy this add-on made) or &ldquo;A folder you set
+  yourself&rdquo;. If it shows a red message instead, fix that first: set <strong>Test game folder</strong> in <strong>Edit &gt; Preferences &gt; Add-ons &gt; IC Blender</strong>, or press <strong>Create Test Game Copy</strong> (see
+  <a href="#start">Start here</a>).</li>
+  <li>The line <strong>Installs: ...</strong> shows which item it will use: the one from your last export. To use another, set <strong>Item folder</strong> to an item folder (a folder with a <code>data</code> folder in it). The line
+  <strong>Last export</strong> shows when the item was last written.</li>
+  <li>Press <strong>Install into Test Game</strong>.</li>
+</ol>
+
+<p>Under box 3 is a separate box, <strong>Installed here</strong>. It lists what you have installed in the test copy. A fresh copy of the Steam game
+may also say, for example, &ldquo;7 more installed by other tools (not touched here)&rdquo;. Those are Steam Workshop items that are already in the game. Leave them.</p>
+
+<p>First the add-on checks the item the way the game's own rules would. If it finds something the game would refuse, nothing is installed, and the box (red) lists the reasons in plain words, with a button <strong>Install Anyway</strong>
+that installs it as it is. The item may not work. Other findings are only advice. They appear as yellow lines that start with &ldquo;Advice:&rdquo; after the install message (for example &ldquo;the Steam Workshop would not take this for sharing&rdquo;). The game still loads those files, so they do not stop the install. Only the red box with <strong>Install Anyway</strong> is a refusal.</p>
+
+<p>Then it copies the item's files into the copy's <code>Data</code> folder. Loose files there come before the files in the game's archives, so the game uses yours. It also:</p>
+
+<ul>
+  <li>keeps every file it replaces, so that <strong>Remove</strong> can put it back, byte for byte;</li>
+  <li>writes an uninstall list in the game folder (<code>&lt;item&gt;.lst</code>) and its own undo data in a folder called <code>ICBlender</code> there. Leave both alone;</li>
+  <li>deletes the game's saved picture of every model you replaced, so the game draws your new model (&ldquo;N saved model(s) of the game cleared&rdquo;);</li>
+  <li>for a creature with a new name, adds the name to the creature creator's list of every mod in the copy (see <a href="#newcreature">A new creature from a game animal</a>).</li>
+</ul>
+
+<p>You should see &ldquo;Installed '&lt;name&gt;' into &lt;folder&gt;: N files. Start the game from that folder ...&rdquo;. If files were replaced, or saved models cleared, or a creature added to the
+creature creator, those facts come in the same sentence after the number of files. The list <strong>Installed here</strong> now shows the item. Items installed by other tools are counted but never touched.</p>
+
+<p>Notes the message may add:</p>
+<ul>
+  <li>&ldquo;N file(s) of this item are also in the folder of the mod ... The game keeps loading that copy there, not the new file.&rdquo; A file in a game mod's own folder, or in a folder called <code>DataMOD</code> in the game folder,
+  comes before a loose file in <code>Data</code>. Play without that mod, or remove that file from the copy.</li>
+</ul>
+
+<p>Ignore anything about <code>DataMOD</code> unless the install message mentions it. If it does, play without the mod that message names.</p>
+
+<h3>4. See it in the game</h3>
+
+<ol>
+  <li>If the game is running, close it. It reads an object's files when it loads it.</li>
+  <li>Start the game from the test copy: run <code>IC.exe</code> in that folder. On Linux that needs Wine or Proton, and the Steam version starts only while Steam is running.
+  <a href="#start">Start here</a> has the details, under &ldquo;Start the game&rdquo;.</li>
+  <li>Look for your work. The <strong>Next:</strong> line in the Game panel tells you what to look for when the item has a name of its own (a structure, a prop, a worker with a new name shows only where a map names it).</li>
+  <li>If something is missing or wrong, read <code>warnings.log</code> in the test copy's folder.</li>
+</ol>
+
+<h3>5. Remove it</h3>
+
+<ol>
+  <li>In the list <strong>Installed here</strong>, press <strong>Remove</strong> next to the item.</li>
+  <li>A window asks &ldquo;Remove '&lt;name&gt;' from the Test game?&rdquo; Confirm.</li>
+</ol>
+
+<p>The message says, for example, &ldquo;Removed 'wolf': 5 files deleted, 0 put back as they were&rdquo;. &ldquo;0 put back&rdquo; is right when you replaced one of the game's own things. The game's original
+lives inside its archive and shows again as soon as your files are gone. &ldquo;Put back&rdquo; counts only loose files that were in the copy before the install.</p>
+
+<p>Every file the install wrote is deleted, and every file it replaced is put back as it was. The creature lists go back to what they were, or are deleted with the folders the install made, if the mod had none. Folders that were
+there before, or that hold something else, stay. If you edited a creature list by hand after installing, <strong>Remove</strong> leaves it and keeps the original in <code>ICBlender/kept/roster/</code>. A file you changed by hand after the install is
+also left alone, with its original kept in <code>ICBlender/kept/&lt;item&gt;/</code>. If a mod's folder was deleted after the install, Remove still works and says the folder is gone.</p>
+
+<h3>6. Share your work: Pack for Sharing</h3>
+
+<ol>
+  <li>Export, as above.</li>
+  <li>In the box <strong>4. Share</strong>, press <strong>Pack for Sharing</strong>. A file window opens. It proposes the item's name with <code>.zip</code>, beside the item's folder. When you pack again after a fix, choose the same name: an
+  existing name shows in red, and the new zip replaces the old one. The add-on replaces only a zip file. It refuses to overwrite any other kind of file.</li>
+  <li>If the check found problems, the zip is not written. Tick <strong>Pack anyway</strong> in the options of the file window to pack it as it is. The options are in the
+  panel at the right of the window. (If you do not see it, press the small gear button at the top right.)</li>
+  <li>Press the confirm button. You should see &ldquo;Packed N files into ... Send that zip file to other players&rdquo;.</li>
+</ol>
+
+<p>Unzipping gives one folder named after the item. Inside it:</p>
+<ul>
+  <li><strong>README.txt</strong>: what the item is, how to install it with and without the add-on, what it replaces, and the list of files;</li>
+  <li><strong>data</strong>: the files the game reads, all in lower case. The game's archives are case sensitive, and every path the game asks for is lower case;</li>
+  <li>for a creature with a new name only, <strong>retail_roster</strong>: a creature list for each mod you have, for players who do not use the add-on. See below.</li>
+</ul>
+
+<h3>7. Install something someone else made</h3>
+
+<ol>
+  <li>Make a test copy if you have none.</li>
+  <li>In the box <strong>4. Share</strong> press <strong>Install From Zip</strong> and choose the zip. Or press <strong>Install From Folder</strong> and choose a folder that has a <code>data</code> folder in it. A folder you unzipped from a
+  shared zip works too: choose the folder that holds <code>README.txt</code> and <code>data</code>. Its README and its <code>retail_roster</code> folder are left alone.</li>
+</ol>
+
+<p>The add-on opens it with care. It accepts only files inside <code>data</code>, makes names lower case, and refuses anything that tries to write outside its folder, a shortcut, a locked (password) zip and a zip that is far too big. Then
+it runs the same check as for your own work. If the check refuses it, nothing is installed, and the Share box says &ldquo;The check refused ...&rdquo; and lists why, with an <strong>Install Anyway</strong> button that reads the same zip
+again and installs it as it is. It may not work. The add-on keeps no copy of a refused item. <strong>Remove</strong> takes an installed item out.</p>
+
+<h3>Players who do not use the add-on</h3>
+
+<p>The game finds a new creature's files by their place. But its creature creator shows only an animal whose name is on a list it reads when it starts. With the add-on, installing adds the name for you. For a player without the add-on, the
+zip's <code>retail_roster</code> folder has one list for each mod you have, made from that mod's own list plus the new creature. So a mod that hides animals on purpose keeps hiding them. The README in the zip says how to copy a list
+into place, and the one line to add if the mod's folder already has a list.</p>
+
+<p>Players can install without the add-on like this: close the game, copy the whole game folder somewhere else (not the Steam folder), unzip the file, copy the files of its <strong>data</strong> folder into the game's
+<code>Data</code> folder (the folder that holds <code>IC.exe</code> also holds <code>Data</code>), and merge when asked. <strong>On Linux the game's folder is called <code>Data</code> with a capital D.</strong> A file
+manager does not merge a folder called <code>data</code> into <code>Data</code> for you: copy the files inside <code>data</code> instead, or you end up with a second folder the game never reads. Then start the game from there. To undo it, delete the files listed in the README.</p>
+
+<aside class="limits"><p>A mod that keeps its own list in its own folder keeps using that list, so the new creature stays off the list in that mod unless the list is changed. The zip tells you when your game has such a mod. In the single-player campaign,
+the army builder offers only the animals the campaign has unlocked. A new creature shows in the free creature creator and in skirmish, not in the campaign. This is how the game decides it. The item cannot change it.</p></aside>
+
+<h3>Windows</h3>
+
+<p>The add-on has not been run on Windows yet. The code is written for it (drive letters such as <code>C:\Games\...</code>, backslashes, folder names without regard to capital letters) and tested as text. If something does not work
+on Windows, the message tells you what the add-on tried. Please report it.</p>
+
+</section>

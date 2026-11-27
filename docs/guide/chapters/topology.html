@@ -5,7 +5,7 @@
 Mode) and <strong>Tools</strong> boxes. The examples use <code>cheetah.sgm</code>.</p>
 
 <p><strong>The rule:</strong> two patches are joined only when they share all four control points of a side. A side used
-by one patch is open, and the Object Editor will not load it. Corners in the same place must still be welded.</p>
+by one patch is open, and the game will not load it. Corners in the same place must still be welded.</p>
 
 <h3>Patches are selectable</h3>
 
@@ -17,8 +17,6 @@ by one patch is open, and the Object Editor will not load it. Corners in the sam
 </ol>
 
 <figure><img src="img/topology_select.jpg" alt="One flank patch outlined in orange"><figcaption>A selected patch.</figcaption></figure>
-
-<figure><img src="img/topology_box.jpg" alt="Modeling, Topology and Select boxes"><figcaption>The patch tools; greyed-out buttons need an open side.</figcaption></figure>
 
 <h3>Delete Patch and Fill Hole</h3>
 
@@ -39,8 +37,9 @@ by one patch is open, and the Object Editor will not load it. Corners in the sam
 
 <h3>Add Quad and Weld</h3>
 
-<p><strong>Add Quad</strong> grows a patch on each selected open side. To close a gap, move the new corners into place
-and <strong>Weld</strong>.</p>
+<p><strong>Add Quad</strong> grows a patch on each selected open side, several at once; <strong>Extrude Patch</strong>
+(see <a href="#edit">Editing an existing animal</a>) grows one. To close a gap, move the new corners into place and
+<strong>Weld</strong>.</p>
 
 <ol>
   <li>Select an open side and press <strong>Topology &gt; Add Quad</strong>.</li>
@@ -71,9 +70,9 @@ through neighbouring patches so no gaps form.</p>
 
 <h3>Extrude Region</h3>
 
-<p><strong>Extrude Region</strong> lifts the selected patches and builds walls around them. In the redo panel set
-<strong>Amount</strong> (height) and <strong>Outline</strong> (scale of the top), or press <kbd>G</kbd> to move the
-lifted points. To drag at once, search for <strong>Extrude Region (Drag)</strong> (needs Developer Extras).</p>
+<p><strong>Extrude Region</strong> builds walls around the selected patches so they can be lifted. <strong>Amount</strong>
+(height) starts at 0, so at first the walls are flat: set it in the redo panel, with <strong>Outline</strong> (scale of
+the top), or press <kbd>G</kbd> right after to move the new top. To drag at once, search for <strong>Extrude Region (Drag)</strong> (needs Developer Extras).</p>
 
 <figure><img src="img/topology_region_before.jpg" alt="Two flank patches selected"><figcaption>Two patches selected.</figcaption></figure>
 
@@ -88,6 +87,9 @@ X = 0, joins the centre seam, and uses the matching left or right bones and limb
 <ol>
   <li>Delete the connections whose rings reach into the unwanted half, then delete that half's patches.</li>
   <li>Deselect everything and press <strong>Topology &gt; Mirror to Whole</strong>.</li>
+  <li>Mirror to Whole does not rebuild connection rings. Make each deleted connection again in <strong>Boner &gt;
+  Connections</strong> (<strong>Create for Limb</strong>, then <strong>Pick Ring</strong>), then run
+  <strong>Validate</strong>: the game's combiner refuses a creature that lacks a socket.</li>
 </ol>
 
 <figure><img src="img/topology_half.jpg" alt="Half a cheetah"><figcaption>Half a creature.</figcaption></figure>
@@ -100,7 +102,10 @@ X = 0, joins the centre seam, and uses the matching left or right bones and limb
 <p>In Object Mode, select the other creature, make yours active and press <strong>Tools &gt; Attach</strong>. Choose the
 <strong>Limb</strong> and <strong>Bone</strong> for the new parts.</p>
 
-<p>Attach removes the other object, its rig and its connection rings, and matches materials by name. Weld the seams afterwards.</p>
+<p>Every attached patch goes into that one limb, and every attached point is skinned to that one bone: the other
+creature's skin and limbs are dropped, along with its rig and connection rings. Materials are matched by name. Weld the
+seams afterwards, then re-skin the new points in <strong>Boner &gt; Bones</strong> and move patches to their limbs with
+<strong>Assign Selected to Limb</strong>.</p>
 
 <figure><img src="img/topology_attach_before.jpg" alt="Cheetah and rhinoceros both selected"><figcaption>Two creatures selected, the cheetah active.</figcaption></figure>
 
@@ -112,7 +117,7 @@ X = 0, joins the centre seam, and uses the matching left or right bones and limb
 where its seams weld and <strong>25</strong> where it has its own texture island.</p>
 
 <ul>
-  <li>Combining adds donor limbs to the same mesh. To stay safe, use at most <strong>6,584</strong> for the torso and
+  <li>Combining adds the other creature's limbs to the same mesh. To stay safe, use at most <strong>6,584</strong> for the torso and
   <strong>7,879</strong> for the limbs.</li>
   <li><strong>Validate</strong> reports your real count; patch count alone does not tell you.</li>
   <li>Attach refuses to exceed 767 patches.</li>

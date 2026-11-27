@@ -1,0 +1,239 @@
+<section id="structures">
+<h2>Structures and props</h2>
+
+<p>A structure is a building, such as the Lab, the Radio Shed or the Anti-Air Tower. A prop is scenery or a resource spot, such as a coal bin or a barrel. Both are
+made of <strong>parts</strong>: separate meshes that sit on the bones of a skeleton. In this chapter you change one of them, try it in the game, and learn what each tool does.
+Workers and story characters work the same way and have their own chapter, <a href="#gatherers">Gatherers and characters</a>. You need the setup from <a href="#start">Start here</a>.</p>
+
+<aside class="note"><p><strong>Quick try:</strong> do step 1, move one point of one part (step 3), then do step 9. Read the other sections when you need them.
+The blueprint's other fields (the footprint and so on) are in <a href="#blueprint">The Blueprint panel</a>. Hit points and costs are in <a href="#numbers">Gameplay numbers</a>.
+This chapter also needs more Blender than the first ones: Weight Paint, Shape Keys and Texture Paint. The Blender manual (docs.blender.org) explains them.</p></aside>
+
+<h3>1. Start the project</h3>
+
+<p>The game cannot load a building built from nothing, so you always start from a copy of one of the game's own.</p>
+
+<ol>
+  <li>Choose <strong>File &gt; New &gt; Impossible Creatures Project...</strong>.</li>
+  <li>Set <strong>Type</strong> to <strong>Structure / prop</strong>.</li>
+  <li>Open <strong>Start from</strong> and choose a model, for example <strong>Lab (structures)</strong>. The list is long (about 200 entries) and sorted by file name. Each
+  entry reads &ldquo;Name (folder)&rdquo;: <code>structures</code> are buildings and <code>nature</code> is scenery, for example <strong>Coal Bin (nature)</strong>. Type in the list's
+  search box to find one. The last choice, <strong>Another .sgm file...</strong>, starts from a model file of your own. If the list shows only that choice, the add-on has not found
+  your game: set the <strong>Game folder</strong> in the preferences. (These choices are in the panel at the right of the file window. If you do not see it, press the small gear
+  button at the top right of the window.)</li>
+  <li><strong>Animations</strong>: <strong>Keep its own</strong> or <strong>None</strong>. (<strong>Borrow</strong> works only for creatures. Borrowing clips later is in
+  <a href="#anim">Animations and motions</a>.)</li>
+  <li>Go to an empty folder of your own. The file name starts as <code>NewCreature.sgm</code>: replace it with a name of your own, not the game's name (not <code>lab</code>).
+  Then press <strong>New Impossible Creatures Project</strong> at the bottom right. The model (<code>.sgm</code>) and its blueprint (<code>.ebp</code>) are copied there and opened.</li>
+</ol>
+
+<p>You should see the building in the 3D Viewport, and the message &ldquo;Started the structure / prop project ...&rdquo;. If the message says the file is already
+there, choose another name. Nothing is overwritten.</p>
+
+<h3>2. What you see</h3>
+
+<ul>
+  <li>One mesh object for each part, at full detail, with the game's textures.</li>
+  <li>An armature called <code>&lt;name&gt;_rig</code>, if the model has a skeleton. Its bones are also vertex groups on the parts. A model with no skeleton (the Radio Shed) has no rig
+  box and no <strong>Motions</strong> panel. The IC Blender panel then says &ldquo;scene object: 3 part(s)&rdquo;.</li>
+  <li>The animations, as Actions on the rig (<a href="#anim">Animations and motions</a>).</li>
+  <li>Attachment points, shown as small arrows in a collection called <strong>Markers</strong>.</li>
+  <li>Damage states, as shape keys on the parts that have them.</li>
+  <li>In the <strong>IC Model</strong> tab: the <strong>IC Blender</strong> panel (model information, the rig box, and <strong>Damage States</strong>), <strong>Parts</strong>,
+  <strong>Markers</strong> and <strong>IC Material</strong>. In the <strong>IC Game</strong> tab: <strong>Blueprint</strong>, <strong>Motions</strong>, <strong>Effects and
+  events</strong> and <strong>Game</strong>.</li>
+</ul>
+
+<h3>3. Change the shape</h3>
+
+<p>Select a part, press <kbd>Tab</kbd> and use any Blender mesh tool. These are written when you export:</p>
+
+<ul>
+  <li>moved, added or deleted geometry, including extrude and subdivide;</li>
+  <li>UVs, seams and flat shading;</li>
+  <li>bone weights (a vertex with no weight goes to the root bone);</li>
+  <li>faces moved to another material slot, a new one included;</li>
+  <li>moving, turning or scaling a whole part in Object Mode. The part is written where it is, relative to the rig. Moving the rig alone moves every part. Move the rig and its parts
+  together to keep the model as it was.</li>
+</ul>
+
+<p>The limits are the game's. A part holds at most <strong>12,288 vertices</strong>, counted after splitting at UV seams and hard edges, and 65,535 triangles. If the export refuses a part,
+reduce its detail (for example with a Decimate modifier, applied). Blender shading settings the game has no use for (roughness, extra nodes) are not saved. The export names them.</p>
+
+<h3>4. Parts: add, remove, replace</h3>
+
+<p>Open <strong>Parts</strong> in the <strong>IC Model</strong> tab (select a part first). It says how many parts the file has and how many are new.
+<strong>Press Tab to leave Edit Mode first: the buttons below work only in Object Mode, and are grey in Edit Mode.</strong> Each of them opens a small window with
+options. Press <strong>OK</strong> in it.</p>
+
+<ul>
+  <li><strong>Add a part.</strong> Make or import the mesh. Select it, then select the model's part last, so that it is active. Press <strong>Make Part of Scene Object</strong>.
+  <strong>Follows bone</strong> makes the new part move with one bone (a fan blade, a door). Leave it on <em>none</em> and weight it yourself in Weight Paint: one vertex group at full weight follows
+  that bone, several make it bend like a character, none keeps it still. <strong>Shows like</strong> makes it appear and disappear with another part in every animation (a build stage, a
+  damage piece). Otherwise it shows in every animation. A mesh parented to the rig, or to the model's empty, counts as a new part too. To undo, select it and press
+  <strong>Leave Out</strong>. <strong>Give the new part its picture before you press Make Part:</strong> a new part has no <strong>IC Material</strong> panel. Give the mesh a normal
+  Blender material with an Image Texture (Material properties). The export turns it into a game shader (and warns &ldquo;new shader(s): ...&rdquo;). To repaint it later, use
+  Blender's Texture Paint. A mesh with no material gets the model's own materials.</li>
+  <li><strong>Remove a part.</strong> Delete its object, and tick <strong>Remove parts deleted in Blender</strong> when you export. Without the tick, a deleted part keeps its
+  original shape.</li>
+  <li><strong>Replace a part.</strong> Select your mesh, then the part last. Press <strong>Replace Part With Selected Mesh</strong>. The part keeps its name, its place in the model and its
+  bone. Your mesh is used up (tick <strong>Keep the selected mesh</strong> to keep it). Bone weights are copied from the old mesh to yours. <strong>Materials</strong> chooses whether the new faces take the part's
+  materials or keep your own.</li>
+  <li><strong>Replace the whole model.</strong> Select your mesh, then any part. Press <strong>Use This Mesh as the Model</strong>. The mesh is scaled to fit inside the model's size and put where the model
+  stood. It becomes the largest part. The other parts are removed when you export, so moving parts (fan blades, doors) are gone. Turn your mesh to face the way the model faces first.</li>
+</ul>
+
+<p>Rules: a new part's name must differ from every part's, ignoring capital letters. It follows only bones the model has, or bones you add. A model with a single mesh is turned into a group of parts
+when you export, so that it can hold more. A cut-scene model that is one skinned mesh cannot get parts, and neither can parts stored as separate blocks (projectiles and effect models). The mesh you
+use is taken as you see it, with its modifiers applied.</p>
+
+<h3>5. Textures and materials</h3>
+
+<p>Select a part of the original model (not a part you added: see step 4) and open <strong>IC Material</strong> (<strong>IC Model</strong> tab). It shows the material of the active slot:
+its game shader, its texture and its size.</p>
+
+<ul>
+  <li><strong>Repaint a texture.</strong> Paint on the part's image in Texture Paint, or in the Image Editor. When you export, the changed texture is written as a new texture file, and only that
+  material changes in the model.</li>
+  <li><strong>Use another picture.</strong> Press <strong>Replace Image</strong> and choose a picture. If its sides are not powers of two (2, 4, 8 ... 1024), it is scaled to the nearest size the game
+  takes. Untick &ldquo;Scale to a size the game takes&rdquo; (in the options of the file window, at the right) to be told instead. The game takes only sizes up to 1024.</li>
+  <li><strong>Add a material.</strong> Press <strong>New IC Material</strong>. It gets a plain 256 by 256 texture to paint or replace. In Edit Mode the selected faces get it at once. Otherwise select faces and press
+  <strong>Assign</strong> in Blender's Material properties. The export takes the game settings from the model's first shader, but none of its textures, so the new material shows only its own texture.</li>
+  <li><strong>Opacity.</strong> The <strong>Opacity</strong> slider sets how solid the game draws the material (1 is solid). Cut-outs in the texture stay as they are. Glowing effects that add their colour may look
+  different.</li>
+  <li><strong>Team colour.</strong> Tick <strong>Team colour</strong>, then press <strong>Team Mask</strong>. You get a mask image to paint: white where the player colour goes, black elsewhere. A material that
+  already has team colour starts from the game's own mask. You paint the team area in player 1's green, and the export makes the other colours. The buttons <strong>1</strong> to <strong>6</strong> under
+  <strong>Preview</strong> show a player's colours in Blender only. Press <strong>1</strong> to go back.</li>
+  <li>A copy of a material gets its own new shader at export. The original keeps its own.</li>
+</ul>
+
+<p>Where the files go: <strong>Export Entity Folder</strong> writes new textures into <code>data/art/textures</code> in the export folder. The game shares texture names between all models, so a changed texture
+always gets a new name made from your model and the material, in lower case (the player-colour copies add <code>_tc01</code> to <code>_tc06</code>). A game texture is never overwritten. If nothing changed, the model is
+written byte for byte as it was, with no texture files.</p>
+
+<p>Not used by the game: two-sided materials, specular and reflection settings (they are kept from the original and cannot be edited), and Blender's roughness and metallic. The team colours come from a rule fitted
+to the game's own team textures. They come close (about 4% off on average) but they are not the original tool's colours.</p>
+
+<h3>6. The skeleton</h3>
+
+<p>Select the rig and press <kbd>Tab</kbd> for Edit Mode. You can:</p>
+
+<ul>
+  <li><strong>rename</strong> a bone (double-click its name in the Outliner, or <kbd>F2</kbd>);</li>
+  <li><strong>move or turn</strong> a bone (<kbd>G</kbd>, <kbd>R</kbd>);</li>
+  <li><strong>add</strong> a bone (<kbd>Shift</kbd>+<kbd>A</kbd>), parent it (select the new bone, then <kbd>Shift</kbd>-click its parent last, press <kbd>Ctrl</kbd>+<kbd>P</kbd> and choose
+  <strong>Keep Offset</strong>) and give it weights in Weight Paint;</li>
+  <li><strong>re-parent</strong> a bone the same way;</li>
+  <li><strong>delete</strong> a bone with <strong>Armature &gt; Delete Bones, Merge Weights</strong>. It hands the bone's weights to its parent first, so the model looks in Blender the way the game will show it.
+  A plain delete (<kbd>X</kbd>) leaves the weights on a bone that no longer exists. If some vertices or a part then follow no bone, the export refuses and says which bone to merge.</li>
+</ul>
+
+<p>What follows automatically: clips you did not edit keep playing as they did. Attachment points on a renamed bone keep pointing at it. A part follows the bone of its vertex group. To re-bind it to another bone, go to Edit Mode and select the part's vertices, choose that bone's group under Object Data
+Properties &gt; Vertex Groups, then press <kbd>Ctrl</kbd>+<kbd>G</kbd> and choose <strong>Assign to Active Group</strong>. <strong>Export Entity Folder</strong> also updates the blueprint, so effects and sounds placed at a renamed bone follow the new name. The export report lists what happened to the
+skeleton.</p>
+
+<p>What is refused: two bones with the same name ignoring capital letters, a name longer than 79 characters, deleting or parenting the first bone, and more than 255 bones weighted on one part. The game looks up a few bone
+names itself (<code>Bip01 Head</code>, <code>nose</code>, and the tail, neck and spine names). Blender shows bone names in lower case (<code>bip01 head</code>), and the game does not
+tell capital and small letters apart, so keep the name as Blender shows it. Renaming or deleting those is only warned about.</p>
+
+<aside class="limits"><p>Some models are included by other models by their file name (cut scenes, and some buildings include the Lab, Rex or other models). Renaming bones in a model like that breaks the models that include it, and
+the add-on does not update them. Rename bones only in a copy saved under a new name. The export names the game files that include the model. A moved bone is written without scale or shear, because Blender bones
+cannot hold them.</p></aside>
+
+<h3>7. Attachment points (markers)</h3>
+
+<p>A <strong>marker</strong> is a named point on the model: the tip of a worker's hand, a chimney on a lab, the muzzle of a gun. The game puts an animation's effect and sound at the marker the blueprint names. If the game asks for
+a marker the model does not have, nothing crashes and nothing warns. The effect plays at the model's feet.</p>
+
+<p>Open <strong>Markers</strong> in the <strong>IC Model</strong> tab (select any part, the rig or a marker).</p>
+
+<ul>
+  <li>The list shows each marker, the bone it is on (or &ldquo;model space&rdquo;) and how many events use it. Click a name to select that marker.</li>
+  <li><strong>Move or turn</strong> a marker with <kbd>G</kbd> and <kbd>R</kbd>. Scaling works, but the game then scales the effect too, and the panel warns you.</li>
+  <li><strong>Add</strong> puts a new marker at the 3D cursor. With the rig in Pose Mode it goes on the active bone. Otherwise it sits in model space. It gets a free name like <em>Point01</em>. <strong>Rename it at once</strong> to something that is not a bone's name: in the Lab, <em>Point01</em> is also a bone, and the check
+  then warns that events naming it find the marker, not the bone.</li>
+  <li><strong>Delete</strong> removes the selected markers. The panel tells you if events still use them.</li>
+  <li><strong>Rename</strong>: at most 126 letters, plain Latin letters, not starting with the digit 0, and not the name of another marker (the game does not tell capital and small letters apart). The game never finds a
+  marker whose name starts with 0: the list shows &ldquo;not found&rdquo; next to those.</li>
+  <li><strong>Bone</strong> moves the marker onto another bone, or to &ldquo;None (model space)&rdquo;, without moving it.</li>
+  <li><strong>Events</strong> lists the events that place something at the marker. The list is in the <strong>Info</strong> editor.</li>
+  <li>A box with a warning sign lists names the blueprint uses that the model does not have. On an untouched model it may list a few (the henchmen list <code>head</code>). That is the
+  original's own state: leave it.</li>
+</ul>
+
+<p>Markers you did not touch come out as they were. <strong>Export Entity Folder</strong> also renames a marker in the blueprint's events, so they keep finding it, and tells you about any event that now names something the model
+no longer has.</p>
+
+<h3>8. Damage states</h3>
+
+<p>Some buildings carry shapes the game blends in as they are damaged: the Lab's tent sagging and collapsing, the coal bin caving in. The add-on calls them <strong>damage states</strong>.</p>
+
+<ul>
+  <li>A part with damage states has <strong>shape keys</strong>: a <code>Basis</code> key and one key for each stored shape. Each key is named after a clip that uses it, for example <code>06 damage_03</code>. All keys start at 0, so
+  the model looks undamaged. The clips that blend them are Actions on the part's shape keys, on muted NLA tracks.</li>
+  <li>Open <strong>Damage States</strong> (a part of the <strong>IC Blender</strong> panel, in the <strong>IC Model</strong> tab, with a part selected). It shows how many damage states and clips the part has.
+  Not every part has them. In the Lab, select the part <code>Lab_tent</code> (the tent): it has 11. The part that is selected when the project opens (<code>Lab_Engine</code>) says &ldquo;no damage states on this part&rdquo;.</li>
+  <li><strong>Preview health</strong>: drag it between 0 and 1. 1.000 is undamaged. Lower it and the panel says which damage clip the game plays at that health (&ldquo;plays: damage_02&rdquo;), the part's shape keys take that clip's values, and
+  parts the clip hides are hidden. Set it back to 1.000 to undo the preview. The preview never reaches the export. It does not show the bone movements of the damage clips, or the game's lighting.</li>
+  <li><strong>Change a shape</strong>: select the key in Object Data Properties &gt; Shape Keys, go to Edit Mode and move vertices, or sculpt it.</li>
+  <li><strong>Edit the mesh</strong> as usual. Blender carries the shape keys along, and the export writes every shape over the new vertices.</li>
+  <li><strong>Delete a shape</strong> by deleting its shape key. The clips that used it lose that part of their animation, and the later shapes are renumbered.</li>
+  <li><strong>Add Damage Level</strong> (in Object Mode) adds a shape key and a new clip <code>damage_NN</code> that shows it at full strength, as the most damaged level. Shape the key, then export with
+  <strong>Export Entity Folder</strong>. <strong>Adding a level moves the others</strong>: the levels are spread evenly over the damage. Four levels show from 25, 50, 75 and 99.99 percent damage. Five show from 20, 40, 60, 80 and 99.99
+  percent. The newest level shows only when the building is all but destroyed.</li>
+  <li><strong>Carry Over Damage States</strong>: for a part whose mesh you replaced and that has no shape keys any more, this builds them again from the original file, matching each new vertex to the nearest point of the old
+  surface. Vertices too far away do not move and are selected so you can see them.</li>
+</ul>
+
+<p>A part with damage states is always written in a newer layout with a single level of detail (it does not get simpler at a distance). This form has loaded in a test build of the game, but nobody has seen it in the game. The export option <strong>Leave damage states out of edited parts</strong> writes edited parts without damage states.</p>
+
+<h3>9. Check, export, install</h3>
+
+<ol>
+  <li>Open the <strong>IC Game</strong> tab and the <strong>Game</strong> panel. In <strong>1. Check</strong> press <strong>Check</strong>. It tests what the export would write, against the game's rules, and writes nothing. It also says
+  if the model's file was changed on disk after you opened it. A project started from one of the game's things also has <strong>Check as replacing ...</strong>.</li>
+  <li>In <strong>2. Export for the Game</strong> press <strong>Export Entity Folder</strong>. A file window opens. Go to the folder where the export folder should be made (not the game's own folder, and not inside Steam's).</li>
+  <li>The options are in the panel at the right of the file window. (If you do not see it, press the small gear button at the top right.) Choose <strong>Export as</strong>:
+    <ul>
+      <li><strong>A new name of my own</strong>: set <strong>File name</strong> (it starts as <code>NewCreature.sgm</code>: replace it) and <strong>Folder in the game</strong>. <strong>Use a name the game does not have</strong> (not <code>lab</code>):
+      if the name is the game's own, the files take the place of the original even under this choice. The game shows a thing with a name of its own only where a map
+      or a script asks for it by that name. With a name of your own, nothing in the game changes by itself.</li>
+      <li><strong>Replace the original ...</strong> (shown with its name, when the project started from one of the game's things): the files take the place of the game's own. Everything that uses it (maps, the
+      build menu, the computer players) gets your version. In a game with other players, every player needs the same files, because the kind, the footprint, the offset and the size of the model are compared when a
+      game starts.</li>
+    </ul>
+  </li>
+  <li>Also in the options: <strong>Leave damage states out of edited parts</strong>, <strong>Remove parts deleted in Blender</strong> and <strong>Export anyway</strong> (writes the files even if the check found errors; the game may
+  refuse them).</li>
+  <li>Press <strong>Export Entity Folder</strong> in the file window.</li>
+</ol>
+
+<p>You should see &ldquo;Wrote the item ...&rdquo; with the number of files, how many parts were rebuilt and how many were kept as they were. The export folder has a lower-case <code>data</code> folder (the model and the blueprint in
+<code>data/art/ebps/&lt;folder&gt;/</code>, new textures in <code>data/art/textures</code>) and a README beside it.</p>
+
+<p>If the export says &ldquo;it is this model's own blueprint ... Export under another name&rdquo; (see <a href="#trouble">Troubleshooting</a>), choose a different folder and a different name.
+That happens when a change such as a renamed bone, a new part or a changed texture would be applied a second time.</p>
+
+<ol start="6">
+  <li>In <strong>3. Install into Test Game</strong>, press <strong>Install into Test Game</strong> (see <a href="#ship">Check, export, install, remove and share</a>). Start the game from the test copy.</li>
+</ol>
+
+<h3>Seeing a thing with a new name</h3>
+
+<p>A thing with a name of its own appears only where a map places it. To see it:</p>
+
+<ol>
+  <li>Set the add-on's <strong>Game folder</strong> (preferences) to your test copy, so the add-on sees the files you installed.</li>
+  <li>Open one of the game's maps (<strong>File &gt; Import &gt; Impossible Creatures Map from the Game...</strong>). In the <strong>IC Map</strong> tab use <strong>Map &gt; Placed objects &gt; Add object at the 3D cursor...</strong>.</li>
+  <li>Save with <strong>Map &gt; Save &gt; Save ready-to-drop folder...</strong> and copy that folder into your test copy.</li>
+</ol>
+
+<p>Or export again with <strong>Replace the original ...</strong>, and the game's own thing looks like your model everywhere.</p>
+
+<h3>What was checked</h3>
+
+<p>A test build of the game loaded, from a script, the Lab with every texture repainted, the Lab with a fifth damage level, the henchmen with a bone renamed and a marker moved, the Anti-Air Tower with a part added, and the Creature
+Chamber with a part replaced. Each started a skirmish that ran for a minute without an error, and the game read the files. A barrel under a new name was not shown, because the test had no map that places it. Nobody has looked at
+any of them by eye, so how they look is not checked.</p>
+
+</section>

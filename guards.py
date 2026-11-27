@@ -331,8 +331,10 @@ def draw_problems(layout, obj, skip=()) -> int:
         return 0
     box = layout.box()
     box.label(text=f"Problems ({len(got)}): Export refuses until they are gone", icon="ERROR")
+    from . import startops
     for iss in got:
         _alert(box, iss.text)
+        startops.draw_problem_extras(box, iss)         # the source line offers Relink Source
     return len(got)
 
 

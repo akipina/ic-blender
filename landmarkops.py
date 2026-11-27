@@ -640,6 +640,9 @@ class BZ_OT_landmark_retarget(_Operator):
     def poll(cls, context):
         return ops._guard_poll(cls, context)
 
+    def invoke(self, context, event):
+        return retargetops.invoke_target_window(self, context)
+
     def execute(self, context):
         obj = ops._active_native(context)
         if obj is None:

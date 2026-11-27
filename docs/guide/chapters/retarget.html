@@ -19,8 +19,8 @@ a target mesh. The tools are in the <strong>Tools</strong> box.</p>
 
 <ol>
   <li>Add the target mesh: one closed skin (split seams are fine).</li>
-  <li>Select the creature, press <strong>Tools &gt; Retarget Creature to Mesh</strong> and pick the <strong>Target
-  Mesh</strong>.</li>
+  <li>Select the creature and press <strong>Retarget Creature to Mesh</strong> in the box <strong>Tools</strong>. A small
+  window opens: pick the <strong>Target Mesh</strong> and press <strong>OK</strong>. (If you select your mesh first and the creature last, the target is already filled in.)</li>
 </ol>
 
 <figure><img src="img/retarget_target.jpg" alt="Target mesh alone"><figcaption>The target mesh.</figcaption></figure>
@@ -48,7 +48,7 @@ a target mesh. The tools are in the <strong>Tools</strong> box.</p>
   roots and the torso.</li>
   <li>Drag each onto the matching place on the target. An Empty can also be named after a bone
   (<code>LM_endfeeler_l</code>).</li>
-  <li>Press <strong>Landmark Retarget</strong>. It warps surface and bones to the landmarks, then fits.</li>
+  <li>Press <strong>Landmark Retarget</strong>. A small window opens: pick the <strong>Target Mesh</strong> and press <strong>OK</strong>. It warps surface and bones to the landmarks, then fits.</li>
 </ol>
 
 <figure><img src="img/retarget_landmarks.jpg" alt="Landmark Empties on the cheetah"><figcaption>Landmarks placed on the target.</figcaption></figure>
@@ -63,7 +63,7 @@ a target mesh. The tools are in the <strong>Tools</strong> box.</p>
 
 <p>Check <strong>coverage by limb</strong> in the report: it warns which limbs still miss the target.</p>
 
-<p>Limbs, sockets, bones and the walk stay the donor's. Choose the donor for its body plan.</p>
+<p>Limbs, sockets, bones and the walk stay those of the animal you started from. Choose that animal for its body plan.</p>
 
 <h3>Trim Stray Surface</h3>
 
@@ -77,8 +77,8 @@ action:</p>
 
 <ul>
   <li><strong>Select</strong> (default): only selects the stray patches.</li>
-  <li><strong>Delete</strong>: removes them and fills the holes it can. Ring patches are refused. Undo takes one step per
-  edit; check for open sides.</li>
+  <li><strong>Delete</strong>: removes them and fills the holes it can. Ring patches are refused. Undo takes several steps:
+  one for the delete and one per filled hole (the report gives the number). Check for open sides.</li>
   <li><strong>Collapse onto Target</strong>: folds them onto the body without changing the patches. Best for an unwanted
   limb. <strong>Keep the Shared Edge</strong> (on) leaves well-fitting neighbours still.</li>
 </ul>

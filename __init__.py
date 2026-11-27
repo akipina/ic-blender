@@ -21,10 +21,10 @@ import bpy
 bl_info = {
     "name": "IC Blender",
     "author": "pyIC",
-    "version": (0, 9, 0),
+    "version": (0, 9, 2),
     "blender": (5, 3, 0),
     "location": "View3D > Sidebar > IC; File > New, Import and Export",
-    "description": "Make and edit Impossible Creatures models: creatures, gatherers, characters, buildings and props",
+    "description": "Make and edit Impossible Creatures models and maps: creatures, gatherers, characters, buildings, props and maps",
     "category": "Import-Export",
 }
 
@@ -92,7 +92,7 @@ def _setup_paths():
               "construct not found: the bundled _deps/ is missing")
     env = os.environ.get("BZ_ICPARSE")
     _add_path("ICParse", [env] if env else [os.path.join(parent, "ICParse")],
-              os.path.join("ICParse", "__init__.py"), "ICParse not found: set $BZ_ICPARSE to the ICParse project dir")
+              os.path.join("ICParse", "__init__.py"), "The add-on's file-format library was not found: reinstall the add-on")
     env = os.environ.get("BZ_COMBOTEST")
     _add_path("combotest", [env] if env else [os.path.join(parent, "pyRDN", "combotest")],
               os.path.join("combotest", "__init__.py"),
@@ -101,8 +101,8 @@ def _setup_paths():
     env = os.environ.get("BZ_DEPS_BIN")
     _add_path("lupa", [env] if env else [os.path.join(here, "_deps_bin", _platform_tag())],
               os.path.join("lupa", "__init__.py"),
-              "lupa not found: combined ratings, cost and rank can't be computed; run "
-              "tools/fetch_blender_deps.py (or set $BZ_DEPS_BIN)")
+              "A helper library (lupa) was not found, so combined ratings, cost and rank cannot be worked out: "
+              "reinstall the add-on")
 
 
 # ---- libraries an earlier load left in memory ----------------------------------------------------------------------------------
@@ -215,17 +215,20 @@ _unload_stale_libraries()
 _setup_paths()
 
 from . import (core, boner, fastsurf, material, texdraw, rig, actions, limbs, store, combocore, patchrules,  # noqa: E402
-               patchsel, patchfeel, build, scene, structure, topology, draw, props, ops, limbops, connops, boneops,
+               patchsel, patchfeel, build, scene, scene_damage, scenesafety, scenecheck, structure, topology, draw, props, ops, limbops, connops, boneops,
                ikops, newcreature, newproject, edittools, sculptops, fitops, retargetops, landmarkops, texops, topoops,
-               trimops, gnsurface, guards, combopreview, sceneobj, ui)
+               trimops, gnsurface, guards, combopreview, startcheck, startops, gameexport, gamecopyops, gameshare, gameinstall, fxcore, fxbake, fxpanel, fxpreview, motionscore, motionspanel, clipborrow, sceneobj, ui)
+
+from . import hardedges  # noqa: E402  (round 2, r2shape: Mark Sharp edges and material slots -> smoothing groups and materials)
 
 # reload order = dependency order (every add-on module must be listed, or an in-place reinstall runs stale code).
 # External packages (ICParse, combotest) are not reloaded: restart Blender after editing them.
 # sceneobj is listed once: its own modules are found and reloaded by sceneobj.reload() (below), each after the modules it imports.
 _MODULES = (structure, topology, core, boner, fastsurf, material, texdraw, rig, actions, limbs, store, combocore,
-            patchrules, patchsel, patchfeel, build, scene, draw, gnsurface, props, ops, limbops, connops, boneops,
+            patchrules, patchsel, patchfeel, build, scene, scene_damage, scenesafety, scenecheck, draw, gnsurface, props, ops, limbops, connops, boneops,
             ikops, newcreature, newproject, edittools, sculptops, fitops, retargetops, landmarkops, texops, topoops, trimops,
-            guards, combopreview, sceneobj, ui)
+            guards, combopreview, startcheck, startops, gameexport, gamecopyops, gameshare, gameinstall, fxcore, fxbake, fxpanel, fxpreview, motionscore, motionspanel, clipborrow, sceneobj, ui)
+_MODULES = (*_MODULES[:-2], hardedges, *_MODULES[-2:])      # r2shape: after the modules it builds on, before the scene objects and ui
 
 
 def _reload():
@@ -245,16 +248,29 @@ _record_loaded_libraries()          # after the imports (and the reload): the li
 _CLASSES = (*ops.CLASSES, *limbops.CLASSES, *connops.CLASSES, *boneops.CLASSES, *ikops.CLASSES, *newcreature.CLASSES, *newproject.CLASSES, *edittools.CLASSES,
             *sculptops.CLASSES, *fitops.CLASSES, *retargetops.CLASSES, *landmarkops.CLASSES,
             *texops.CLASSES, *patchfeel.CLASSES, *patchsel.CLASSES, *topoops.CLASSES, *trimops.CLASSES,
-            *gnsurface.CLASSES, *combopreview.CLASSES, *ui.CLASSES)
+            *gnsurface.CLASSES, *combopreview.CLASSES, *startops.CLASSES, *gameexport.CLASSES, *ui.CLASSES, *gameinstall.CLASSES, *scene_damage.CLASSES, *fxpanel.CLASSES, *fxpreview.CLASSES, *motionspanel.CLASSES, *clipborrow.CLASSES)
+
+# --- r2stats: the Creature Stats panel (statspanel.py) -- its module, classes and Object.bz_stats
+from . import statscore, statspanel  # noqa: E402
+_MODULES = _MODULES[:-2] + (statscore, statspanel) + _MODULES[-2:]
+_CLASSES = _CLASSES + tuple(statspanel.CLASSES)
+# --- end r2stats
+_CLASSES = (*_CLASSES, *hardedges.CLASSES)                # r2shape
 
 
 def register():
+    sceneobj.ui_kit.add_purposes()        # the first line of every panel says what the panel is for
     props.register()
+    scene_damage.register()               # the damage preview's health slider (WindowManager)
+    gameinstall.register()                # the Game panel's item-folder picker (Scene)
     for cls in _CLASSES:
         bpy.utils.register_class(cls)
+    fxpanel.register()                    # Object.bz_fx: the Effects panel's events and effect rows
+    statspanel.register()                 # Object.bz_stats: the Creature Stats panel's rows (r2stats)
+    motionspanel.register()               # Object.bz_motions: the Motions box's rows
     bpy.types.TOPBAR_MT_file_import.append(ops.menu_import)
     bpy.types.TOPBAR_MT_file_export.append(ops.menu_export)
-    bpy.types.VIEW3D_MT_add.append(newcreature.menu_add)
+    # (the Add menu entry newcreature.menu_add is not offered since the round 2 tidy: the IC Model tab has the same button)
     bpy.types.TOPBAR_MT_file_new.append(newproject.menu_new)
     draw.register()
     ops.register_handlers()
@@ -283,11 +299,15 @@ def _unregister_creature():
     ops.unregister_handlers()
     draw.unregister()
     bpy.types.TOPBAR_MT_file_new.remove(newproject.menu_new)
-    bpy.types.VIEW3D_MT_add.remove(newcreature.menu_add)
     bpy.types.TOPBAR_MT_file_export.remove(ops.menu_export)
     bpy.types.TOPBAR_MT_file_import.remove(ops.menu_import)
+    motionspanel.unregister()
+    fxpanel.unregister()
+    statspanel.unregister()               # r2stats
     for cls in reversed(_CLASSES):
         bpy.utils.unregister_class(cls)
+    gameinstall.unregister()
+    scene_damage.unregister()
     props.unregister()
 
 

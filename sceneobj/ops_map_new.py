@@ -97,7 +97,7 @@ class BZ_OT_new_map(bpy.types.Operator):
             self.report({"ERROR"}, str(exc))
             return {"CANCELLED"}
         self.report({"INFO"}, f"New map '{self.title.strip()}' made from the {self.ground} {self.size} template. Save it with File > Export, "
-                              "or from the Map panel (IC tab).")
+                              "or from the Map panel (IC Map tab).")
         return {"FINISHED"}
 
 

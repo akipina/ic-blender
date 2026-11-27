@@ -1,4 +1,4 @@
-"""sceneobj.panels_map_paint -- the painting panels of the Map panel (3D View sidebar, IC tab): passability, overlays, terrain types,
+"""sceneobj.panels_map_paint -- the painting panels of the Map panel (3D View sidebar, IC Map tab): passability, overlays, terrain types,
 water levels and decals. Plain words; every sub-panel says what the feature saves into."""
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def _top(context):
 
 
 def draw_passability(layout, context, top) -> None:
-    _hint(layout, "Paint cells blocked (red) or flat open ground (green); saved with the map.")
+    _hint(layout, "Mark where units can and cannot walk: paint blocked cells (red) or open ground (green). Saved with the map.")
     col = layout.column(align=True)
     op = col.operator("bz.map_impass_paint", text="Paint blocked", icon="BRUSH_DATA")
     op.state = "BLOCK"
@@ -121,7 +121,7 @@ def draw_stamp(layout, context, top) -> None:
 class _Sub:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = ui_kit.TAB_MAP
     bl_parent_id = H.MAP_PANEL_ID
     bl_options = {"DEFAULT_CLOSED"}
     draw_fn = None

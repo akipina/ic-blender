@@ -361,7 +361,7 @@ def standard_root_refusal(std, root, owner) -> Optional[str]:
             "take the creature")
     if root is None:
         return (f"the skeleton has no bone '{std.root}' for the {class_label(std.limb_id)} limb's root: add it first (Boner "
-                f"> Bones > Add Bone), or give an existing limb this class; {tail}")
+                f"> Bones > Add Bone under Active), or give an existing limb this class; {tail}")
     if owner is not None:
         return (f"bone '{root}', the {class_label(std.limb_id)} limb's root, already belongs to limb '{owner}': delete "
                 f"that limb or take the bone out of it first; {tail}")
@@ -1084,9 +1084,10 @@ def stub_classes_missing(limb_ids, conn_flags2):
 
 
 def stub_quad(patch_cps):
-    """The 4-corner loop of a patch (control points 0, 3, 15, 12: once around the row-major 4x4 grid)."""
+    """The 4-corner loop of a patch in Blender's table (control points 0, 12, 15, 3: the file's 0, 3, 15, 12, once around
+    its row-major 4x4 grid)."""
     c = [int(x) for x in patch_cps]
-    return [c[0], c[3], c[15], c[12]]
+    return [c[0], c[12], c[15], c[3]]
 
 
 def patch_centre(cps16_xyz) -> np.ndarray:

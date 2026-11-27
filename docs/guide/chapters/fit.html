@@ -5,14 +5,22 @@
 a patch creature. It borrows a template creature's skeleton and materials, writes a <code>.sgm</code> and imports it. The
 example is Suzanne, without eyes and subdivided twice.</p>
 
+<aside class="limits"><p>The result is <strong>shape only</strong>. It has the skeleton and the limbs of the template you chose and <strong>no connection rings</strong>, so the game cannot combine it with other animals, and
+<strong>Export Creature for the Game</strong> refuses it. For a creature that plays in the game, start from a game animal and use <strong>Retarget Creature to Mesh</strong> or <strong>Landmark Retarget</strong>. The chapter
+<a href="#mesh">A creature from your own mesh</a> compares the two routes.</p></aside>
+
 <figure><img src="img/fit_target.jpg" alt="Subdivided Suzanne without eyes"><figcaption>The target mesh.</figcaption></figure>
 
 <h3>What the fit will accept</h3>
 
 <ul>
-  <li>The mesh must be <strong>one closed skin</strong>.</li>
+  <li>The body must be <strong>one connected piece</strong>. Open edges are fine with <em>QuadriFlow</em>, which closes
+  them; with <em>Own Quads</em> they stay open, and the game then refuses the creature (Validate says so).</li>
   <li>Vertices split at seams (usual in glTF) are fine; the fit welds a copy first.</li>
-  <li>Separate shells, such as eyes or a detached limb, are refused. Delete or hide them.</li>
+  <li>Separate pieces, such as eyes, teeth, claws or horns, come along. With <strong>Fit Separate Pieces</strong> on (the default), every piece is fitted on its own and the pieces are
+  joined into one creature. The biggest piece is the body and gets the most patches. Each small piece gets a share by its size, at least 6. Too many pieces is refused: join the small ones
+  (<kbd>Ctrl</kbd>+<kbd>J</kbd>) or delete what the game will not show. Untick <strong>Fit Separate Pieces</strong> and a mesh of several pieces is refused: delete the extra pieces, or separate them
+  (Edit Mode: <kbd>P</kbd> &gt; <strong>By Loose Parts</strong>) and fit the skin alone.</li>
   <li>Your mesh is not changed.</li>
 </ul>
 
@@ -28,15 +36,13 @@ example is Suzanne, without eyes and subdivided twice.</p>
       <li><strong>Iterations</strong> (10): fitting rounds.</li>
       <li><strong>Skeleton Template (.sgm)</strong>: the creature to borrow from.</li>
       <li><strong>Output .sgm</strong>: where to save.</li>
-      <li><strong>Error Heat Map</strong> and <strong>Split into Limbs</strong>: on by default.</li>
+      <li><strong>Error Heat Map</strong>, <strong>Split into Limbs</strong> and <strong>Fit Separate Pieces</strong>: on by default.</li>
     </ul>
   </li>
   <li>Wait, about half a minute for 300 patches and longer for more.</li>
 </ol>
 
 <p>Left empty, <strong>Skeleton Template (.sgm)</strong> uses the game's wolf.</p>
-
-<figure><img src="img/fit_panel.jpg" alt="Panel with the two conversion buttons"><figcaption>A selected mesh offers the two conversions.</figcaption></figure>
 
 <figure><img src="img/fit_fitted.jpg" alt="Suzanne as a patch creature"><figcaption>The fitted creature with the template's skin.</figcaption></figure>
 
@@ -70,11 +76,17 @@ the count.</p>
 <ul>
   <li><strong>Split into Limbs</strong> shares patches and points among the template's limbs and bones.</li>
   <li>Without it everything goes in the Torso, other bones become stubs, and bone tools refuse them.</li>
-  <li><strong>Bones are not moved.</strong> Move them before animating, in <strong>Boner &gt; Bones</strong> or by
-  retargeting.</li>
+  <li><strong>Bones are not moved</strong> until you ask. Press <strong>Move Skeleton to the Body</strong> (under <strong>Tools</strong>, after a fit; once per fit) to move the template's
+  bones into your new shape. Then press <strong>Select Rig</strong>, press <kbd>Tab</kbd> for the rig's Edit Mode and nudge any bone that sits off. The export writes the new rest pose. Or retarget with
+  <strong>Move Bones</strong> on (see <a href="#retarget">Retargeting</a>).</li>
 </ul>
 
 <figure><img src="img/fit_limbs.jpg" alt="Fitted creature coloured by limb"><figcaption><strong>By Limb</strong> shading shows the split.</figcaption></figure>
+
+<h3>Your own quads, as they are</h3>
+
+<p>For a clean, low quad mesh whose faces you want as the patches, set <strong>Layout</strong> to <strong>Own Quads</strong>
+in <strong>Fit Patches to Mesh</strong>: each quad becomes one patch, with no fitting and no patch budget. (The old button <strong>Convert Mesh to Creature</strong> is gone from the panel. This does the same job.)</p>
 
 <h3>A mesh at creature scale</h3>
 
@@ -84,10 +96,11 @@ the count.</p>
 
 <ol>
   <li>Run <strong>Validate (will it load?)</strong>.</li>
-  <li>Move bones and fix skinning in <strong>Boner &gt; Bones</strong>.</li>
-  <li>Place the sockets in <strong>Boner &gt; Connections</strong>.</li>
-  <li>Copy a textured source's skin with <strong>Transfer Texture</strong> (see <em>Textures</em>).</li>
-  <li>If the template left extra surface, use <strong>Trim Stray Surface</strong> (see <em>Retargeting</em>).</li>
+  <li>Move the bones in the rig's Edit Mode, and fix skinning in <strong>Boner &gt; Bones</strong>.</li>
+  <li>Place the sockets in <strong>Boner &gt; Connections</strong>. (A fitted creature has none, so the game cannot combine it. Rings are made with <strong>Create for Limb</strong> and
+  edited by hand: see <a href="#boner">Bones, limbs and connections</a>. The sure way to a creature that combines is <a href="#retarget">Retargeting</a> a game animal.)</li>
+  <li>Copy a textured source's skin with <strong>Transfer Texture</strong> (see <a href="#texture">Textures</a>).</li>
+  <li>If the template left extra surface, use <strong>Trim Stray Surface</strong> (see <a href="#retarget">Retargeting</a>).</li>
 </ol>
 
 </section>

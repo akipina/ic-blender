@@ -1,0 +1,62 @@
+<section id="gatherers">
+<h2>Gatherers and characters</h2>
+
+<p>A <strong>gatherer</strong> is a worker, such as the henchmen who collect coal. A <strong>character</strong> is a person of the story, such as Rex. Their models are one skinned
+body on a skeleton, and it bends when they move. A building, by contrast, is made of rigid parts (<a href="#structures">Structures and props</a>). Almost everything works the same
+way for both. This chapter shows the walk-through for a worker and points to the structures chapter for the tools they share.</p>
+
+<h3>1. Start the project</h3>
+
+<ol>
+  <li>Choose <strong>File &gt; New &gt; Impossible Creatures Project...</strong>. A file window opens. The choices are in the panel at the right of it.
+  (If you do not see it, press the small gear button at the top right of the window.)</li>
+  <li>Set <strong>Type</strong> to <strong>Gatherer / character</strong>.</li>
+  <li>Open <strong>Start from</strong> and choose <strong>Henchmen</strong>. (The list holds the game's workers and characters. <strong>Another .sgm file...</strong> starts from a model file
+  of your own.)</li>
+  <li>Keep <strong>Animations</strong> on <strong>Keep its own</strong>. A worker with no animations does not walk or work.</li>
+  <li>Go to an empty folder of your own. The file name starts as <code>NewCreature.sgm</code>: replace it with a name of your own, not the game's name
+  (not <code>henchmen</code>). Then press <strong>New Impossible Creatures Project</strong> at the bottom right.</li>
+</ol>
+
+<p>You should see the worker and its skeleton, and the message &ldquo;Started the gatherer / character project ...&rdquo;. In your folder are the model (<code>.sgm</code>) and the blueprint
+(<code>.ebp</code>).</p>
+
+<h3>2. Change it</h3>
+
+<ul>
+  <li><strong>The shape.</strong> Select the body and press <kbd>Tab</kbd>. Use any mesh tool. Weights decide which bone moves which vertex. Fix them in Weight Paint. A vertex with no weight goes to the
+  root bone, which usually looks wrong, so check the places you changed.</li>
+  <li><strong>A new look for the whole body.</strong> Press <kbd>Tab</kbd> to leave Edit Mode first: these buttons work only in Object Mode. Select your own mesh, then the worker's body. In the <strong>Parts</strong> panel press <strong>Replace Part With Selected Mesh</strong>, or press
+  <strong>Use This Mesh as the Model</strong>. Leave <strong>Copy the part's bone weights</strong> (or <strong>Copy the model's bone weights</strong>) ticked, so that your mesh bends with the skeleton. Each button opens a small window: press <strong>OK</strong>.</li>
+  <li><strong>The skin.</strong> <strong>IC Material</strong>: repaint, replace the image, change opacity or team colour. See <a href="#structures">Structures and props</a>, &ldquo;Textures and materials&rdquo;.</li>
+  <li><strong>The skeleton.</strong> Rename, move, add, re-parent and delete bones as in &ldquo;The skeleton&rdquo; of that chapter. The game looks up the head bone by its name, which Blender shows as <code>bip01 head</code> (the game does not tell capital and small letters apart), so keep that name.</li>
+  <li><strong>Attachment points.</strong> Markers are the points where things attach. On the henchmen, <code>Point_R</code> is the right hand, <code>Rays_heal</code> (where the heal effect appears)
+  is on the right hand, and <code>Point_Coalbasket</code> (the basket they carry) is on the neck bone. Move them in the <strong>Markers</strong> panel (<a href="#structures">Structures and props</a>,
+  &ldquo;Attachment points&rdquo;). On an untouched henchman the panel lists <code>head</code> as a name the blueprint uses that the model lacks. That is the original's own state: leave it.</li>
+  <li><strong>Numbers</strong>: <a href="#numbers">Gameplay numbers</a>. <strong>Animations</strong>: <a href="#anim">Animations and motions</a>. <strong>Effects and sounds</strong>: <a href="#effects">Effects, events and sounds</a>.</li>
+</ul>
+
+<h3>3. Check, export, install</h3>
+
+<ol>
+  <li>Open the <strong>IC Game</strong> tab and the <strong>Game</strong> panel. In <strong>1. Check</strong> press <strong>Check</strong>.</li>
+  <li>In <strong>2. Export for the Game</strong> press <strong>Export Entity Folder</strong>. Choose a folder, and then <strong>Export as</strong> (in the panel at the right of the file window). Choose <strong>Replace the original ...</strong> to change the game's
+  own worker, or <strong>A new name of my own</strong> for a worker that appears only where a map or script places it. For a new name, type a file name that is not the game's
+  (not <code>henchmen</code>): with the game's own name, the files take the place of the original even under this choice.</li>
+  <li>In <strong>3. Install into Test Game</strong> press <strong>Install into Test Game</strong>. Start the game from the test copy (<a href="#start">Start here</a>, &ldquo;Start the game&rdquo;).</li>
+</ol>
+
+<p>Replacing the henchmen changes every henchman in every army of that copy. In a game with other players, everyone needs the same files.</p>
+
+<p>The step-by-step details of the export window, the new-name and replace choices, and what the files hold are in the chapter <a href="#structures">Structures and props</a>, section &ldquo;Check, export, install&rdquo;.
+The refusal messages are in <a href="#trouble">Troubleshooting</a>.</p>
+
+<h3>What was checked</h3>
+
+<p>A test build of the game loaded, from a script, the henchmen with one bone renamed and one marker moved. It started a skirmish that ran for a minute without an error, and the game read the files. Nobody has seen
+them walk, gather or carry in the game, so please look at those three first.</p>
+
+<aside class="limits"><p>Models that other models include by file name (cut scenes include Rex, for example) are not updated when you rename bones. Rename bones only in a copy saved under a new name. A cut-scene model that is one skinned
+mesh cannot get or lose parts.</p></aside>
+
+</section>

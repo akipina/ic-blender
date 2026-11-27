@@ -1,8 +1,8 @@
 """The map's cinematics (``<map>.na``): an empty per key frame (``nis_*`` properties) plus path, speed line and an
-approximate preview (the game plays the key values; the preview camera is mirrored to match the game).
+approximate preview (the game plays the key values).
 
 Saving writes the ``.na`` only if changed: unchanged values keep the file's text and untouched maps stay byte-identical.
-The original is kept in the .blend and edits are read against it. Game (x, y up, z) is Blender (x, -z, y).
+The original is kept in the .blend and edits are read against it. Game (x, y up, z) is Blender (-x, -z, y).
 """
 from __future__ import annotations
 
@@ -54,11 +54,11 @@ PROP_LABELS = {
 # ---------------------------------------------------------------------------------------------------- axes and angles
 def g2b(p) -> tuple:
     """A point in the game's axes (x, y up, z) in Blender's."""
-    return (float(p[0]), -float(p[2]), float(p[1]))
+    return (-float(p[0]), -float(p[2]), float(p[1]))
 
 
 def b2g(p) -> tuple:
-    return (float(p[0]), float(p[2]), -float(p[1]))
+    return (-float(p[0]), float(p[2]), -float(p[1]))
 
 
 def _world(o) -> Matrix:
@@ -78,30 +78,30 @@ def basis_for(rotation: float, declination: float, roll: float = 0.0, camera: bo
     """The 3x3 orientation (Blender's camera convention: the camera looks down -Z, +Y is up) of a view with the engine's rotation and
     declination (degrees; ``nislet.look_direction``) and roll (degrees). A camera and a moving object take the roll the opposite way
     round: a positive roll banks the game's camera clockwise seen from behind (the view is turned by ``RotateZ(roll)``,
-    ``Camera_OrbitTarget::UpdateMatrix`` Util.dll 0x404e4deb), which in this mirrored world is -roll about the look direction; an
-    object of a move animation turns +roll about its path (``MoveAnim::Blend`` IC.exe 0x004ee25b: ``RotateX(roll)`` before the
-    heading), +roll here too. ``camera`` says which."""
+    ``Camera_OrbitTarget::UpdateMatrix`` Util.dll 0x404e4deb), +roll about the look direction here; an object of a move animation
+    turns by ``RotateX(roll)`` before the heading (``MoveAnim::Blend`` IC.exe 0x004ee25b), a turn in the game's left-handed axes,
+    so -roll about its path here. ``camera`` says which."""
     f = Vector(g2b(N.look_direction(rotation, declination)))
     yaw = math.radians(rotation)
-    h = Vector((-math.sin(yaw), -math.cos(yaw), 0.0))                      # the horizontal part of the look direction, in Blender
+    h = Vector((math.sin(yaw), -math.cos(yaw), 0.0))                       # the horizontal part of the look direction, in Blender
     right = _norm(h.cross(Vector((0.0, 0.0, 1.0))))
     up = _norm(right.cross(f))
     if roll:
-        rot = Matrix.Rotation(math.radians(-roll if camera else roll), 3, f)
+        rot = Matrix.Rotation(math.radians(roll if camera else -roll), 3, f)
         right, up = rot @ right, rot @ up
     m = Matrix((right, up, -f)).transposed()                                # columns: right, up, back
     return m
 
 
 def angles_of(m3: Matrix, camera: bool = True) -> tuple:
-    """``(rotation, declination, roll)`` in degrees of a Blender 3x3 orientation: the inverse of :func:`basis_for`. The roll is read
-    from the up axis, so a camera flipped left to right reads like an unflipped one."""
+    """``(rotation, declination, roll)`` in degrees of a Blender 3x3 orientation: the inverse of :func:`basis_for` (the roll is read
+    from the up axis)."""
     f = -(m3 @ Vector((0.0, 0.0, 1.0)))
     rotation, declination = N.direction_angles(b2g(f))
     level = basis_for(rotation, declination, 0.0)
     up = m3 @ Vector((0.0, 1.0, 0.0))
     turn = math.degrees(math.atan2((level @ Vector((1.0, 0.0, 0.0))).dot(up), (level @ Vector((0.0, 1.0, 0.0))).dot(up)))
-    return rotation, declination, (-turn if camera else turn) + 0.0        # + 0.0: never a minus zero in the file
+    return rotation, declination, (turn if camera else -turn) + 0.0        # + 0.0: never a minus zero in the file
 
 
 # ---------------------------------------------------------------------------------------------------- finding things
@@ -188,6 +188,7 @@ def read_na_beside(top, game_dir, siblings: dict | None = None):
 # ---------------------------------------------------------------------------------------------------- building the scene
 def _empty(name: str, coll, display: str = "ARROWS", size: float = KEY_SIZE):
     o = bpy.data.objects.new(name, None)
+    M.stamp(o)
     o.empty_display_type = display
     o.empty_display_size = size
     coll.objects.link(o)
@@ -271,6 +272,7 @@ def _curve_object(coll, part: str, name: str):
         cu = bpy.data.curves.new(name, "CURVE")
         cu.dimensions = "3D"
         o = bpy.data.objects.new(name, cu)
+        M.stamp(o)
         o[K_PART] = part
         coll.objects.link(o)
         o.hide_select = True
@@ -337,9 +339,8 @@ def _draw_preview(coll, kind: str, pos: list, keys: list, targets: dict) -> None
             pv.empty_display_type = "CUBE"
             pv.empty_display_size = 1.5
         pv[K_PART] = "preview"
+        M.stamp(pv)
         coll.objects.link(pv)
-    if kind == "camera":
-        M.show_game_picture(pv)                      # every time: a file saved by 0.8.0 has an unflipped one
     pv.animation_data_clear()
     if len(pos) < 2:
         return

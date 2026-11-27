@@ -44,7 +44,32 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # ComboTest.exe's part buttons, in the tool's order, and the slot keys each picks from the other creature
 # (combotest.slots.PARTS is the single source of the mapping).
 PARTS: Dict[str, List[str]] = OrderedDict((k, list(v)) for k, v in ct_slots.PARTS.items()) if ct_slots else OrderedDict()
-PART_LABELS: Dict[str, str] = OrderedDict((k, k.replace("_", " ").title()) for k in PARTS)
+# Round 2 (r2shape): the combiner knows 16 limb slots, ComboTest.exe's six buttons reach 12 of them ("No button reaches the mid
+# legs", combotest/slots.py). The game's combiner picks a limb for every open connection ring by its class, whatever the class
+# (FindBestCandidateFrom per ring, CombinerImp.cpp:862 and :1074), and knows the mid legs: ComputeLimbScale scales a mid-leg graft
+# (CombinerImp.cpp:2992, `class & 0x20000`) and takes the mid legs as the leg reference when a creature has no other legs (:3019,
+# Find(0x20021)). BUT a candidate limb marked Non-Swappable is taken only from the torso creature itself (CreatureCompat.cpp:166-225,
+# FindBestCandidateAny / FindBestCandidateFrom), and every stock mid leg is Non-Swappable (insects 0x820021/22, spiders 0x840021/22).
+# So with the game's rules the buttons graft the mid legs of a donor whose mid legs are NOT flagged (a creature of your own), and
+# for a stock donor they change nothing: the panel says so. Whether the game's own builder screen offers a mid-leg choice is not
+# known (only the combiner and the saved-design path were read). Fins, stubs and antennae have no slot of their own in the
+# combiner (a limb of another class is no slot: combotest.slots.slot_for_limb_id is None), so there is nothing to offer.
+EXTRA_PARTS: Dict[str, List[str]] = OrderedDict([("mid_legs", ["lmleg", "rmleg"]), ("mid2_legs", ["lm2leg", "rm2leg"])])
+_PART_WORDS = {"mid_legs": "Mid Legs", "mid2_legs": "Second Mid Legs"}
+if ct_slots:
+    for _k, _slots in EXTRA_PARTS.items():
+        if _k not in PARTS and all(sk in ct_slots.BY_KEY for sk in _slots):
+            PARTS[_k] = list(_slots)
+PART_LABELS: Dict[str, str] = OrderedDict((k, _PART_WORDS.get(k) or k.replace("_", " ").title()) for k in PARTS)
+
+
+def donor_has_part(donor, part: str) -> bool:
+    """Whether ``donor`` has a limb with patches for the part button (else the combine equals the torso alone). The six
+    ComboTest.exe buttons are answered by its own check, the extra ones by the same rule over their slots."""
+    if ct_slots is not None and part in ct_slots.PARTS:
+        from combotest.validate import donor_has_part as tool_has
+        return tool_has(donor, part)
+    return any(lm.prims for k in PARTS[part] for lm in donor.limbs_for(ct_slots.BY_KEY[k]))
 
 ROLE_TORSO = "TORSO"      # this creature is the torso, the other donates the toggled parts
 ROLE_DONOR = "DONOR"      # the other creature is the torso, this creature donates the toggled parts
@@ -253,7 +278,6 @@ def _dir_stamp(d: str) -> list:
 def donor_info(p) -> DonorInfo:
     """The :class:`DonorInfo` of a loaded stock :class:`Parent`."""
     _require()
-    from combotest.validate import donor_has_part
     by = ct_slots.BY_KEY
     parts = [g for g in PARTS if donor_has_part(p, g)]
     sockets = [s.key for s in ct_slots.LIMB_SLOTS if ct_slots.socket_for(p.model, s) is not None]
@@ -341,13 +365,13 @@ class DonorIndex:
     @staticmethod
     def code_key() -> str:
         """What the cached entries were computed by: the DonorInfo fields, the part buttons, and the source of
-        :func:`donor_info` and ``combotest.validate.donor_has_part`` (a code change rebuilds the cache)."""
+        both ``donor_has_part`` and :func:`donor_info` (a code change rebuilds the cache)."""
         if not _CODE_KEY:
             import inspect
-            from combotest.validate import donor_has_part
             h = hashlib.sha1(repr((DonorIndex.VERSION, [f.name for f in fields(DonorInfo)],
                                    [(g, list(k)) for g, k in PARTS.items()])).encode())
-            for fn in (donor_info, donor_has_part):
+            from combotest.validate import donor_has_part as tool_has
+            for fn in (donor_info, donor_has_part, tool_has):
                 try:
                     h.update(inspect.getsource(fn).encode())
                 except (OSError, TypeError):
@@ -555,7 +579,9 @@ STAT_LABELS_NO_LUA = OrderedDict([
 DROP_WORDS = {}
 if ct_slots is not None:
     DROP_WORDS = {ct_slots.NO_SOCKET: "the torso creature has no socket for it",
-                  ct_slots.FLAGGED: "flagged NoSwap (0x800000): fins/stubs stay on their own torso",
+                  ct_slots.FLAGGED: "marked Non-Swappable in Boner (fins, stubs, insect mid legs): the game's builder never takes "
+                                    "it from another creature, so it stays on its own creature. Take Picks Verbatim (Advanced) "
+                                    "shows it grafted anyway, as a saved design file could carry it",
                   ct_slots.NO_LIMB: "the donor has no limb for it (the torso creature's own stays)"}
 
 
@@ -822,7 +848,7 @@ def build_ghost_arrays(result, density: int, topo=None) -> dict:
     m = getattr(result, "model", result)
     n = max(2, int(density))
     verts = core.sgm_to_blender(RC.world_vertices(m))
-    patches = np.array([list(p.control_points) for p in m.patches], dtype=np.int64).reshape(-1, 16)
+    patches = core.transpose_patches([list(p.control_points) for p in m.patches])      # Blender's grids
     types = [int(p.type) for p in m.patches]
     digest = topology_digest(patches, types)
     reused = topo is not None and getattr(topo, "bz_digest", None) == digest and topo.n == n
@@ -830,7 +856,7 @@ def build_ghost_arrays(result, density: int, topo=None) -> dict:
         topo = fastsurf.TopoCache(patches, n, types)
         topo.bz_digest = digest
     surfV, surfN = topo.eval_all(verts, rest_verts=verts)
-    patch_uv = np.array([list(p.uvs) for p in m.patches], dtype=np.float64).reshape(-1, 8)
+    patch_uv = core.transpose_patch_uv([list(p.uvs) for p in m.patches])
     uvs = core.surface_uvs(patch_uv, n)
     patch_mat = np.array([int(p.material_index) for p in m.patches], dtype=np.int64)
     table = material.material_table(m)
@@ -895,6 +921,112 @@ def torso_centre(world, patches, patch_limb, limb_ids) -> Optional[np.ndarray]:
     return V.torso_centroid(world, np.asarray(patches, dtype=np.int64).reshape(-1, 16), prims)
 
 
+WINDING_UNCLEAR_DEG = 5.0       # a ring this close to a right angle with the direction to the torso's centre cannot be judged by that direction
+
+
+RING_SAME_DEG = 1.0     # mean by-index corner angle below which a ring counts as the very same ring as a stock partner's
+
+
+def partners_weld_reversed(points, partner_dirs, same_only: bool = False) -> "tuple[int, int]":
+    """``(reversed, n)``: how many of the ``n`` stock partner rings (``partner_dirs``: :func:`partner_ring_dirs`, rings of another corner
+    count skipped) the by-index weld pairs ``points`` REVERSED against (``combotest.validate.best_alignment``: the reversed pairing beats the
+    by-index one by more than the twist margin, the test ``ring_fix`` already uses). Unlike the torso-centroid rule this does not depend on the
+    rest of the torso: it is what the combiner's weld (FUN_005c5962, corner i to corner i) actually needs, so a pinned ring that is the stock
+    ring stays judged the same however far the retarget moves the torso. ``same_only``: only a ring that IS a partner's ring (mean corner angle
+    under :data:`RING_SAME_DEG`) counts as welded the stock way; the by-index measure is not trusted (a ring picked at any start corner, as Pick
+    Ring gets it, makes it unreliable for stub rings)."""
+    _require()
+    from combotest import validate as V
+    X = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    refs = [np.asarray(d, dtype=np.float64) for d in (partner_dirs or ()) if d is not None and len(d) == len(X)]
+    if len(X) < 3 or not refs:
+        return 0, 0
+    dt = V._corner_dirs(X)
+    flips = 0
+    for dd in refs:
+        (rev, _sh), a0, ab = V.best_alignment(dt, dd)
+        if a0 < RING_SAME_DEG:
+            return 0, len(refs)             # it IS a stock partner's ring (a retarget pins them): the strongest evidence there is
+        flips += int(rev == 1 and a0 - ab > V.TWIST_MARGIN_DEG)
+    return (len(refs) if same_only else flips), len(refs)
+
+
+def winding_verdict(points, torso_centre_, partner_dirs=None, same_only: bool = False) -> str:
+    """``"into"``, ``"out"`` or ``"unclear"``: which way the ring ``points`` (corners in ring order, IC axes) is wound against the torso.
+
+    The combiner's own rule (``combotest.validate.winding_into_torso``: the ring's winding normal points from its centre toward the torso's
+    centroid; true of all 730 base-game rings) is a PROXY for what the game needs, the same corner order as the stock partner's ring
+    (the by-index weld, FUN_005c5962), and it is ill-conditioned for a ring that lies sideways to the centroid. The base-game cheetah's four
+    wing rings are 89 degrees from it (0.008 m of dot product); retargeting the cheetah onto a rhinoceros or a tiger moves the torso's
+    centroid 2 cm, the dot product changes sign, and the rule called four unchanged, pinned rings reversed -- while the 11 real combines of the
+    same creature gave no issue and the rings are the stock ones (corner order and place unchanged: ``Retarget`` pins them).
+    So a ring within :data:`WINDING_UNCLEAR_DEG` of a right angle is ``"unclear"``: it is neither reversed nor refused on that evidence.
+
+    ``partner_dirs`` (optional, :func:`partner_ring_dirs`): with the stock partners at hand the ring the centroid rule calls ``"out"`` is judged
+    by the weld itself as well (:func:`partners_weld_reversed`): ``"out"`` only when at least one partner pairs it reversed. A ring that every
+    partner welds the stock way is ``"unclear"`` whatever the centroid says -- the band above is a margin (a torso moved more than about 2 cm
+    turns a ring 5 to 10 degrees off a right angle too), the partners are the evidence. Measured over the 61 base-game creatures with the
+    torso moved along each axis: 10 cm, 176 false "out" with the band alone, none with partners; 20 cm, 385 against none. The cost:
+    6 of the 726 base-game rings (snake stubs whose plane differs from the partners') are not caught when reversed by hand by this rule;
+    the combiner's own by-index weld check still sees them. ``same_only`` (Pick Ring and the start plan, which get a ring picked from any start
+    corner and exist to REVERSE one): only a ring that is a partner's very ring is spared, so what Pick Ring reverses is unchanged by partners."""
+    _require()
+    from combotest.frames import ring_centre, ring_normal
+    X = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+    d = np.asarray(torso_centre_, dtype=np.float64) - ring_centre(X)
+    dist = float(np.linalg.norm(d))
+    if dist < 1e-9:
+        return "unclear"
+    cos = float(ring_normal(X) @ d) / dist
+    if abs(cos) < float(np.sin(np.radians(WINDING_UNCLEAR_DEG))):
+        return "unclear"
+    if cos > 0:
+        return "into"
+    flips, n = partners_weld_reversed(X, partner_dirs, same_only)
+    if n and flips == 0:
+        return "unclear"                    # the centroid rule says out, the partners weld it the stock way
+    return "out"
+
+
+_WOUND_LINE = None
+
+
+def settle_winding_lines(lines: Sequence[str], model, stock_dir: Optional[str] = None, exclude_stem: str = "") -> List[str]:
+    """``lines`` (``COMBINE ...`` messages of the combiner's precheck) with each ``ring <slot>: wound with its normal out of the torso`` ERROR
+    whose ring is only ``"unclear"`` (:func:`winding_verdict`) turned into an INFO line that says so. A ring that is clearly wound out stays
+    an ERROR. ``model``: the creature model the lines were made from; ``stock_dir`` / ``exclude_stem``: the stock creatures whose rings the
+    weld is measured against (:func:`winding_verdict` ``partner_dirs``), when known."""
+    import re
+    global _WOUND_LINE
+    if _WOUND_LINE is None:
+        _WOUND_LINE = re.compile(r"^COMBINE ERROR precheck: ring (\w+): wound with its normal out of the torso")
+    hits = [(i, _WOUND_LINE.match(str(l))) for i, l in enumerate(lines)]
+    hits = [(i, m.group(1)) for i, m in hits if m]
+    if not hits or combotest is None or model is None:
+        return list(lines)
+    from ICParse.codecs import reconstruct as R
+    from ICParse.sgm.creature.model import ring_corners
+    from combotest.slots import slot_for_flags2, TORSO
+    W = np.asarray(R.world_vertices(model), dtype=np.float64)
+    P = np.array([list(p.control_points) for p in model.patches], dtype=np.int64).reshape(-1, 16)
+    tc = torso_centre(W, P, core._patch_limb_of(model), [int(lm.limb_id) for lm in model.limbs])
+    out = list(lines)
+    if tc is None:
+        return out
+    for i, key in hits:
+        verdicts = []
+        for lc in model.limb_connections:
+            sl = slot_for_flags2(lc.flags2)
+            cs = ring_corners(lc.vertex_indices) if sl is not None and sl is not TORSO and sl.key == key else None
+            if cs is not None:
+                dirs, _n = partner_ring_dirs(stock_dir, key, exclude_stem)
+                verdicts.append(winding_verdict(W[cs], tc, dirs))
+        if verdicts and all(v == "unclear" for v in verdicts):
+            out[i] = (f"COMBINE INFO precheck: ring {key}: lies sideways to the torso's centre, so its direction cannot say which way it is "
+                      f"wound (the stock cheetah's wing rings are the same). Not an error: the combines below weld it against stock partners")
+    return out
+
+
 def partner_ring_dirs(stock_dir: Optional[str], slot_key: Optional[str], exclude_stem: str = "",
                       donors_only: bool = False):
     """``(dirs, names)``: the ring corner directions (``combotest.validate._Geo.ring_dirs``) of the Quick donors that
@@ -945,9 +1077,11 @@ def ring_fix(points, corners, slot_key, torso_centre_, partner_dirs) -> "tuple[l
     notes = []
     if torso_centre_ is None:
         notes.append("winding not checked: the creature has no torso patches")
-    elif not V.winding_into_torso(X, torso_centre_)[0]:
+    elif winding_verdict(X, torso_centre_, partner_dirs, same_only=True) == "out":
         corners, X = corners[::-1], X[::-1]
         notes.append("reversed to wind into the torso")
+    elif winding_verdict(X, torso_centre_, partner_dirs, same_only=True) == "unclear":
+        notes.append("winding kept as picked: the ring lies sideways to the torso's centre, which cannot tell its direction")
     refs = [d for d in (partner_dirs or ()) if d is not None and len(d) == len(corners)]
     if not slot_key:
         notes.append("start corner kept as picked: the connection is no combiner limb slot")
@@ -1042,7 +1176,7 @@ def ring_start_plan(points, corners, slot_key, torso_centre_, partner_dirs, part
         plan.reason = (NO_PARTNERS_NOTE if not list(partner_dirs) else
                        f"no stock {slot_key} ring has {len(corners)} corners to compare with")
         return plan
-    if torso_centre_ is not None and not V.winding_into_torso(X, torso_centre_)[0]:
+    if torso_centre_ is not None and winding_verdict(X, torso_centre_, refs, same_only=True) == "out":
         plan.reason = ("wound with its normal out of the torso (every base-game ring points into it): re-pick it "
                        "(Pick Ring reverses it) -- no rotation fixes a reversed ring")
         return plan
@@ -1170,12 +1304,12 @@ def ring_status(world, patches, patch_limb, limb_ids, rows, stock_dir: Optional[
             continue
         from combotest import validate as V
         X = W[st.ring]
-        if tc is not None and not V.winding_into_torso(X, tc)[0]:
+        dirs, _names = partner_ring_dirs(stock_dir, key, exclude_stem)
+        refs = [d for d in dirs if len(d) == len(st.ring)]
+        if tc is not None and winding_verdict(X, tc, refs) == "out":
             st._flag("ERROR", "wound with its normal out of the torso (every base-game ring points into it): Pick Ring "
                               "puts it in the stock order")
             continue
-        dirs, _names = partner_ring_dirs(stock_dir, key, exclude_stem)
-        refs = [d for d in dirs if len(d) == len(st.ring)]
         if not refs:
             st._flag("WARN", "start not checked: no stock creatures to align with (Combine Preview > Extract Stock "
                              "Creatures)" if not dirs else f"start not checked: no stock {key} ring has "
@@ -1246,7 +1380,8 @@ def precheck_messages(parent, opts: Optional[Options] = None) -> List[str]:
         parent.attributes = Attributes.default(size=int(opts.default_size))
     out = ["COMBINE INFO setup: combine checks off: static precheck only (no combines; ring start / winding against "
            "stock creatures not checked, ring winding into the torso checked)"]
-    return out + ["COMBINE " + msg.split(" ", 1)[0] + " precheck: " + msg.split(" ", 1)[1] for msg in V.precheck(parent)]
+    lines = out + ["COMBINE " + msg.split(" ", 1)[0] + " precheck: " + msg.split(" ", 1)[1] for msg in V.precheck(parent)]
+    return settle_winding_lines(lines, parent.model)
 
 
 def format_messages(report=None, notes: Sequence[str] = (), setup_error: str = "") -> List[str]:

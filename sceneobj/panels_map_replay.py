@@ -67,7 +67,7 @@ class BZ_PT_map_replay(bpy.types.Panel):
     bl_idname = "BZ_PT_map_replay"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "IC"
+    bl_category = ui_kit.TAB_MAP
     bl_parent_id = "BZ_PT_map_cinematics"
     bl_options = {"DEFAULT_CLOSED"}
 

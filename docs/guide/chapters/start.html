@@ -1,231 +1,201 @@
 <section id="start">
-<h2>Getting started and the UI tour</h2>
+<h2>Start here: install, set up, and how a project works</h2>
 
-<p>IC Blender opens an Impossible Creatures creature (<code>.sgm</code>) as a patch model. The vertices you edit are the
-file's control points, and the surface you see is drawn from them. This chapter installs the add-on and tours it with
-the stock rhinoceros, <code>rhinoceros.sgm</code>.</p>
+<p>This chapter gets you ready. It takes about fifteen minutes, and you do it once. After it, every other chapter is a complete
+walk-through: from a new project to seeing your work in the game.</p>
 
-<h3>Installing and launching</h3>
+<p>You should know how to play Impossible Creatures and have used Blender a little: moving around the 3D view, selecting
+points, pressing <kbd>Tab</kbd> for Edit Mode. You do not need to know anything about the game's files. Some chapters ask for more
+Blender: Weight Paint, Shape Keys, the Action Editor and Texture Paint (buildings, workers and animations). The Blender manual at
+docs.blender.org explains them.</p>
 
-<p>You need <strong>Blender 5.3.0 or newer</strong>.</p>
-
-<ol>
-  <li>Open <strong>Edit &gt; Preferences &gt; Get Extensions</strong>, then the drop-down menu at the top right,
-  <strong>Install from Disk...</strong>. Pick <code>ic_blender-&lt;version&gt;.zip</code>.</li>
-  <li>Check that <strong>IC Blender</strong> is ticked under <strong>Add-ons</strong>. If your game is not in a usual
-  Steam folder, set the <strong>Game folder</strong> in the add-on's preferences.</li>
-  <li>In the 3D viewport press <kbd>N</kbd> and open the <strong>IC</strong> tab.</li>
-</ol>
+<h3>What you need</h3>
 
 <ul>
-  <li>Press <strong>Extract Stock Creatures</strong>
-  in Combine Preview to copy the stock creatures from your game.</li>
+  <li>Blender 5.3 or newer.</li>
+  <li>Your own copy of Impossible Creatures. The add-on reads the files of the Steam version. The author's checks used a special test build
+  of the game instead (see the <em>What was checked</em> parts of the chapters). Nobody has played the results in the Steam version yet.</li>
+  <li>Linux. The add-on is written to work on Windows and macOS too, but nothing has been run there yet. If it does not work
+  for you there, the message tells you what it tried. Please report it. On Linux, <code>IC.exe</code> is a Windows program, so playing needs
+  Wine or Proton (see &ldquo;Start the game&rdquo; below).</li>
+  <li>About half a gigabyte of free disk space for a test copy of the game (about 5 GB if your computer cannot make links; the
+  window tells you before it starts).</li>
 </ul>
 
-<figure><img src="img/start_empty.jpg" alt="Empty scene with the add-on sidebar open">
-<figcaption>The IC tab also offers <strong>New Impossible Creatures Project</strong>.</figcaption></figure>
-
-<h3>Importing a stock creature</h3>
+<h3>Install the add-on</h3>
 
 <ol>
-  <li>Press <strong>IC Blender &gt; Import Model</strong>, or use <strong>File &gt; Import &gt; Impossible Creatures Model
-  (.sgm / .ebp)</strong>. Pick <code>rhinoceros.sgm</code>. Leave <strong>Clips as Actions</strong> on to get each
-  animation as a Blender Action.</li>
-  <li>You can pick the <code>.ebp</code> instead. Only the model is imported; the motion tree, events and icon stay in
-  the <code>.ebp</code>.</li>
-  <li>Two objects appear: <code>Rhinoceros</code> (the control points) and <code>Rhinoceros_rig</code> (the
-  armature).</li>
-  <li>Frame the creature with <strong>View &gt; Frame Selected</strong> (numpad <kbd>.</kbd>).</li>
+  <li>Download <code>ic_blender-&lt;version&gt;.zip</code> from the add-on's release page. Do not download &ldquo;Source code&rdquo;.</li>
+  <li>In Blender, open <strong>Edit &gt; Preferences &gt; Get Extensions</strong>. Open the menu at the top right and choose
+  <strong>Install from Disk...</strong>. Pick the zip.</li>
+  <li>Open <strong>Edit &gt; Preferences &gt; Add-ons</strong> and check that <strong>IC Blender</strong> is ticked.</li>
+  <li>Move the mouse over the 3D Viewport and press <kbd>N</kbd>. A panel opens at the right side. Along its edge you should see
+  two tabs: <strong>IC Model</strong> and <strong>IC Game</strong>. A third tab, <strong>IC Map</strong>, appears only once you open or start a map.</li>
 </ol>
 
-<figure><img src="img/start_import.jpg" alt="Imported rhinoceros with control points and net">
-<figcaption>Control points, control net and textured surface after import.</figcaption></figure>
+<p>If you do not see the two tabs, the add-on did not load. In <strong>Edit &gt; Preferences &gt; Add-ons &gt; IC Blender</strong> a red box
+called <strong>Parts of the add-on that could not be loaded</strong> says why. Send that text with your report.</p>
 
-<p>Gatherers, characters, structures and props use the same button and open as ordinary meshes; see their
-chapter.</p>
+<p>To upgrade, install the new zip the same way and restart Blender. Only if the add-on then fails to load, remove it, restart
+Blender and install the zip again.</p>
 
-<h3>What you are looking at</h3>
+<h3>Tell the add-on where your game is</h3>
+
+<ol>
+  <li>Open <strong>Edit &gt; Preferences &gt; Add-ons</strong> and expand <strong>IC Blender</strong>.</li>
+  <li>Look at the box <strong>Game</strong>. If it says &ldquo;Using ...&rdquo; with your game's folder and a tick, you are done. The add-on found
+  the game in your Steam library by itself.</li>
+  <li>If it says &ldquo;No game found&rdquo;, set <strong>Game folder</strong> to the folder that holds <code>IC.exe</code>.</li>
+</ol>
+
+<p>The add-on only reads this folder. It uses it to list the game's animals and buildings, and to read their files.</p>
+
+<h3>Make a test copy of the game</h3>
+
+<p>You never try your work in the game you bought. Steam looks after that folder, and it may overwrite or remove anything it did not put
+there. The game also writes into its own folder while you play. So you try your work in a <strong>test copy</strong>: your own folder that
+holds a copy of the game. If something goes wrong, delete the folder and make a new one. The add-on never writes into the Steam folder
+or into your original game. (There is a box <strong>Allow the Steam game folder</strong> in the preferences. Leave it empty.)</p>
+
+<ol>
+  <li>Open the <strong>IC Game</strong> tab. Open the <strong>Game</strong> panel. It is the last panel in the tab. It has four numbered boxes
+  (explained below, in &ldquo;The Game panel: four steps&rdquo;). You need box 3 now.</li>
+  <li>In the box <strong>3. Install into Test Game</strong>, press <strong>Create Test Game Copy</strong>. (The same button is in
+  <strong>Edit &gt; Preferences &gt; Add-ons &gt; IC Blender</strong>, under <strong>Test game</strong>.)</li>
+  <li>A window shows where the copy will go (a folder called <strong>IC Test Game</strong> in your home folder, unless you change it), how
+  much disk space it takes and how much is free. Pick another folder if you like. It must be new or empty, and it must not be inside a
+  Steam library.</li>
+  <li>Press <strong>Create Copy</strong>. The panel shows &ldquo;Making the test copy&rdquo; with a percentage. Blender stays usable.
+  <strong>Cancel</strong> stops it and removes what it made.</li>
+</ol>
+
+<p>You should see: when it is done, the panel shows the folder with the line &ldquo;A copy of the game made here on ...&rdquo;, and the
+<strong>Next:</strong> line tells you what to do next. The new folder is now your <strong>Test game folder</strong>.</p>
+
+<aside class="note"><p>The copy does not repeat the big files. It holds links to them (the game's archives and movies), so for the Steam version it takes
+about half a gigabyte. Only the small files, and everything the game writes, are real copies. So the original game must stay where
+it is. If your computer cannot make links (on Windows that needs Developer Mode or an administrator account), the window says so and tells
+you the whole game will be copied, with its size, before anything starts. You can also tick <strong>Copy everything (no links)</strong>
+for a copy that does not depend on the original.</p></aside>
+
+<p>If the panel says &ldquo;This copy was not finished&rdquo;, the copy was interrupted. Delete the folder and make it again.</p>
+
+<h3>The tabs</h3>
+
+<p>Press <kbd>N</kbd> in the 3D Viewport. The add-on has three tabs. You see <strong>IC Model</strong> and <strong>IC Game</strong> at once.
+<strong>IC Map</strong> appears only after you open or start a map. A panel appears only when it makes sense for what you have
+selected, so a tab can show fewer panels than listed here.</p>
+
+<div class="tablewrap">
+<table>
+<tr><th>Tab</th><th>What it is for</th><th>Panels</th></tr>
+<tr><td><strong>IC Model</strong></td><td>The shape: the surface, the skeleton, the skin, the parts, the textures. What you see and move in
+the 3D view.</td><td><strong>IC Blender</strong> (with <strong>Boner</strong> and <strong>Combine Preview</strong> inside it, and
+<strong>Damage States</strong>), <strong>Parts</strong>, <strong>Markers</strong>, <strong>IC Material</strong></td></tr>
+<tr><td><strong>IC Game</strong></td><td>What the game does with the model: its numbers, its animations, its effects and sounds, and the steps that
+take it into the game.</td><td><strong>Blueprint</strong> (the file that tells the game how the model behaves; it holds <strong>Gameplay numbers</strong>), <strong>Motions</strong>,
+<strong>Effects and events</strong>, <strong>Creature Stats</strong>, <strong>Game</strong></td></tr>
+<tr><td><strong>IC Map</strong></td><td>The game's maps (shown once a map is open).</td><td><strong>Map</strong> and its parts</td></tr>
+</table>
+</div>
+
+<p>Every panel starts with a short line that says what the panel is for.</p>
+
+<h3>How a project works</h3>
+
+<p>You do not edit the game's own files. You make a <strong>project</strong>: a copy of one of the game's things, in a folder of your
+own. You change the copy. The game's own files stay as they are in its archives.</p>
+
+<p>To start a project, choose <strong>File &gt; New &gt; Impossible Creatures Project...</strong> (the same button is in the
+<strong>IC Model</strong> tab, <strong>New Impossible Creatures Project</strong>). Pick what you want to make in <strong>Type</strong>
+(a creature, a gatherer or character, a structure or prop, a projectile, or an effect model). Pick which of the game's things to start from in
+<strong>Start from</strong>. These choices are in the panel at the right of the file window. (If you do not see it, press the small gear button at
+the top right of the window.) The window is a file browser: go to an empty folder of your own, type a file name at the bottom and press
+<strong>New Impossible Creatures Project</strong> at the bottom right. The add-on writes the files there and opens them in Blender. If a
+creature project is refused (for example &ldquo;Could not start the project: ...&rdquo;), the window has closed. Open it again and choose another
+file name.</p>
+
+<p>The files it writes are the original's files, under your name:</p>
 
 <ul>
-  <li><strong>Control points:</strong> each vertex is one. A shared corner is a single vertex, so the surface stays
-  closed.</li>
-  <li><strong>Surface:</strong> a live textured overlay that follows your edits and the posed rig.</li>
-  <li><strong>Control net:</strong> the 4x4 grid of every patch.</li>
-  <li><strong>Rig:</strong> a Blender armature. Each control point belongs to one bone.</li>
-  <li><strong>Clips:</strong> Actions on the rig. Edit, rename, add or delete them, and Export writes them.</li>
+  <li>the <strong>model</strong> (<code>.sgm</code>): the shape, the skeleton and the animations;</li>
+  <li>the <strong>blueprint</strong> (<code>.ebp</code>): the file that tells the game how the model behaves, with its animations, sounds,
+  effects and numbers;</li>
+  <li>for a creature, also the <strong>numbers</strong> (<code>.lua</code>): hit points, speed, attacks, cost; and the <strong>limb
+  scales</strong> (<code>.lsc</code>): how the creature is resized when the game combines it with another animal.</li>
 </ul>
 
-<p>The <strong>Display</strong> box:</p>
+<p>The add-on builds your export on these files. It writes only what you changed. Everything you did not touch comes out of those files byte
+for byte, so nothing is lost and a creature you did not change is the original again.</p>
+
+<p><strong>Do not move, rename or delete these files while you work.</strong> If another program changes one, the add-on says so
+(&ldquo;The model file ... was changed on disk after it was opened here&rdquo;) and asks you to import it again.</p>
+
+<p>Your edits live in the Blender file (<code>.blend</code>). Save it as you always do. The project's own files are the starting point, not your
+saved work.</p>
+
+<aside class="note"><p>Starting a project from a game animal has two choices, in the same window. <strong>A new creature of my own</strong> makes a creature under
+a name you choose. The game's animals stay as they are. <strong>Replace the original</strong> (it shows the animal's name) makes your
+version take the place of the game's own animal. The chapter <a href="#replace">Replace one of the game's animals</a> says what that
+means.</p></aside>
+
+<h3>The Game panel: four steps</h3>
+
+<p>Every kind of project ends in the <strong>Game</strong> panel of the <strong>IC Game</strong> tab. It reads from top to bottom in the order
+you work:</p>
+
+<ol>
+  <li><strong>1. Check</strong>: finds what would stop the game loading your work. Nothing is written.</li>
+  <li><strong>2. Export for the Game</strong>: writes a folder with the files the game reads. For a creature the button is <strong>Export
+  Creature for the Game</strong>. For a structure, a gatherer, a character, a prop or an effect it is <strong>Export Entity Folder</strong>.
+  The folder is called an <strong>item</strong>.</li>
+  <li><strong>3. Install into Test Game</strong>: copies the item into your test copy. <strong>Remove</strong> (in the list <strong>Installed here</strong>)
+  takes it out again.</li>
+  <li><strong>4. Share</strong>: <strong>Pack for Sharing</strong> makes a zip for other players. <strong>Install From Zip</strong> and
+  <strong>Install From Folder</strong> install something someone else made.</li>
+</ol>
+
+<p>At the bottom of step 3, a line that starts with <strong>Next:</strong> always tells you the one thing to do now: set the Game folder, make
+the test copy, export, install, or start the game. When you are lost, read that line.</p>
+
+<p>The chapter <a href="#ship">Check, export, install, remove and share</a> goes through each step.</p>
+
+<h3>Where to read messages</h3>
 
 <ul>
-  <li><strong>Surface Only</strong> hides the control points and rig. Turn it off to edit.</li>
-  <li><strong>Show Surface</strong>, <strong>Show Control Net</strong>: toggle the overlays.</li>
-  <li><strong>Evaluated Surface</strong>: real geometry that renders in Eevee and Cycles. Editing is slower with it
-  on.</li>
-  <li>Shading menu: <strong>Textured</strong>, <strong>By Limb</strong>, <strong>By Bone</strong> or
-  <strong>Plain</strong>.</li>
-  <li><strong>Surface Density</strong>: smoothness of the drawn surface.</li>
-  <li><strong>Show Handle Dots</strong>: corners gold, handles blue.</li>
-  <li><strong>Show Connections</strong>: highlights the rings where limbs attach.</li>
-  <li><strong>Edit Opacity</strong>: surface opacity in Edit Mode.</li>
-  <li><strong>Patch Rules (Max feel)</strong>: a corner drags its handles, and interior points move automatically. Off
-  means raw point editing.</li>
-  <li><strong>Show Interior Points</strong>: unhides those points.</li>
-  <li><strong>Lock Handles</strong>: a corner's other handles rotate with the one you move.</li>
-  <li><strong>Live Checks</strong>: shows warnings while you work.</li>
+  <li>The line at the bottom of the Blender window shows the last message.</li>
+  <li>Change any area of the screen to the <strong>Info</strong> editor to read every message: click the editor-type button at the top left of
+  the area and choose <strong>Info</strong>. (The Scripting tab at the top of Blender has one already.) Long reports, such as an export report,
+  are there in full. A line you are told to look for, such as &ldquo;Wrote ...&rdquo;, is in this list and not always on the bottom bar.</li>
+  <li>If a button is grey, hold the mouse over it. Blender says why. Usually you must select the creature or thing first, or leave Edit Mode.</li>
+  <li>If the game does not show your work, read the file <code>warnings.log</code> in the folder of your test copy (the folder with
+  <code>IC.exe</code>).</li>
 </ul>
 
-<figure><img src="img/start_surface_only.jpg" alt="Rhinoceros surface without points or rig">
-<figcaption><strong>Surface Only</strong> shows just the surface.</figcaption></figure>
+<h3>Start the game</h3>
 
-<ol>
-  <li>Press <kbd>Tab</kbd> for Edit Mode. The panel adds the <strong>Modeling</strong>, <strong>Topology</strong> and
-  <strong>Select</strong> boxes. A greyed-out button says why in its tooltip.</li>
-  <li>Select a point and press <kbd>G</kbd>. Box and lasso select, proportional editing (<kbd>O</kbd>) and snapping
-  work. <strong>X-Mirror Editing</strong> is on after import.</li>
-  <li>Press <kbd>3</kbd> to select whole patches.</li>
-</ol>
-
-<figure><img src="img/start_edit.jpg" alt="Edit Mode with gold and blue dots">
-<figcaption>Edit Mode with <strong>Show Handle Dots</strong>.</figcaption></figure>
-
-<h3>The IC panel, top to bottom</h3>
-
-<p>Below <strong>Display</strong>, a creature shows:</p>
+<p>Every walk-through ends with &ldquo;start the game from your test copy&rdquo;. The test copy is a folder that holds <code>IC.exe</code>.</p>
 
 <ul>
-  <li>Name, control-point and patch counts, and <strong>X-Mirror Editing</strong>.</li>
-  <li>The rig box: <strong>Load Animation</strong>, the active Action and <strong>Select Rig</strong>.</li>
-  <li><strong>Sculpt</strong>: see the sculpting chapter.</li>
-  <li><strong>Tools</strong>: <strong>Attach</strong>, <strong>Symmetrize (X)</strong>, <strong>Relax Seam
-  Tangents</strong>, <strong>Retarget Creature to Mesh</strong>, <strong>Create Landmarks</strong>, <strong>Landmark
-  Retarget</strong>, <strong>Trim Stray Surface</strong>, <strong>Validate (will it load?)</strong> and
-  <strong>Combine Checks</strong>.</li>
-  <li><strong>Bake Textured Mesh</strong>, <strong>Paint Skin</strong>, <strong>Transfer Texture</strong>,
-  <strong>Edit UVs</strong>, <strong>Apply UVs</strong> (while a UV cage exists) and <strong>Export Model</strong>.</li>
-  <li>The <strong>Boner</strong> and <strong>Combine Preview</strong> sub-panels.</li>
+  <li><strong>Windows:</strong> run <code>IC.exe</code> in that folder. (Not tried yet.)</li>
+  <li><strong>Linux:</strong> <code>IC.exe</code> is a Windows program, so it needs Wine or Proton. If you play through Steam, you can add it with
+  <strong>Games &gt; Add a Non-Steam Game</strong> and pick a Proton version in the game's <strong>Properties &gt; Compatibility</strong>. We have not
+  tried this route. If you already run the game on Linux some other way, start the test copy the same way.</li>
+  <li>The Steam version starts only while Steam is running and you are signed in.</li>
+  <li>Close the game before you install again. It reads a thing's files when it loads it.</li>
 </ul>
 
-<p>With an ordinary mesh active, <strong>Convert Mesh to Creature</strong> and <strong>Fit Patches to Mesh</strong>
-appear above <strong>Display</strong>.</p>
+<h3>What next</h3>
 
-<h3>Boner: Bones, Limbs, Connections</h3>
-
-<p><strong>Boner</strong> has the tabs of Relic's Boner tool. With <strong>Follow Shading</strong> on (the link icon on
-the Bones tab), the Limbs and Bones tabs switch the shading to match.</p>
-
-<ol>
-  <li><strong>Limbs</strong> lists each limb's class, counts and status. A <code>stub</code> limb has no patches but lets
-  other creatures' parts attach. Click a limb to classify, <strong>Rename</strong> or <strong>Delete</strong> it. In
-  Edit Mode use <strong>Select Limb</strong> and <strong>Assign Selected to Limb</strong>.</li>
-</ol>
-
-<figure><img src="img/start_limbs.jpg" alt="Limb colours and the Limbs tab">
-<figcaption><strong>By Limb</strong> shading with the Limbs tab.</figcaption></figure>
-
-<ol start="2">
-  <li><strong>Bones</strong>: choose a <strong>Bone</strong> (or <strong>Pick Bone</strong>), rename it, or <strong>Add
-  Bone under Active</strong>. In Edit Mode use <strong>Assign Selected</strong>, <strong>Select Points</strong> and
-  <strong>Remove from Bone</strong>. <strong>Auto Skin</strong> gives points their nearest bone. Export refuses patch
-  points with no bone. Joint limits and IK chains are below. Delete or re-parent bones in the rig's Edit Mode.</li>
-</ol>
-
-<figure><img src="img/start_bones.jpg" alt="Head bone highlighted in By Bone shading">
-<figcaption>The <code>head</code> bone's points are highlighted.</figcaption></figure>
-
-<ol start="3">
-  <li><strong>Connections</strong> lists the rings where limbs attach. Use <strong>Create for Limb</strong>,
-  <strong>Rename</strong>, <strong>Delete</strong> and, in Edit Mode, <strong>Add Stub Socket</strong>. For the active
-  ring set the Parent and Child classes, host bone (<strong>Set</strong> / <strong>Default</strong>) and corners
-  (<strong>Pick Ring</strong> / <strong>From Selection</strong>). <strong>Optimise Start</strong> and <strong>All
-  Rings</strong> pick the best starting corner for combining.</li>
-</ol>
-
-<figure><img src="img/start_connections.jpg" alt="Green rings at neck and leg sockets">
-<figcaption><strong>Show Connections</strong> draws the rings on the creature.</figcaption></figure>
-
-<h3>Playing a clip</h3>
-
-<ol>
-  <li>Choose <strong>Load Animation &gt; walk</strong>.</li>
-  <li>Press <kbd>Space</kbd> or scrub the timeline.</li>
-  <li>To edit keys, press <strong>Select Rig</strong> and open a Dope Sheet or Action Editor.</li>
-</ol>
-
-<figure><img src="img/start_anim.jpg" alt="Rhinoceros mid-walk above a Dope Sheet">
-<figcaption>The walk clip with its keys in a Dope Sheet.</figcaption></figure>
-
-<h3>Validate: three tiers</h3>
-
-<p><strong>Validate (will it load?)</strong> checks the creature as Export would write it:</p>
+<p>Do the chapter <a href="#replace">Replace one of the game's animals</a> first. It is the shortest way to see your own work in the game.
+Then choose the chapter for what you want to make:</p>
 
 <ul>
-  <li><strong>Blocking problems</strong> (red) stop the Object Editor loading it. <code>EXPORT BLOCKED</code> means
-  Export would refuse; the message says why. If you deleted, merged or duplicated vertices, press
-  <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
-  <li><strong>STOCK</strong>: something every base-game creature has is missing. It still loads.</li>
-  <li><strong>WARN</strong>: advice about export, limbs or connections.</li>
-  <li><strong>COMBINE</strong>: combining problems, never blocking. <strong>Combine Checks: Quick</strong> runs test
-  combines; <strong>Off</strong> only the instant check.</li>
+  <li>a creature of your own: <a href="#newcreature">A new creature from a game animal</a>, or <a href="#mesh">A creature from your own mesh</a>;</li>
+  <li>a building, a worker, a character or scenery: <a href="#structures">Structures and props</a>, <a href="#gatherers">Gatherers and characters</a>;</li>
+  <li>how a thing plays: <a href="#numbers">Gameplay numbers</a>, <a href="#anim">Animations and motions</a>;</li>
+  <li>smoke, sparks and sounds: <a href="#effects">Effects, events and sounds</a>;</li>
+  <li>when something goes wrong: <a href="#trouble">Troubleshooting</a>.</li>
 </ul>
-
-<ol>
-  <li>Leave <strong>Combine Checks</strong> on <strong>Quick</strong> and press <strong>Validate (will it
-  load?)</strong>.</li>
-  <li>Read the verdict in the status bar and every line in the <strong>Info</strong> editor.</li>
-</ol>
-
-<figure><img src="img/start_validate.jpg" alt="Info editor showing a Valid verdict">
-<figcaption>The verdict appears in the Info editor and status bar.</figcaption></figure>
-
-<h3>Exporting</h3>
-
-<ol>
-  <li>Press <strong>Export Model</strong>, or use <strong>File &gt; Export &gt; Impossible Creatures Creature
-  (.sgm)</strong>. Save somewhere of your own and keep the stock files.</li>
-</ol>
-
-<figure><img src="img/start_export_dialog.jpg" alt="Export file browser">
-<figcaption>Choose the <code>.sgm</code> to write.</figcaption></figure>
-
-<ol start="2">
-  <li>Read the report. It lists what changed.</li>
-</ol>
-
-<p>Export checks the model first, and its message says how to fix anything it refuses.</p>
-
-<figure><img src="img/start_export.jpg" alt="Export report for an unchanged creature">
-<figcaption>The report after exporting an untouched creature.</figcaption></figure>
-
-<h3>Combine Preview</h3>
-
-<p>Open the <strong>Combine Preview</strong> sub-panel. It combines your creature, unsaved edits included, with another
-one.</p>
-
-<ol>
-  <li>Choose <strong>This Creature Is the Torso</strong> or <strong>This Creature Donates Parts</strong>.</li>
-  <li>Choose the other creature: <strong>Stock</strong>, <strong>Object</strong> (in this scene) or
-  <strong>File</strong>.</li>
-  <li>Toggle the parts: <strong>Head</strong>, <strong>Tail</strong>, <strong>Front Legs</strong>, <strong>Rear
-  Legs</strong>, <strong>Wings</strong>, <strong>Front Arms</strong>.</li>
-  <li>Press <strong>Preview</strong>. A ghost appears with its stats and warnings; press <strong>Refresh</strong> after
-  edits. <strong>Clear</strong> removes it, <strong>Materialize…</strong> saves it as a creature and imports it, and
-  <strong>Validate Combines</strong> runs the quick checks.</li>
-</ol>
-
-<figure><img src="img/start_combine.jpg" alt="Combined ghost beside the rhinoceros">
-<figcaption>A rhinoceros torso with a cheetah head and tail.</figcaption></figure>
-
-<h3>Bake Textured Mesh</h3>
-
-<p>To render in Eevee or Cycles, press <strong>Bake Textured Mesh</strong>. It makes a textured copy,
-<code>Rhinoceros_baked</code>. <strong>Posed</strong> (redo panel) bakes the current pose. Editing the copy does not
-change the creature.</p>
-
-<figure><img src="img/start_bake.jpg" alt="Baked textured rhinoceros mesh">
-<figcaption>The baked copy in Material Preview.</figcaption></figure>
-
-<p>Keep the creature at the origin without transforms, modifiers or shape keys, and keep the source <code>.sgm</code> where it
-was: export reads it again.</p>
 
 </section>

@@ -347,6 +347,16 @@ def move_rig_bones(context, obj, arm, disp, warp=None):
     return len(todo), biggest, sum(1 for n in todo if n not in own_names), owning, drift
 
 
+def invoke_target_window(op, context):
+    """Pressing the button opens a small window with the settings (the target mesh first). When exactly one other mesh is selected it is
+    already filled in as the target. Python calls with ``target=`` run ``execute`` directly and never come here."""
+    if not op.target:
+        others = [o for o in context.selected_objects if o.type == "MESH" and o is not context.active_object and not store.is_native(o)]
+        if len(others) == 1:
+            op.target = others[0].name
+    return context.window_manager.invoke_props_dialog(op, width=360)
+
+
 def resolve_target(op, context, obj, name):
     """The target mesh of a retarget: (object, evaluated mesh), or None after ``op.report``-ing why it is refused --
     no name, no such object, the creature itself, not a mesh, another creature, no faces, or more than one shell
@@ -410,6 +420,9 @@ class BZ_OT_retarget_mesh(_Operator):
     @classmethod
     def poll(cls, context):
         return ops._guard_poll(cls, context)
+
+    def invoke(self, context, event):
+        return invoke_target_window(self, context)
 
     def execute(self, context):
         obj = ops._active_native(context)

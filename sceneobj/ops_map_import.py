@@ -1,8 +1,8 @@
 """Open a map (.sgb) from a file or the game: terrain, water, entities, creatures and game look (``ICParse.sgb.view``).
 
 The save needs what is kept on the objects: the source on the collection and terrain; id, blueprint, owner and groups
-on each entity. Game (x, y up, z) becomes Blender (x, -z, y), which mirrors the view, so cameras standing for the
-game's camera are flipped (:func:`show_game_picture`).
+on each entity. Game (x, y up, z) becomes Blender (-x, -z, y): the game's axes are left-handed, so this keeps the view as
+the game shows it, and quads are wound the other way round to face the same way (:func:`_mesh`).
 """
 from __future__ import annotations
 
@@ -43,6 +43,16 @@ if _PKG.endswith(".sceneobj"):
 def _addon(name: str):
     """A module of the add-on ('core', 'scene', 'rig')."""
     return importlib.import_module(f"{_PKG}.{name}")
+
+
+def stamp(*ids) -> None:
+    """Mark map objects as made in the add-on's current axes (``store.stamp_axes``)."""
+    _addon("store").stamp_axes(*ids)
+
+
+def axes_refusal(*ids):
+    """``store.OLD_AXES_MESSAGE`` when any of ``ids`` lacks the axes stamp, else None."""
+    return _addon("store").axes_refusal(*ids)
 
 
 def _view():
@@ -133,14 +143,6 @@ def _new_collection(name: str, parent):
     coll = bpy.data.collections.new(name)
     parent.children.link(coll)
     return coll
-
-
-def show_game_picture(camera) -> None:
-    """Make the camera object ``camera`` show the picture the game shows. The game's camera has right = up x forward (a Direct3D
-    left-handed projection: ``RenderCamera::Apply``, IC.exe 0x005483f5), and the add-on's (x, -z, y) turns the game's coordinates
-    without mirroring them, so the world in Blender is the game's seen in a mirror. A camera scaled -1 on its own X looks at it
-    with right = up x forward; Blender still culls and shades the right sides of the faces through it (Workbench and EEVEE)."""
-    camera.scale = (-1.0, 1.0, 1.0)
 
 
 def _set_blend(mat, method: str) -> None:
@@ -251,9 +253,12 @@ def _water_material(board):
     return mat
 
 
-def _mesh(name: str, verts: np.ndarray, quads: np.ndarray):
-    """A mesh of quads from numpy arrays (fast enough for a million points)."""
+def _mesh(name: str, verts: np.ndarray, quads: np.ndarray, game_quads: bool = True):
+    """A mesh of quads from numpy arrays (fast enough for a million points). ``game_quads``: the quads are wound as the
+    game's (the axis change mirrors, so they are reversed to face the same way in Blender); False: already Blender's."""
     me = bpy.data.meshes.new(name)
+    if game_quads:
+        quads = np.asarray(quads)[:, [0, 3, 2, 1]]
     nv, nf = len(verts), len(quads)
     me.vertices.add(nv)
     me.vertices.foreach_set("co", np.ascontiguousarray(verts, dtype=np.float32).ravel())
@@ -393,6 +398,7 @@ def import_map(context, mv, *, game_dir: str | None = None, load_models: bool = 
         top = bpy.data.collections.new(f"Map {name}")
         context.scene.collection.children.link(top)
         top[KEY_MAP] = True
+        stamp(top)
         top[KEY_SOURCE] = mv.source
         top[KEY_ARCHIVE] = mv.archive
         if in_memory:
@@ -431,6 +437,7 @@ def import_map(context, mv, *, game_dir: str | None = None, load_models: bool = 
         terrain = bpy.data.objects.new(f"{name} terrain", me)
         kinds["terrain"].objects.link(terrain)
         terrain[KEY_MAP] = True
+        stamp(terrain)
         terrain[KEY_SOURCE] = mv.source
         terrain[KEY_ARCHIVE] = mv.archive
         for key, value in (("ic_map_width", mv.width), ("ic_map_height", mv.height), ("ic_tile_scale", mv.tile_scale),
@@ -451,6 +458,7 @@ def import_map(context, mv, *, game_dir: str | None = None, load_models: bool = 
                 water = bpy.data.objects.new(f"{name} water", wme)
                 kinds["water"].objects.link(water)
                 water["ic_water_level"] = mv.water_level
+                stamp(water)
 
         # ---- the models, each loaded once into a hidden collection
         infos = view.resolve_models(mv, data) if load_models else {}
@@ -491,6 +499,7 @@ def import_map(context, mv, *, game_dir: str | None = None, load_models: bool = 
                 report["empties"] += 1
             obj.matrix_world = rig.to_blender_matrix(e.matrix())      # the game's axes -> the add-on's, as for every model
             obj[KEY_ENTITY] = e.instance_id
+            stamp(obj)
             obj["ic_blueprint"] = e.blueprint
             obj["ic_blueprint_number"] = e.blueprint_ref
             obj["ic_kind"] = e.kind

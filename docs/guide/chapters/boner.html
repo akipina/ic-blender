@@ -1,9 +1,9 @@
 <section id="boner">
 <h2>Bones, limbs and connections (Boner)</h2>
 
-<p>A creature loads in the Object Editor when its patches are watertight and rigged. To <em>combine</em> in the game,
-its limbs, connections and skeleton must also follow the rules of the combiner (ComboTest.exe). Edit them in the
-<strong>IC</strong> tab under <strong>Boner</strong>: <strong>Bones | Limbs | Connections</strong>. Every edit can be
+<p>The game loads a creature when its patches are watertight and rigged. To <em>combine</em> in the game,
+its limbs, connections and skeleton must also follow the rules of the game's combiner (the creature creator). Edit them in the
+<strong>IC Model</strong> tab under <strong>Boner</strong>: <strong>Bones | Limbs | Connections</strong>. Every edit can be
 undone, and a refused edit changes nothing.</p>
 
 <h3>The model in one minute</h3>
@@ -12,18 +12,18 @@ undone, and a refused edit changes nothing.</p>
 Position, Plane and Type; <strong>Non-Swappable</strong> parts stay with their torso.</li>
 <li>A limb other than the Torso is a root bone and its descendants. The Torso owns every other bone.</li>
 <li><strong>Stub limbs</strong> have one bone and no patches, so the creature can still receive wings or arms. The
-Object Editor requires the leg, arm and wing classes.</li>
+game's check requires the leg, arm and wing classes.</li>
 <li><strong>Connections</strong> are the sockets where limbs are grafted. Each has a Parent class (usually Torso), a
 Child class, a host bone in the parent limb, and a ring of corners (6 for head or tail, otherwise 4).</li>
 <li>The game finds bones by standard names (<code>pelvis</code>, <code>spine1</code>, <code>neck1</code>,
 <code>head</code>, <code>tail1</code>, <code>front_leg1_l</code> and so on).</li>
-<li>ComboTest.exe refuses a creature with a limb class that has no connection, a Left limb without its Right mirror, or
+<li>The combiner refuses a creature with a limb class that has no connection, a Left limb without its Right mirror, or
 a limb with no bones.</li>
 </ul>
 
 <h3>Setting up</h3>
 <ol>
-<li>Use <strong>IC Blender &gt; Import Model</strong> on <code>rhinoceros.sgm</code> and widen the sidebar.</li>
+<li>Use <strong>IC Model</strong> tab &gt; <strong>Import Model</strong> on <code>rhinoceros.sgm</code> and widen the sidebar.</li>
 <li>In <strong>Display</strong>, tick <strong>Show Connections</strong>.</li>
 <li>Open <strong>Boner</strong> and choose <strong>Limbs</strong>. With <em>Follow Shading</em> on, the shading switches
 to <strong>By Limb</strong>.</li>
@@ -45,8 +45,6 @@ it in no limb. You are warned if this strands points.</li>
 </ol>
 <figure><img src="img/boner_limbs_lfleg.jpg" alt="Left front leg selected"><figcaption>The selected limb shows its
 class and bones.</figcaption></figure>
-<figure><img src="img/boner_limb_move_bone.jpg" alt="Nose moved to the Torso"><figcaption>Moving <code>nose</code> to
-the Torso raises a warning.</figcaption></figure>
 <figure><img src="img/boner_limb_reclass.jpg" alt="Leg changed to Mid"><figcaption>Changing a class also updates its
 connection.</figcaption></figure>
 <ol start="6">
@@ -57,15 +55,13 @@ class that a connection still needs, or untick the Torso.</li>
 <li>In Edit Mode, <strong>Select Limb</strong> and <strong>Assign Selected to Limb</strong> select and move
 patches.</li>
 </ol>
-<figure><img src="img/boner_limb_delete_refused.jpg" alt="Delete refused popup"><figcaption>A limb that a connection
-needs can't be deleted.</figcaption></figure>
 
 <h3>Boner &gt; Connections</h3>
 <p>Each row shows Parent &gt; Child class, corners (picked / wanted), host bone and status. Click a row to highlight
 its ring.</p>
 <ol>
 <li><strong>Rename</strong> or <strong>Delete</strong>. A limb left without a connection is refused by
-ComboTest.exe.</li>
+the combiner.</li>
 <li><strong>Parent</strong> / <strong>Child</strong> chooses which class the boxes edit. A Child class that another
 connection already has shows as <em>duplicate</em>.</li>
 <li><strong>Host bone</strong>: choose one and press <strong>Set</strong>, or press <strong>Default</strong>. It must
@@ -88,16 +84,17 @@ creatures.</li>
 <p>Check the ring's start: a wrong start only shows in combinations.</p>
 <figure><img src="img/boner_conn_list.jpg" alt="Connections tab with head ring"><figcaption>The head connection and its
 ring are selected.</figcaption></figure>
-<figure><img src="img/boner_conn_deleted.jpg" alt="Missing connection alert"><figcaption>Deleting a connection raises
-an alert.</figcaption></figure>
 <figure><img src="img/boner_conn_created.jpg" alt="New connection without a ring"><figcaption>A new connection needs a
 ring.</figcaption></figure>
 <figure><img src="img/boner_conn_ring_set.jpg" alt="Neck ring re-picked"><figcaption>From Selection orders the ring for
 you.</figcaption></figure>
 
 <h3>Add Stub Socket: a class the creature does not model</h3>
-<p>Without arm stubs, for example, a creature can't take arms, and the Object Editor warns <em>Required limb class not
-found</em>. <strong>Add Stub Socket</strong> adds the stub limb and its connection.</p>
+<p>Without arm stubs, for example, a creature can't take arms, and the game's check warns <em>Required limb class not
+found</em>. <strong>Add Stub Socket</strong> adds the stub limb and its connection. Its menu lists only the classes that no
+limb and no connection of the creature has. The stock rhinoceros already has its arm stubs, so to follow this example
+on it, first delete the connections of its two arm stubs (classes <code>LFArm</code> and <code>RFArm</code>, in the
+<strong>Connections</strong> tab) and then those two limbs (<strong>Limbs</strong> tab). The pictures show a rhinoceros stripped that way.</p>
 <ol>
 <li>In Edit Mode select the <strong>4 corners of one Torso patch</strong> (such as a shoulder for arms, or the back for
 wings).</li>
@@ -111,14 +108,12 @@ patch.</figcaption></figure>
 patch.</figcaption></figure>
 
 <h3>Boner &gt; Bones: renaming, adding, deleting and re-parenting bones</h3>
-<p>This tab also holds the skinning tools (see the skinning chapter).</p>
+<p>This tab also holds the skinning tools (see <a href="#skin">Skinning and re-skinning</a>).</p>
 <ol>
 <li><strong>Rename Bone</strong> (pencil next to <strong>Bone</strong>, or Blender's F2). Use a unique name of up to 63
 ASCII characters; references and Actions follow. Renaming a bone the game looks up is allowed but warned. To reuse
 another bone's old name, export and re-import first.</li>
 </ol>
-<figure><img src="img/boner_bone_rename_dialog.jpg" alt="Rename Bone warning"><figcaption>The dialog warns about
-special names.</figcaption></figure>
 <ol start="2">
 <li><strong>Add Bone under Active</strong>: choose the parent in <strong>Bone</strong>, then give a name, offset and
 length. Skin points to it with <strong>Assign Selected</strong>.</li>
@@ -132,8 +127,6 @@ waiting to be adopted.</figcaption></figure>
 <figure><img src="img/boner_bone_adopted.jpg" alt="Tail limb with new bone"><figcaption>The adopted bone is in its
 parent's limb.</figcaption></figure>
 <p>An added bone always belongs to its parent's limb; re-parent it to move it.</p>
-<figure><img src="img/boner_bone_refused.jpg" alt="Add Bone refused popup"><figcaption>You can't add a bone under a
-stub bone.</figcaption></figure>
 
 <h3>Deleting and re-parenting the creature's own bones</h3>
 <p>Use <kbd>X</kbd> and <kbd>Ctrl</kbd>+<kbd>P</kbd> in the rig's Edit Mode, or the Outliner.</p>
@@ -146,16 +139,12 @@ and clips.</li>
 parent.</figcaption></figure>
 <p>You can't delete the root, bones the game looks up by name, stub bones, host bones or a limb's only bone. You can't
 move the root, make a second root, put a bone under a stub, or split a limb other than the Torso.</p>
-<figure><img src="img/boner_bone_deleted_alert.jpg" alt="Deleting tail1 refused"><figcaption><code>tail1</code> can't
-be deleted.</figcaption></figure>
 
-<h3>Joint limits and IK chains</h3>
+<h3>Joint limits</h3>
 <ul>
 <li><strong>Joint limits</strong>: each rig bone's <code>bz_joint_limits</code> property, in radians. <strong>Reset to
 Stock</strong> restores it.</li>
-<li><strong>IK chains</strong>: <strong>Add IK Chain</strong>, edit, remove or reset them. A chain must be one line of
-bones.</li>
-<li>No game tool has been seen to use either in play.</li>
+<li>No game tool has been seen to use them in play. The creature's IK chains are kept as they are, and are not edited here.</li>
 </ul>
 
 <h3>Validate, Combine Preview and the Quick combine tier</h3>
@@ -164,24 +153,16 @@ bones.</li>
 <li>problems that block loading;</li>
 <li><code>STOCK</code>: things every base-game creature has but yours lacks;</li>
 <li><code>WARN</code>: advice;</li>
-<li><code>COMBINE</code>: trial combinations with stock creatures. A <code>COMBINE ERROR</code> means ComboTest.exe
+<li><code>COMBINE</code>: trial combinations with stock creatures. A <code>COMBINE ERROR</code> means the combiner
 fails on your creature.</li>
 </ul>
 <ol>
 <li>To try it, break a creature: tick Mid on LFLeg only, delete the LFArm connection, and remove <code>nose</code> from
 the Head.</li>
 <li>Press <strong>Validate (will it load?)</strong> and read the lines in an <strong>Info</strong> editor.</li>
-<li>Open <strong>Combine Preview</strong>, choose a stock donor and press <strong>Preview</strong>. It stops at the
+<li>Open <strong>Combine Preview</strong>, choose a stock animal as the other creature and press <strong>Preview</strong>. It stops at the
 first refusal. <strong>Validate Combines</strong> runs only the quick combine checks.</li>
 </ol>
-<figure><img src="img/boner_conn_alerts.jpg" alt="Two connection alerts"><figcaption>The tab flags both
-problems.</figcaption></figure>
-<figure><img src="img/boner_validate_status.jpg" alt="Validate summary in status bar"><figcaption>The status bar sums up
-the report.</figcaption></figure>
-<figure><img src="img/boner_validate_info.jpg" alt="Validate report lines"><figcaption>The Info editor shows each
-line.</figcaption></figure>
-<figure><img src="img/boner_combine_refused.jpg" alt="Combine failed popup"><figcaption>Preview explains why combining
-fails.</figcaption></figure>
 
 <p>Change the class of left and right partners together, and keep the name of the <code>tail1</code> bone.</p>
 

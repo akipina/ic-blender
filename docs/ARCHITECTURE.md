@@ -9,9 +9,9 @@ and export rewrites only what changed.** An untouched import and export produces
 |---|---|
 | `ICParse` (library) | Reads and writes every game format. The add-on has no binary format code of its own. |
 | `combotest` (library) | The game's creature combiner, used by Combine Preview and validation. |
-| Core modules | Editing logic with no dependency on Blender, so it can be tested in plain Python. |
-| Blender layer | Operators, panels and GPU drawing. |
-| `sceneobj/` | Structures, gatherers, props, blueprints and maps. |
+| Core modules | Editing logic with no dependency on Blender, so it can be tested in plain Python: `core`, `boner`, `structure`, `topology`, `patchrules`, `fastsurf`, `limbs`, `combocore` and `stockextract`. `topoops`, `fitops`, `retargetops`, `landmarkops`, `trimops`, `texops`, `material` and `store` also import without Blender; their Blender parts exist only inside Blender. |
+| Blender layer | Operators, panels and GPU drawing: every other module. |
+| `sceneobj/` | Blueprints, maps, the add-on's preferences and the registry that loads this folder's modules. The meshes of structures, gatherers, characters and props are imported and exported by `scene.py` and `ops.py` (Export Scene Object, Export Scene Geometry). |
 
 ## Data model
 
@@ -37,7 +37,7 @@ import and save steps through `sceneobj/map_hooks.py`.
 | Creation and reshaping | `newproject`, `newcreature`, `fitops`, `retargetops`, `landmarkops`, `trimops` |
 | Textures and animation | `texops`, `actions` |
 | Combining | `combocore`, `combopreview` |
-| Interface | `ui`, `props` |
+| Interface | `ui`, `props`, `gameinstall` (Install into Test Game) |
 
 `scene` imports and exports scene object meshes.
 
@@ -52,6 +52,9 @@ import and save steps through `sceneobj/map_hooks.py`.
 ## Dependencies and packaging
 
 The release zip is a Blender extension that carries `ICParse`, `combotest`, `construct` and `lupa` as Python wheels.
-When a new version is installed over a running one, `__init__.py` unloads the older libraries before importing.
+When a new version is installed over a running one, `__init__.py` unloads an older `ICParse` and `combotest` before
+importing; `construct` and `lupa` stay loaded (their versions are pinned, and `lupa` cannot be loaded twice).
+
+[DESIGN.md](../DESIGN.md) is the detailed design; this page is the short overview.
 
 The add-on reads the game's textures, stock models and tables from the user's own installation.

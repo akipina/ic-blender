@@ -503,10 +503,13 @@ def _split_curve(Q):
     return np.stack([Q[0], q01, l2, m, r1, q23, Q[3]])
 
 
-def propagate_splits(patches, rows, rings=()) -> Tuple[Dict[int, set], Optional[str], list]:
+def propagate_splits(patches, rows, rings=(), cuts=()) -> Tuple[Dict[int, set], Optional[str], list]:
     """The split flags every patch ends with (``{row: {'c', 'r'}}``: 'c' cuts at u = 1/2 along the columns and
     subdivides the row sides 0 and 3, 'r' cuts along the rows and subdivides the column sides), after propagating each
-    subdivided side to the neighbour across it. Returns ``(flags, refusal, propagated rows)``."""
+    subdivided side to the neighbour across it. ``rows`` are split in both directions (Subdivide); ``cuts`` are
+    ``(row, side k)`` pairs, each splitting that patch in ONE direction only -- the one that halves side ``k`` and the side
+    opposite it (Loop Cut: the cut line runs across the side, parallel to the sides next to it). Returns
+    ``(flags, refusal, propagated rows)``."""
     P = np.asarray(patches, dtype=np.int64).reshape(-1, 16)
     table = side_table(P)
     edges, points = _ring_edges(rings)
@@ -515,7 +518,12 @@ def propagate_splits(patches, rows, rings=()) -> Tuple[Dict[int, set], Optional[
     for r in sorted({int(x) for x in rows}):
         flags[r] = {"c", "r"}
         queue.append((r, "c")); queue.append((r, "r"))
-    origin = {int(r) for r in rows}
+    for r, k in cuts:
+        d = "c" if int(k) in (1, 3) else "r"
+        if d not in flags.setdefault(int(r), set()):
+            flags[int(r)].add(d)
+            queue.append((int(r), d))
+    origin = {int(r) for r in rows} | {int(r) for r, _k in cuts}
     propagated = set()
     # a split direction subdivides two sides: 'c' -> the row sides (k = 1: row 3, k = 3: row 0); 'r' -> the column
     # sides (k = 0, k = 2)
@@ -530,8 +538,14 @@ def propagate_splits(patches, rows, rings=()) -> Tuple[Dict[int, set], Optional[
                 nm = points.get(a) or points.get(b)
             if nm is not None:
                 how = "selected" if r in origin else "reached by the propagation"
-                return flags, (f"patch {r} ({how}) would be split across side {a}-{b} of connection ring '{nm}', which "
-                               "cannot be subdivided: choose patches whose strips do not cross the ring"), sorted(propagated)
+                if cuts:
+                    msg = (f"the cut would cross connection ring '{nm}' (at patch {r}, side {a}-{b}), and a ring cannot be "
+                           "cut: select an edge that runs along the limb (away from the ring), not one that goes around it")
+                else:
+                    msg = (f"patch {r} ({how}) would be split across side {a}-{b} of connection ring '{nm}', which cannot be "
+                           "subdivided: choose patches whose strips do not cross the ring, or use Loop Cut on an edge that "
+                           "runs along the limb: it cuts only round the limb, parallel to the ring, and never crosses it")
+                return flags, msg, sorted(propagated)
             key = side_key(cps, k)
             for q, kq in table.get(key, ()):
                 if q == r:
@@ -545,7 +559,7 @@ def propagate_splits(patches, rows, rings=()) -> Tuple[Dict[int, set], Optional[
     return flags, None, sorted(propagated)
 
 
-def subdivide_plan(V, patches, rows, tables, rings=(), max_patches=MAX_PATCHES, exact=True) -> TopoPlan:
+def subdivide_plan(V, patches, rows, tables, rings=(), max_patches=MAX_PATCHES, exact=True, cuts=()) -> TopoPlan:
     """Split ``rows`` into 4 (propagating), see the module rules. ``exact``: keep the de Casteljau interiors (surface
     unchanged; sub-patches off the Auto Interior rule are flagged manual); False: interiors on the rule."""
     V = np.asarray(V, dtype=np.float64)
@@ -555,10 +569,11 @@ def subdivide_plan(V, patches, rows, tables, rings=(), max_patches=MAX_PATCHES, 
     plan = TopoPlan(n, np.arange(n), np.zeros((0, 3)), np.zeros(0, dtype=np.int64), P.copy(), uv, mat, ptype, limb,
                     manual.copy(), np.arange(len(P)))
     rows = sorted({int(r) for r in rows if 0 <= int(r) < len(P)})
-    if not rows:
+    cuts = [(int(r), int(k)) for r, k in cuts if 0 <= int(r) < len(P)]
+    if not rows and not cuts:
         plan.refusal = "select the patches to subdivide (Face select, or all 4 corners of each)"
         return plan
-    flags, refusal, propagated = propagate_splits(P, rows, rings)
+    flags, refusal, propagated = propagate_splits(P, rows, rings, cuts)
     if refusal:
         plan.refusal = refusal
         return plan
@@ -663,7 +678,7 @@ def subdivide_plan(V, patches, rows, tables, rings=(), max_patches=MAX_PATCHES, 
             plan.new_points[j] = Vr[n + j]
     plan.manual = man
     plan.row_src = src
-    plan.info.update(selected=len(rows), propagated=len(propagated), split=len(flags), patches=len(Pn),
+    plan.info.update(selected=len(rows), cuts=len(cuts), propagated=len(propagated), split=len(flags), patches=len(Pn),
                      patches_before=len(P), points=len(new_pts), manual=manual_new)
     plan.select_virtual = None
     plan.info["new_rows"] = [i for i, s in enumerate(src.tolist()) if s in flags]
@@ -1046,7 +1061,8 @@ def _rings_for_plan(obj):
 
 
 def _tables_of(obj):
-    from . import store
+    from . import hardedges, store
+    hardedges.before_rebuild(obj)                       # the mesh's sharp edges and material slots first (r2shape)
     n = len(store.patches(obj))
     return (store.patch_uv(obj), store.patch_mat(obj), store.patch_type(obj), store.patch_limb(obj),
             store.manual_interior(obj, n))
@@ -1228,6 +1244,8 @@ def apply_plan(op, obj, plan: TopoPlan, patches_old, select="rows", keep_mode=Tr
             else:
                 out.append(dataclasses.replace(r, corners=patchsel.remap_ring(r.corners or [], plan.o2n)))
         store.set_conn_rows(obj, out)
+    from . import hardedges
+    hardedges.after_rebuild(obj)                        # the creases and material slots back on the rebuilt mesh (r2shape)
     # 4. back in Edit Mode: hidden patches stay hidden, interiors hidden, the selection
     bpy.ops.object.mode_set(mode="EDIT")
     patchfeel.apply_interior_visibility(obj)
@@ -1272,6 +1290,24 @@ def _selected_points(obj) -> list:
 def _rows_selected(obj, patches) -> list:
     from . import patchsel
     return patchsel._rows_from_selection(obj, patches)
+
+
+def selected_cut_sides(obj, patches) -> Tuple[list, Optional[str]]:
+    """The sides Loop Cut crosses: every side whose two corners are both selected (an edge of the patch outline in Edge
+    select, the two corners in Vertex select), as ``[(row, k)]`` for each patch that uses it. A selected patch (Face select)
+    has all four sides selected and would be cut both ways, which is Subdivide's job: ``([], why none)``."""
+    from . import patchsel
+    P = np.asarray(patches, dtype=np.int64).reshape(-1, 16)
+    if patchsel.selected_rows(obj, P):
+        return [], ("Loop Cut works on edges, not on whole patches: switch to Edge select and click an edge that runs "
+                    "along the limb (use Subdivide to split whole patches)")
+    sel = set(_selected_points(obj))
+    if len(sel) < 2:
+        return [], "select an edge that runs along the limb: the cut goes round the limb through the middle of that edge"
+    out = [u for key, users in side_table(P).items() if key[0] in sel and key[3] in sel for u in users]
+    if not out:
+        return [], "no patch side has both of its corners selected: select an edge of a patch outline"
+    return out, None
 
 
 def selected_open_sides(obj, patches) -> Tuple[list, Optional[str]]:
@@ -1344,6 +1380,8 @@ if bpy is not None:
                     return {"CANCELLED"}
                 target = act.index
             thr = self.threshold if self.threshold > 0 else 0.01 * creature_size(obj)
+            from . import hardedges
+            hardedges.before_rebuild(obj)                   # the mesh's sharp edges and material slots first (r2shape)
             plan = weld_plan(V, patches, sel, thr, target=target, rings=_rings_for_plan(obj), uv=store.patch_uv(obj),
                              mat=store.patch_mat(obj), ptype=store.patch_type(obj), limb=store.patch_limb(obj),
                              manual=store.manual_interior(obj, len(patches)))
@@ -1394,7 +1432,7 @@ if bpy is not None:
                                      "skeleton)")
                 return False
             if not store.is_native(others[0]):
-                cls.poll_message_set(f"'{others[0].name}' is not a creature: use Convert Mesh or Fit Patches to Mesh first")
+                cls.poll_message_set(f"'{others[0].name}' is not a creature: use Fit Patches to Mesh first")
                 return False
             return True
 
@@ -1535,6 +1573,42 @@ if bpy is not None:
             self.report({"INFO"}, line)
             return {"FINISHED"}
 
+    class BZ_OT_loop_cut(bpy.types.Operator):
+        """Cut round a limb through the middle of the selected edge, in one direction only"""
+        bl_idname = "bz.loop_cut"
+        bl_label = "Loop Cut"
+        bl_options = {"REGISTER", "UNDO"}
+
+        exact: BoolProperty(name="Exact", default=True,
+                            description="Keep the exact surface; off resets interiors, changing the shape slightly")
+        max_patches: IntProperty(name="Max Patches", default=MAX_PATCHES, min=1, max=MAX_PATCHES,
+                                 description="Refuse when the cut would make more patches than this")
+
+        @classmethod
+        def poll(cls, context):
+            return _poll(cls, context)
+
+        def execute(self, context):
+            from . import store
+            obj = context.active_object
+            patches = store.patches(obj)
+            cuts, why = selected_cut_sides(obj, patches)
+            if why:
+                self.report({"ERROR"}, f"Loop Cut: {why}")
+                return {"CANCELLED"}
+            plan = subdivide_plan(_verts(obj), patches, [], _tables_of(obj), rings=_rings_for_plan(obj),
+                                  max_patches=self.max_patches, exact=self.exact, cuts=cuts)
+            if not apply_plan(self, obj, plan, patches):
+                return {"CANCELLED"}
+            i = plan.info
+            line = (f"Loop cut through {_plural(i['split'], 'patch')}: {i['patches_before']} -> {i['patches']} patches, "
+                    f"+{i['points']} points, {i['dropped']} dropped"
+                    + (f"; {i['manual']} sub-patches flagged manual (exact interiors off the Auto Interior rule)"
+                       if i["manual"] else ""))
+            obj["bz_last_topo"] = line
+            self.report({"INFO"}, line)
+            return {"FINISHED"}
+
     class BZ_OT_extrude_sides(bpy.types.Operator):
         """Add a patch on every selected open side"""
         bl_idname = "bz.extrude_sides"
@@ -1641,7 +1715,7 @@ if bpy is not None:
         bl_label = "Add Quad (Drag)"
         bl_options = {"REGISTER", "UNDO"}
 
-    CLASSES = (BZ_OT_weld, BZ_OT_attach, BZ_OT_mirror_whole, BZ_OT_subdivide, BZ_OT_extrude_sides, BZ_OT_fill_hole,
+    CLASSES = (BZ_OT_weld, BZ_OT_attach, BZ_OT_mirror_whole, BZ_OT_subdivide, BZ_OT_loop_cut, BZ_OT_extrude_sides, BZ_OT_fill_hole,
                BZ_OT_extrude_region, BZ_OT_extrude_drag, BZ_OT_add_quad_drag)
 
     def register_macros() -> None:

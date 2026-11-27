@@ -71,7 +71,7 @@ class BZ_OT_import(bpy.types.Operator, ImportHelper):
         from .newproject import game_dir
         try:
             data = core.load_scene(src, data_root=game_dir(context)[0])    # textures: the Game folder setting, IC_INSTALL, Steam
-            objs = bzscene.build_scene(context, data, source_path=src, clips_as_actions=self.clips_as_actions)
+            objs = bzscene.build_scene(context, data, source_path=src, clips_as_actions=self.clips_as_actions, markers=True)
         except Exception as e:
             self.report({"ERROR"}, f"Scene import failed: {e}")
             return {"CANCELLED"}
@@ -86,6 +86,8 @@ class BZ_OT_import(bpy.types.Operator, ImportHelper):
                f"{len(data.materials)} materials, {len(data.textures)} textures")
         if data.bone_names:
             msg += f", rig {len(data.bone_names)} bones, {len(data.animations)} clips"
+        if data.markers:
+            msg += f", {len(data.markers)} markers"
         if data.missing_textures:
             self.report({"WARNING"}, f"{len(data.missing_textures)} texture(s) not found (set the Game folder in the "
                                      "add-on's preferences, or IC_INSTALL): "
@@ -177,11 +179,16 @@ class BZ_OT_convert_mesh(bpy.types.Operator):
         except Exception as e:
             self.report({"ERROR"}, f"Conversion failed: {e}")
             return {"CANCELLED"}
-        tmp = "/tmp/bz_converted.sgm"
-        with open(tmp, "wb") as f:
-            f.write(data)
+        from . import startops
+        try:                                        # kept with the project, never in the temp folder (work must survive a reboot)
+            tmp = startops.project_path(obj.name, "_creature")
+            with open(tmp, "wb") as f:
+                f.write(data)
+        except OSError as e:
+            self.report({"ERROR"}, f"Cannot write the converted creature: {e}")
+            return {"CANCELLED"}
         bpy.ops.bz.import_sgm(filepath=tmp)
-        msg = f"Converted to creature: {F} patches, {N} control points (re-rig + re-limb next)"
+        msg = f"Converted to creature: {F} patches, {N} control points (re-rig + re-limb next); its file is {tmp}"
         if nonquad:
             self.report({"WARNING"}, f"{nonquad} non-quad face(s) dropped -- mesh may have holes")
         self.report({"INFO"}, msg)
@@ -448,6 +455,11 @@ def gather_export(obj, context, animations=True) -> ExportJob:
     if err:
         raise ExportGatherError(err)
     warnings = []
+    from . import hardedges                              # round 2 (r2shape): Mark Sharp edges and material slots -> the tables
+    try:
+        warnings += hardedges.commit(obj)
+    except ValueError as e:
+        raise ExportGatherError(str(e)) from e
     src = store.source_path(obj)
     if obj.get(store.KEY_SRC_SHA1) is None:
         warnings.append(f"the source {os.path.basename(src)} was not stamped at import (an older object): the export "
@@ -565,9 +577,11 @@ def build_export(job: ExportJob, context):
             except Exception as e:
                 raise ExportGatherError(f"Animation export failed: {type(e).__name__}: {e}") from e
         core.apply_clip_plan(built.model, clips, plan.drop)
+    warns = list(job.warnings)
+    refreshed = core.refresh_kept_bounds(built, plan.kept if plan else (), warns)   # kept clips beside a changed body: new bounds, same keys
     summary = core.export_summary(built, kept=plan.kept if plan else (),
                                   written=[c for _, c in plan.encode] if plan else (),
-                                  dropped=plan.drop if plan else (), warnings=job.warnings)
+                                  dropped=plan.drop if plan else (), warnings=warns, bounds_refreshed=refreshed)
     return built.model, summary
 
 
@@ -649,14 +663,30 @@ class BZ_OT_export(bpy.types.Operator, ExportHelper):
 
     filename_ext = ".sgm"
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
+    export_anyway: BoolProperty(name="Export Anyway", default=False, options={"SKIP_SAVE"},
+                                description="Write the file even though the checks found problems that stop the game loading it")
+    overwrite_stock: BoolProperty(name="Overwrite Extracted Stock File", default=False, options={"SKIP_SAVE"},
+                                  description="Allow writing over one of the extracted stock creatures (the combiner's donors)")
 
     @classmethod
     def poll(cls, context):
         return store.is_native(context.active_object)
 
+    def invoke(self, context, event):
+        from . import startops
+        suggested = startops.default_export_path(_active_native(context), context)    # an extracted original is never the suggestion
+        if suggested:
+            self.filepath = suggested
+        return ExportHelper.invoke(self, context, event)
+
     def execute(self, context):
         from ICParse.sgm import parser as sgm_parser
+        from . import startcheck, startops
         obj = _active_native(context)
+        why = startcheck.stock_copy_refusal(self.filepath, startops.stock_dirs(context))
+        if why and not self.overwrite_stock:
+            self.report({"ERROR"}, f"Export refused: {why}. Tick 'Overwrite Extracted Stock File' to do it anyway")
+            return {"CANCELLED"}
         try:
             job = gather_export(obj, context, animations=True)
             model, summary = build_export(job, context)
@@ -667,14 +697,31 @@ class BZ_OT_export(bpy.types.Operator, ExportHelper):
         except Exception as e:
             self.report({"ERROR"}, f"Export failed: {type(e).__name__}: {e}")
             return {"CANCELLED"}
-        for w in summary.warnings:
-            self.report({"WARNING"}, w)
+        try:
+            problems = startops.export_problems(obj, model)
+        except Exception as e:                                   # a check that fails is said, never skipped
+            problems = [f"WARN the export checks failed to run: {type(e).__name__}: {e}"]
+        errs = core.blocking(problems)
         src = store.source_path(obj)
         try:
             with open(src, "rb") as f:
                 identical = f.read() == out
         except OSError:
             identical = False
+        if errs and identical:                                   # nothing was edited: these are the source's own (a shipped Tellurian animal)
+            for p in errs:
+                self.report({"WARNING"}, f"unchanged from the source, which has it too: {p}")
+        elif errs and not self.export_anyway:
+            for p in errs:
+                self.report({"ERROR"}, p)
+            self.report({"ERROR"}, f"Export refused: {len(errs)} problem{'s' if len(errs) != 1 else ''} stop the game loading this "
+                                   f"creature ({startops.count_text(problems)}). Fix them (Check the Creature lists everything), or Export again "
+                                   "with 'Export Anyway' ticked")
+            return {"CANCELLED"}
+        for p in ([] if identical else errs):
+            self.report({"WARNING"}, f"exported anyway: {p}")
+        for w in summary.warnings:
+            self.report({"WARNING"}, w)
         in_place = _same_file(self.filepath, src)
         why = in_place_refusal(job) if (in_place and not identical) else None
         if why:
@@ -687,11 +734,13 @@ class BZ_OT_export(bpy.types.Operator, ExportHelper):
             self.report({"ERROR"}, f"Export failed: cannot write {self.filepath}: {e}")
             return {"CANCELLED"}
         line = summary.line + ("; byte-identical to the source" if identical else "")
+        checks = f"checks: {len(errs)} blocking, {startops.count_text(problems)}"
         if in_place and not identical:
             store.rebase_source(obj, src)              # the base is the file just written: stay in sync with it
             line += "; the creature's own base file was updated in place"
-        self.report({"INFO"}, f"Wrote {len(out)} bytes to {self.filepath}: {line}")
+        self.report({"INFO"}, f"Wrote {len(out)} bytes to {self.filepath}: {line}; {checks}")
         obj["bz_last_export"] = line
+        obj["bz_last_checks"] = checks
         return {"FINISHED"}
 
 
@@ -723,7 +772,7 @@ def _guard_poll(cls, context, obj=None, edit=False):
 class BZ_OT_bake(bpy.types.Operator):
     """Bake the live surface to a real textured mesh (Eevee/Cycles render + material preview)"""
     bl_idname = "bz.bake_surface"
-    bl_label = "Bake Surface to Mesh"
+    bl_label = "Bake Textured Mesh"
     bl_options = {"REGISTER", "UNDO"}
 
     posed: bpy.props.BoolProperty(
@@ -1246,7 +1295,7 @@ class BZ_OT_extrude_patch(bpy.types.Operator):
                                    "points could not be appended. Leave and re-enter Edit Mode (Tab, Tab), then extrude")
             return {"CANCELLED"}
         from . import patchsel
-        patchsel.add_face(bm, new_cp)                      # the new patch's corner quad (patch selection)
+        patchsel.add_face(bm, new_cp, int(pmat[pi]) if len(obj.data.materials) else 0)   # the new patch's corner quad (patch selection)
         n1 = len(bm.verts)
         owner = int(vb[int(patches[pi][core._SIDE_CPS[side][0]])]) if len(vb) == n0 else 0
         store.set_point_ints(obj, store.ATTR_CP, np.arange(n1))
@@ -2567,10 +2616,27 @@ class BZ_OT_load_anim(bpy.types.Operator):
 
 
 def _dropped_text(geo) -> str:
-    """", 11 damage states dropped from 1 edited part" when the export left any out, else ""."""
+    """", 11 damage states dropped from 1 edited part" when the export left any out, plus what was written of the others
+    (", damage states: 10 kept, 1 re-encoded"), else ""."""
     n = sum(geo.damage_states_dropped.values())
     parts = len(geo.damage_states_dropped)
-    return f", {n} damage states dropped from {parts} edited part{'s' if parts != 1 else ''}" if n else ""
+    out = f", {n} damage states dropped from {parts} edited part{'s' if parts != 1 else ''}" if n else ""
+    tot = {k: sum(r.get(k, 0) for r in getattr(geo, "morphs", {}).values()) for k in ("kept", "encoded", "added", "removed")}
+    words = [f"{v} {'re-encoded' if k == 'encoded' else k}" for k, v in tot.items() if v and not (k == "removed" and n)]
+    return out + (", damage states: " + ", ".join(words) if words else "")
+
+
+def _parts_text(geo) -> str:
+    """"; parts: 1 added, 2 removed" when the export added or removed parts, else ""."""
+    words = [f"{len(v)} {w}" for v, w in ((geo.parts_added, "added"), (geo.parts_removed, "removed")) if v]
+    return ("; parts: " + ", ".join(words) + (" (put into a part group)" if geo.converted else "")) if words else ""
+
+
+def _markers_text(geo) -> str:
+    """"; markers: 1 moved, 1 added" when the export changed any attach point, else ""."""
+    parts = [f"{len(v)} {w}" for v, w in ((geo.markers_changed, "edited"), (geo.markers_added, "added"),
+                                            (geo.markers_removed, "deleted")) if v]
+    return ("; markers: " + ", ".join(parts)) if parts else ""
 
 
 class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
@@ -2582,12 +2648,28 @@ class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
     rebuild_lod: BoolProperty(
         name="Let the engine rebuild the detail ladder",
-        description="Write the older, game-tested layout; the game rebuilds distance detail itself",
+        description="Write the older, game-tested layout; the game rebuilds distance detail itself. Off writes the newer layout, "
+                    "which loads in the Object Editor but has not been shown to load in the game",
         default=True)
     drop_damage_states: BoolProperty(
-        name="Drop the damage states of edited parts",
-        description="Export edited parts that have damage states, dropping those states",
+        name="Leave damage states out of edited parts",
+        description="Write edited parts without their damage states (shape keys) instead of with them",
         default=False)
+    carry_over_damage: BoolProperty(
+        name="Carry over damage states",
+        description="An edited part whose source has damage states but which has no shape keys gets them carried onto its "
+                    "new mesh by surface position",
+        default=False)
+    remove_deleted_parts: BoolProperty(
+        name="Remove parts deleted in Blender",
+        description="A part whose object was deleted is removed from the model, with its clip channels, instead of keeping "
+                    "the source's geometry",
+        default=False)
+
+    export_anyway: BoolProperty(
+        name="Export anyway",
+        description="Write the file even if the checks find an error the game would refuse (the error is kept as a note)",
+        default=False, options={"SKIP_SAVE"})
 
     @classmethod
     def poll(cls, context):
@@ -2604,33 +2686,60 @@ class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
         if not src or arm is None:
             self.report({"ERROR"}, "No source .sgm / rig recorded on this object")
             return {"CANCELLED"}
-        try:
-            geo = bzscene.export_scene_object(obj, legacy=self.rebuild_lod, drop_morphs=self.drop_damage_states)
-            unchanged, encode, drop = bzactions.plan_export(arm, renames=False)
-            if encode or drop:
-                data = core.load_scene(src)
-                clips = bzactions.encode_scene_actions(arm, data, encode, context.scene.render.fps)
-                out = SM.write_scene_animations(geo.data, clips, drop)
-            else:
-                out = geo.data
-        except Exception as e:
-            self.report({"ERROR"}, f"Export failed: {e}")
+        from . import scenesafety
+        changed = scenesafety.source_error(obj)
+        if changed:
+            self.report({"ERROR"}, changed)
             return {"CANCELLED"}
         try:
+            from . import scene_skeleton
+            out, geo, plan = scene_skeleton.export_with_clips(context, obj, arm, self.rebuild_lod, self.drop_damage_states,
+                                                         carry_over=self.carry_over_damage,
+                                                         remove_missing=self.remove_deleted_parts,
+                                                         refuse_errors=not self.export_anyway)
+            unchanged, encode, drop = plan
+            geo.notes = scenesafety.clip_blueprint_notes(obj, plan) + scene_skeleton.sgm_only_notes(obj, self.filepath, geo.notes + plan.warnings)
+            in_place = scenesafety.guard_write(obj, self.filepath, out, geo, plan)      # onto the model's own file: only what the session can follow
+        except scenesafety.InPlaceRefused as e:
+            self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+        except Exception as e:
+            self.report({"ERROR"}, f"Export failed: {e}" + scenesafety.anyway_hint(e))
+            return {"CANCELLED"}
+        data_dir = None
+        if geo.files:                       # new texture files: they go into the Data folder the model is written into
+            from . import scene_materials as bzmat
+            data_dir = bzmat.data_folder_of(self.filepath)
+            if data_dir is None:
+                self.report({"ERROR"}, f"This model now needs {len(geo.files)} texture file(s) the game does not have, which belong in a Data folder "
+                                       f"(Data/art/textures). Export into a folder inside a Data folder, or use Export Entity "
+                                       f"Folder. Nothing was written.")
+                return {"CANCELLED"}
+        try:
             _atomic_write(self.filepath, out)
+            if data_dir is not None:
+                bzmat.write_files(data_dir, geo.files)
         except OSError as e:
             self.report({"ERROR"}, f"Export failed: cannot write {self.filepath}: {e}")
             return {"CANCELLED"}
+        if data_dir is not None:
+            self.report({"INFO"}, f"Wrote {len(geo.files)} texture file(s) into {os.path.join(data_dir, 'art', 'textures')}")
+        if in_place:
+            scenesafety.after_write(obj, self.filepath, arm, plan)           # the session now matches the file it was built on
+            self.report({"INFO"}, "Written over the model's own source file; this session now matches it")
         for note in geo.notes[:4]:
             self.report({"WARNING"}, note)
+        if len(geo.notes) > 4:
+            print("Export notes:", *geo.notes, sep="\n  ")
+            self.report({"WARNING"}, f"... and {len(geo.notes) - 4} more note(s), printed in the system console")
         self.report({"INFO"}, f"Wrote {len(out)} bytes to {self.filepath}; geometry: {len(geo.rebuilt)} part(s) rebuilt, "
-                              f"{len(geo.kept)} unchanged" + _dropped_text(geo) + f"; clips: {len(unchanged)} kept, "
+                              f"{len(geo.kept)} unchanged" + _dropped_text(geo) + _parts_text(geo) + _markers_text(geo) + f"; clips: {len(unchanged)} kept, "
                               f"{len(encode)} written" + (f", {len(drop)} dropped" if drop else ""))
         return {"FINISHED"}
 
 
 class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
-    """Export only the edited geometry to .sgm; clips and skeleton stay as in the source"""
+    """Export only the edited geometry and skeleton to .sgm; the clips stay as in the source (following bone edits)"""
     bl_idname = "bz.export_scene_geometry"
     bl_label = "Export Scene Geometry (.sgm)"
 
@@ -2638,12 +2747,28 @@ class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
     rebuild_lod: BoolProperty(
         name="Let the engine rebuild the detail ladder",
-        description="Write the older, game-tested layout; the game rebuilds distance detail itself",
+        description="Write the older, game-tested layout; the game rebuilds distance detail itself. Off writes the newer layout, "
+                    "which loads in the Object Editor but has not been shown to load in the game",
         default=True)
     drop_damage_states: BoolProperty(
-        name="Drop the damage states of edited parts",
-        description="Export edited parts that have damage states, dropping those states",
+        name="Leave damage states out of edited parts",
+        description="Write edited parts without their damage states (shape keys) instead of with them",
         default=False)
+    carry_over_damage: BoolProperty(
+        name="Carry over damage states",
+        description="An edited part whose source has damage states but which has no shape keys gets them carried onto its "
+                    "new mesh by surface position",
+        default=False)
+    remove_deleted_parts: BoolProperty(
+        name="Remove parts deleted in Blender",
+        description="A part whose object was deleted is removed from the model, with its clip channels, instead of keeping "
+                    "the source's geometry",
+        default=False)
+
+    export_anyway: BoolProperty(
+        name="Export anyway",
+        description="Write the file even if the checks find an error the game would refuse (the error is kept as a note)",
+        default=False, options={"SKIP_SAVE"})
 
     @classmethod
     def poll(cls, context):
@@ -2652,25 +2777,52 @@ class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
 
     def execute(self, context):
         from . import scene as bzscene
+        from . import scenesafety
         obj = context.active_object
+        changed = scenesafety.source_error(obj)
+        if changed:
+            self.report({"ERROR"}, changed)
+            return {"CANCELLED"}
         try:
-            geo = bzscene.export_scene_object(obj, legacy=self.rebuild_lod, drop_morphs=self.drop_damage_states)
-        except ValueError as e:
+            geo = bzscene.export_scene_object(obj, legacy=self.rebuild_lod, drop_morphs=self.drop_damage_states,
+                                              carry_over=self.carry_over_damage, remove_missing=self.remove_deleted_parts,
+                                              refuse_errors=not self.export_anyway)
+            in_place = scenesafety.guard_write(obj, self.filepath, geo.data, geo, None)       # no clips are written, none are looked at
+        except scenesafety.InPlaceRefused as e:
             self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+        except ValueError as e:
+            self.report({"ERROR"}, str(e) + scenesafety.anyway_hint(e))
             return {"CANCELLED"}
         except Exception as e:                             # noqa: BLE001 -- surface anything else as UI
             self.report({"ERROR"}, f"Export failed: {e}")
             return {"CANCELLED"}
         out = geo.data
+        data_dir = None
+        if geo.files:                       # new texture files: they go into the Data folder the model is written into
+            from . import scene_materials as bzmat
+            data_dir = bzmat.data_folder_of(self.filepath)
+            if data_dir is None:
+                self.report({"ERROR"}, f"This model now needs {len(geo.files)} texture file(s) the game does not have, which belong in a Data folder "
+                                       f"(Data/art/textures). Export into a folder inside a Data folder, or use Export Entity "
+                                       f"Folder. Nothing was written.")
+                return {"CANCELLED"}
         try:
             _atomic_write(self.filepath, out)
+            if data_dir is not None:
+                bzmat.write_files(data_dir, geo.files)
         except OSError as e:
             self.report({"ERROR"}, f"Export failed: cannot write {self.filepath}: {e}")
             return {"CANCELLED"}
+        if data_dir is not None:
+            self.report({"INFO"}, f"Wrote {len(geo.files)} texture file(s) into {os.path.join(data_dir, 'art', 'textures')}")
+        if in_place:
+            scenesafety.after_write(obj, self.filepath)                       # the session now matches the file it was built on
+            self.report({"INFO"}, "Written over the model's own source file; this session now matches it")
         for note in geo.notes[:4]:
             self.report({"WARNING"}, note)
         self.report({"INFO"}, f"Wrote {len(out)} bytes to {self.filepath}: {len(geo.rebuilt)} part(s) rebuilt, "
-                              f"{len(geo.kept)} unchanged" + _dropped_text(geo))
+                              f"{len(geo.kept)} unchanged" + _dropped_text(geo) + _parts_text(geo) + _markers_text(geo))
         return {"FINISHED"}
 
 

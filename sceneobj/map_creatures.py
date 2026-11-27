@@ -267,6 +267,7 @@ def _build_one(key: str, model, label: str, hidden, density: int, out: CreatureR
     coll = _new_collection(f"creature {label}", hidden)
     coll.objects.link(obj)
     obj[KEY_MODEL] = key                               # a part of the map's models, not a placed entity
+    _addon("store").stamp_axes(obj)
     coll[KEY_MODEL] = key
     coll[KEY_CREATURE] = how
     out.collections[key] = coll

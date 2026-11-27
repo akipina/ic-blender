@@ -1,7 +1,7 @@
 """Replay: act a cinematic out on the timeline from ``ICParse.sgb.cine_timeline`` events: stand-ins, a camera, markers and
 a text marking each event exact, approximate or skipped. Camera, fade and path rules are decompiled from IC.exe.
 
-Frames are ``1 + seconds x 30``; game (x, y up, z) is Blender (x, -z, y); a heading ``h`` is keyed as ``-degrees(h)``.
+Frames are ``1 + seconds x 30``; game (x, y up, z) is Blender (-x, -z, y); a heading ``h`` is ``-degrees(h)`` (:func:`heading_of_dir`).
 Never change the map: replay objects live outside its collection with no ``ic_*`` key; originals are only hidden.
 """
 from __future__ import annotations
@@ -77,8 +77,8 @@ def _wrap_near(h: float, ref: float) -> float:
 
 
 def heading_turn(delta_deg: float) -> Matrix:
-    """The 3x3 in Blender's axes that turns a game heading by ``delta_deg`` (a game turn about +y is a Blender turn about -z)."""
-    return Matrix.Rotation(-math.radians(delta_deg), 3, "Z")
+    """The 3x3 in Blender's axes that turns a game heading by ``delta_deg`` (towards the game's -x, a Blender turn about +z)."""
+    return Matrix.Rotation(math.radians(delta_deg), 3, "Z")
 
 
 def base_heading(m3: Matrix) -> float:
@@ -128,8 +128,8 @@ class Ground:
         """The ground's height (game y) at game x, z; None outside the map or without a ground."""
         if not self.ok:
             return None
-        p = self.inv @ Vector((gx, -gz, 0.0))
-        fx_, fz_ = p.x / self.ts + (self.w - 1) / 2.0, -p.y / self.ts + (self.h - 1) / 2.0
+        p = self.inv @ Vector((-gx, -gz, 0.0))
+        fx_, fz_ = -p.x / self.ts + (self.w - 1) / 2.0, -p.y / self.ts + (self.h - 1) / 2.0
         if fx_ < 0 or fz_ < 0 or fx_ > self.w - 1 or fz_ > self.h - 1:
             return None
         i, j = min(int(fx_), self.w - 2), min(int(fz_), self.h - 2)
@@ -373,8 +373,8 @@ def _cine():
     try:
         from ICParse.sgb import cine_timeline
     except ImportError as exc:
-        raise ReplayError("The cinematic reader of the format library (ICParse.sgb.cine_timeline) is not installed, so the replay "
-                          f"cannot read the map's scripts ({exc}).") from exc
+        raise ReplayError("Part of this add-on is out of date, so the replay cannot read the map's scripts. Install the newest version of the add-on "
+                          f"({exc}).") from exc
     return cine_timeline
 
 
@@ -547,7 +547,7 @@ class PathTimes:
         try:
             from ICParse.sgb import cine_pathanim as P
         except ImportError as exc:
-            raise ReplayError(f"The path code of the format library (ICParse.sgb.cine_pathanim) is not installed ({exc}).") from exc
+            raise ReplayError(f"Part of this add-on is out of date, so the replay cannot follow the cameras' paths. Install the newest version of the add-on ({exc}).") from exc
         self.kind = kind
         objs = C.key_objects(coll)
         self.pos = [b2g(C._loc(o)) for o in objs]
@@ -1519,7 +1519,6 @@ class _Builder:
         o = bpy.data.objects.new("Replay camera", data)
         o[K_PART] = "camera"
         self.coll.objects.link(o)
-        M.show_game_picture(o)
         o.rotation_mode = "QUATERNION"
         o.location, o.rotation_quaternion = cam.rows[0][1], cam.rows[0][2]
         self.counts["keys"] += key_location(o, [(frame_of(t), loc, i) for t, loc, _q, i in cam.rows])
@@ -1815,7 +1814,8 @@ def clear_replay(context, top) -> bool:
         block = getattr(bpy.data, kind, None)
         for name in names:
             x = block.get(name) if block is not None else None
-            if x is not None and x.users == 0:
+            # (Blender 5.3 gives the Actions the clip import makes a fake user: nothing else uses one that has only that)
+            if x is not None and (x.users == 0 or (x.users == 1 and x.use_fake_user)):
                 block.remove(x)
     prev = scene.get(K_PREV)
     if prev:

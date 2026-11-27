@@ -191,6 +191,8 @@ def _make_object(top, terrain, kind: str, label: str, material, image=None):
     coll.objects.link(obj)
     obj.parent = terrain
     obj[KEY_PAINT] = kind
+    from . import ops_map_import as M
+    M.stamp(obj)
     if image is not None:
         obj[KEY_IMAGE] = image.name
     mod = obj.modifiers.new("Lift", "DISPLACE")

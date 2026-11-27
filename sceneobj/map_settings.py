@@ -208,7 +208,7 @@ def place_start(context, top, slot: int, x: float, y: float) -> list:
     made = []
     spots = [(sc.LAB_BLUEPRINT, 0.0, 0.0)] + [(sc.HENCHMEN_BLUEPRINT, dx, dz) for dx, dz in sc.start_offsets()]
     for ref, dx, dz in spots:
-        px, py = x + dx, y - dz                           # a game z is Blender's -y
+        px, py = x - dx, y - dz                           # a game x, z is Blender's -x, -y
         z = X.ground_height_at(terrain, px, py) if terrain is not None else None
         obj, _why = X.new_entity_object(context, top, mv, ref, (px, py, z if z is not None else 0.0), game_dir)
         obj[KEY_OWNER] = int(slot)
@@ -316,7 +316,8 @@ def render_ground(context, top, side: int = 512):
         a = px.reshape(img.size[1], img.size[0], 4)
         a = np.clip(np.rint(a * 255.0), 0, 255).astype(np.uint8)
         a[..., 3] = 255
-        return a[::-1].copy()                               # Blender's rows start at the bottom; the game's first row is the +y edge
+        # Blender's rows start at the bottom (the game's first row is the +y edge); Blender's +x is the game's -x
+        return a[::-1, ::-1].copy()
     finally:
         if img is not None:
             bpy.data.images.remove(img)
@@ -352,7 +353,7 @@ def make_preview(context, top, method: str = "GAME") -> dict:
 def _game_xz(o):
     """An object's position in the game's axes (x, z)."""
     t = o.matrix_world.translation
-    return float(t.x), float(-t.y)
+    return float(-t.x), float(-t.y)
 
 
 def _terrain_half(top):
