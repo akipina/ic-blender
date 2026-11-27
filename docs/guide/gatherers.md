@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/gatherers.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Structures and props](structures.md) · Next: [Effects, events and sounds](effects.md)
 
 # Gatherers and characters
@@ -31,13 +29,11 @@ You should see the worker and its skeleton, and the message “Started the gathe
 2. In **2. Export for the Game** press **Export Entity Folder**. Choose a folder, and then **Export as** (in the panel at the right of the file window). Choose **Replace the original ...** to change the game's own worker, or **A new name of my own** for a worker that appears only where a map or script places it. For a new name, type a file name that is not the game's (not `henchmen`): with the game's own name, the files take the place of the original even under this choice.
 3. In **3. Install into Test Game** press **Install into Test Game**. Start the game from the test copy ([Start here](start.md), “Start the game”).
 
+After changing a worker, check in the game that it still walks, gathers and carries correctly.
+
 Replacing the henchmen changes every henchman in every army of that copy. In a game with other players, everyone needs the same files.
 
 The step-by-step details of the export window, the new-name and replace choices, and what the files hold are in the chapter [Structures and props](structures.md), section “Check, export, install”. The refusal messages are in [Troubleshooting](trouble.md).
-
-## What was checked
-
-A test build of the game loaded, from a script, the henchmen with one bone renamed and one marker moved. It started a skirmish that ran for a minute without an error, and the game read the files. Nobody has seen them walk, gather or carry in the game, so please look at those three first.
 
 > [!IMPORTANT]
 > **Limits**

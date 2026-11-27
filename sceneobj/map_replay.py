@@ -1026,12 +1026,12 @@ class _Builder:
         if d.get("action") in ("pause", "resume"):
             return "the path stops / goes on: its distance in the timeline's samples already holds still"
         total, exact = self._path_events("move", t, eids, d)
-        return f"follows the animation's path for {total:.1f} s" + ("" if exact else " (the game's stepping worked out here: the timeline gave no distances)")
+        return f"follows the animation's path for {total:.1f} s" + ("" if exact else " (the positions are estimated)")
 
     def ev_obj_anim(self, t, eids, d, ev):
         total, exact = self._path_events("obj", t, eids, d)
         return f"follows the animation's path for {total:.1f} s, keeping each one's place in the group" + (
-            "" if exact else " (the game's stepping worked out here: the timeline gave no distances)")
+            "" if exact else " (the positions are estimated)")
 
     def ev_camera(self, t, eids, d, ev):
         action = str(d.get("action", "play"))
@@ -1488,7 +1488,7 @@ class _Builder:
             samples, exact = _samples_of(d, run.path)
             samples = _thin(samples)
             if not exact:
-                self.notes.append(f"camera animation {int(ident)} at {t:.1f} s: the timeline gave no distances, so the game's own stepping is used from the start.")
+                self.notes.append(f"camera animation {int(ident)} at {t:.1f} s: the positions are estimated from the start.")
             blend_in = float(d.get("blend_in_s", run.path.blend_in) or 0.0)
             t_next = ops[idx + 1][0] if idx + 1 < len(ops) else float("inf")
             loc0, q0 = run.pose(samples[0][1], t + blend_in)

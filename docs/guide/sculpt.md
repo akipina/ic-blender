@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/sculpt.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Topology: making geometry, not just moving it](topology.md) · Next: [Making an animal from scratch: a rhino](scratch.md)
 
 # Sculpting: brushes instead of control points

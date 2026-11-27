@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/replace.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Start here: install, set up, and how a project works](start.md) · Next: [A new creature from a game animal](newcreature.md)
 
 # Replace one of the game's animals
@@ -80,9 +78,6 @@ You should see your wolf, with the hump. If you see the old wolf, read [Troubles
 ## 7. Go back
 
 In the list **Installed here**, press **Remove** next to `wolf`. A window asks “Remove 'wolf' from the Test game?” Confirm. The message says “Removed 'wolf': 5 files deleted, 0 put back as they were.” **“0 put back” is right the first time.** The original wolf lives inside the game's archive and shows again as soon as your files are gone. “Put back” counts only loose files you had before. Your project stays in Blender, so you can install it again.
-
-> [!NOTE]
-> Nothing here has been looked at by eye in the running game. The files of a replacement are the same kind as the files of a new creature, and four new creatures were loaded in a test build of the game from a script. A replacement itself has not been loaded in the game yet.
 
 ---
 

@@ -594,7 +594,7 @@ def _creature_poll(context) -> bool:
 
 
 class BZ_OT_fx_events_from_animal(bpy.types.Operator):
-    """Take the events of another animal for this creature: the ones for clips this creature has (Relic's Import Events). Replaces the events in the list"""
+    """Take the events of another animal for this creature: the ones for clips this creature has. Replaces the events in the list"""
     bl_idname = "bz.fx_events_from_animal"
     bl_label = "Copy events from another animal"
     bl_options = {"REGISTER", "UNDO"}
@@ -892,10 +892,10 @@ class BZ_OT_fx_sound_new(bpy.types.Operator):
         try:
             ns = fxcore.create_sound(_source(ent), _game_dir(), wave, name, fxcore.sound_folder(is_creature(ent), _sound_stem(ent)), settings)
         except ValueError as e:
-            self.report({"ERROR"}, str(e))
+            self.report({"ERROR"}, ui_kit.plain(str(e)))
             return {"CANCELLED"}
         for w in ns.warnings:
-            self.report({"WARNING"}, w)
+            self.report({"WARNING"}, ui_kit.plain(w))
         chosen = state.events[state.event_index] if 0 <= state.event_index < len(state.events) else None
         used = self.use_in_event and _use_sound(state, ns.event_value)
         info = ns.wave
@@ -974,7 +974,7 @@ class BZ_OT_fx_copy(bpy.types.Operator):
         try:
             res = fxcore.copy_into_project(_source(ent), _game_dir(), self.name, prefix=state.prefix.strip(), new_name=self.new_name.strip())
         except Exception as e:                                            # noqa: BLE001
-            self.report({"ERROR"}, str(e))
+            self.report({"ERROR"}, ui_kit.plain(str(e)))
             return {"CANCELLED"}
         if not res.written and not res.kept:
             self.report({"ERROR"}, f"'{self.name}' is not an effect of the game." if self.name else "Choose an effect.")
@@ -1032,7 +1032,7 @@ class BZ_OT_fx_new(bpy.types.Operator):
             else:
                 fx = fxlua.new_effect(self.style)
         except (ValueError, AttributeError) as e:
-            self.report({"ERROR"}, str(e))
+            self.report({"ERROR"}, ui_kit.plain(str(e)))
             return {"CANCELLED"}
         fxcore.save_effect(_source(ent), name, fx)
         ent.holder.bz_fx.fx_name, ent.holder.bz_fx.fx_key = name, 0
@@ -1116,7 +1116,7 @@ class BZ_OT_fx_key(bpy.types.Operator):
         err = edit_effect(ob, state.fx_name, go)
         state.message = err
         if err:
-            self.report({"ERROR"}, err)
+            self.report({"ERROR"}, ui_kit.plain(err))
             return {"CANCELLED"}
         state.fx_key = k
         refill_rows(ob)
@@ -1186,7 +1186,7 @@ class BZ_OT_fx_pick_file(bpy.types.Operator):
         err = edit_effect(ob, state.fx_name, lambda fx: fx.set_property(self.prop, ref))
         state.message = err
         if err:
-            self.report({"ERROR"}, err)
+            self.report({"ERROR"}, ui_kit.plain(err))
             return {"CANCELLED"}
         refill_rows(ob)
         return {"FINISHED"}
@@ -1256,10 +1256,10 @@ class BZ_OT_fx_write_folder(bpy.types.Operator):
                 raise _pb().Refused("The game would not load these effects: " + "; ".join(refused[:3]))
             written = fxcore.write_effects(_source(ent), root)
         except _pb().Refused as e:
-            self.report({"ERROR"}, str(e))
+            self.report({"ERROR"}, ui_kit.plain(str(e)))
             return {"CANCELLED"}
         for n in notes[:3]:
-            self.report({"WARNING"}, n)
+            self.report({"WARNING"}, ui_kit.plain(n))
         self.report({"INFO"}, f"Wrote {len(written)} file(s) under {os.path.join(root, 'data')}")
         return {"FINISHED"}
 

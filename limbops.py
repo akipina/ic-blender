@@ -401,7 +401,7 @@ class BZ_OT_limb_flag(bpy.types.Operator):
         if old_cls != new_cls:
             dup = [x.name for i, x in enumerate(rows) if i != idx and new_cls and boner.class_of(x.limb_id) == new_cls]
             if dup:
-                self.report({"WARNING"}, f"'{dup[0]}' has the same class: the Object Editor warns about a duplicate class"
+                self.report({"WARNING"}, f"'{dup[0]}' has the same class: two limbs should not share a class"
                                          + (" and two connections now attach that class" if follow and any(
                                              boner.class_of(x) == new_cls for j, x in enumerate(f2)
                                              if j not in {ci for ci, _ in follow}) else ""))

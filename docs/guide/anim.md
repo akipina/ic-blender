@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/anim.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Gameplay numbers](numbers.md) · Next: [Structures and props](structures.md)
 
 # Animations and motions
@@ -128,7 +126,7 @@ The changes are written when you export. Only the motions you changed are writte
 > [!IMPORTANT]
 > **Limits**
 >
-> A motion can be added as a copy under the same parents as its original, or under none. Moving a motion under another one is not in the box yet. Old blueprints of version 1 or 2 use only Velocity as the speed and the condition variable. The Motions box was tested from a script in headless Blender, not by hand in the Blender window and not in the game.
+> A motion can be added as a copy under the same parents as its original, or under none. You cannot move a motion under another one in the box. Old blueprints of version 1 or 2 use only Velocity as the speed and the condition variable.
 
 ---
 

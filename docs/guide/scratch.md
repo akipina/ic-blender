@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/scratch.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Sculpting: brushes instead of control points](sculpt.md) · Next: [Fitting a mesh: an outside model becomes a creature](fit.md)
 
 # Making an animal from scratch: a rhino
@@ -145,7 +143,7 @@ A creature built from the template has no game animal behind it, so the export h
 2. Press **Export Creature for the Game**. Give it a name such as `my_rhino` and a display name, and press **OK**.
 3. Press **Install into Test Game** and start the game from the test copy.
 
-The chapter [A new creature from a game animal](newcreature.md) shows these steps in full. A creature built from the template with a generated blueprint was loaded by a test build of the game from a script (it was listed in the creature creator, combined with a baboon and used in a skirmish without an error). Its skin is a plain checker pattern, so a combined creature looks patchy. Nobody has looked at one in the game.
+The chapter [A new creature from a game animal](newcreature.md) shows these steps in full. The template's skin is a plain checker pattern, so a combined creature looks patchy.
 
 ---
 

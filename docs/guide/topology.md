@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/topology.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Editing an existing animal](edit.md) · Next: [Sculpting: brushes instead of control points](sculpt.md)
 
 # Topology: making geometry, not just moving it

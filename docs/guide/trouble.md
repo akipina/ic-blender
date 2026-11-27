@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/trouble.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Check, export, install, remove and share](ship.md) · Next: [Finding your way around a creature](tour.md)
 
 # Troubleshooting
@@ -25,7 +23,7 @@ Messages in **red** in a panel, or that start with **Error**, stop something. Me
 | `No game found. Set the Game folder above, or set the IC_INSTALL environment variable.` | In **Edit > Preferences > Add-ons > IC Blender**, set **Game folder** to the folder that holds `IC.exe`. Ignore the part about IC_INSTALL. |
 | `No game folder found: set the Game folder in the add-on's preferences (Edit > Preferences > Add-ons, IC Blender), or set the IC_INSTALL environment variable.` | The same. Until the game is found, the list **Start from** in the New Project window shows only **Default skeleton** (for a creature) or **Another .sgm file...** (for the other types). |
 | `Parts of the add-on that could not be loaded (a red box in the preferences)` | A part of the add-on did not start. The box says which part and why. Restart Blender. If it stays, install the zip again, and send the text of the box with your report. |
-| `This was made with an older version of IC Blender. Import the original file again.` | The `.blend` was saved with an add-on older than 0.9.2, which kept models flipped left to right. Open the model again with **File > Import**, or start the project again. Nothing is changed behind your back. |
+| `This was made with an older version of IC Blender. Import the original file again.` | The `.blend` was saved with an add-on older than 0.9.2, which kept models flipped left to right. Open the model again with **File > Import**, or start the project again. |
 | `The model file <name> was changed on disk after it was opened here ... Import <name> again to carry on from the file as it is now.` | Another program, or an export from another Blender session, changed the project's file. Import it again with **File > Import**. In the creature panels the box **Problems** offers **Relink Source** for a file that moved. |
 
 ## Making the test copy
@@ -168,7 +166,7 @@ These come from **Check** and **Export Entity Folder**.
 | `There is no thing of the game to replace: this model was not started from one of the game's own things ... Choose 'A new name of my own'.` | Only a project started from one of the game's things can replace it. |
 | `Export to <file> refused: it is this model's own blueprint, and ... would be applied a second time by the next export. Export under another name` | You tried to write onto the project's own file with a change that cannot be repeated (a renamed bone, a new part, a changed texture). Choose a folder and name of your own. |
 | `The blueprint file '<file>' changed on disk after it was loaded. Press Reset to read it again ...` | Press **Reset** in the **Blueprint** panel. This throws away blueprint changes you have not exported. |
-| `This blueprint carries its model inside itself, so there is no separate .sgm file to write beside it.` | This kind of blueprint can be looked at but not exported yet. |
+| `This blueprint carries its model inside itself, so there is no separate .sgm file to write beside it.` | This kind of blueprint can be looked at but not exported. |
 | `part '<name>' comes to N vertices once split at UV seams and flat faces; the game draws at most 12,288 per part. Reduce its detail (Decimate, fewer seams) or split it into two parts` | Do what it says. Apply a Decimate modifier to the part, or make it two parts. |
 | `N vertices of '<part>' are weighted only to deleted bone(s) ..., so they follow no bone in Blender. Undo the delete and use Armature > Delete Bones, Merge Weights (it hands the weights to the parent), or weight those vertices to another bone` | Do what it says. Delete bones with **Armature > Delete Bones, Merge Weights**, not with <kbd>X</kbd>. |
 | `bones '<a>' and '<b>' have the same name ignoring case ... / bone '<name>...' has a N-character name; the game reads at most ... / bone '<name>' (the first bone) cannot be deleted ...` | Rename the bone. Bone names are at most 79 characters. The first bone must stay. |
@@ -195,7 +193,7 @@ These come from the box **4. Share**.
 | --- | --- |
 | `Nothing in the add-on says anything, and the game shows the old thing.` | 1\. Close the game and start it again from the test copy.<br>2\. Check that you started the game from the **test copy**, not from the Steam game.<br>3\. Look at the **Installed here** list: is the item there?<br>4\. For a creature with a new name, look in the creature creator of the right game (base game, Insect Invasion, Tellurian).<br>5\. A thing with a name of its own shows only where a map places it.<br>6\. A file of that name in a mod's folder or in `DataMOD` comes first (the install says so).<br>7\. Read `warnings.log` in the test copy's folder. |
 | `The creature is not in the campaign.` | In the campaign the army builder offers only the animals the campaign has unlocked. It shows in skirmish and in the free creature creator. |
-| `The game does not start from the test copy.` | The Steam version starts only while Steam is running. Make sure Steam is open and signed in. On Linux, `IC.exe` is a Windows program, so it must run through Wine or Proton (see [Start here](start.md), “Start the game”). We have not tried every route. |
+| `The game does not start from the test copy.` | The Steam version starts only while Steam is running. Make sure Steam is open and signed in. On Linux, `IC.exe` is a Windows program, so it must run through Wine or Proton (see [Start here](start.md), “Start the game”). |
 
 ## Making a report
 

@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/maps.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [The Blueprint panel](blueprint.md)
 
 # Maps and scenarios
@@ -92,7 +90,7 @@ Save with **Save ready-to-drop folder...**. The game lists a multiplayer map onl
 
 - **Groups and variables:** select objects and press **+** to make a group.
 - **Triggers:** make a trigger, say who runs it, and add conditions and actions with **+** (type to search).
-- **Dialog triggers** and **AI scripts and armies** cover the other Mission Editor tools.
+- **Dialog triggers** and **AI scripts and armies** handle dialogue, computer-player scripts and armies.
 - **Check the scripts** finds references to deleted objects, groups or text.
 - Saving writes your changes into the map and its `.trg` and `.dlg` files.
 
@@ -113,8 +111,8 @@ Replay acts out a cinematic with the map's trigger script.
 - Import with **Placed models** on to see labs, characters and props animate. Placed creatures stay still.
 - Walking, timing after speech, random countdowns and the camera's first blend are approximate.
 - Effects, random wandering and groups filled from your units during play are skipped. Dialogue isn't drawn, and there is no sound.
-- Conditions that depend on play are guessed: the trigger that starts the cinematic is taken as true, other conditions on the rest of the game (a key press, a unit dying) as never true, and random countdowns use the middle of their range. You can't change these choices yet.
-- Replays haven't been compared with the game.
+- Conditions that depend on play are guessed: the trigger that starts the cinematic is taken as true, other conditions on the rest of the game (a key press, a unit dying) as never true, and random countdowns use the middle of their range. You can't change these choices.
+- Replays may differ from the game.
 
 ## Height maps, terrain and entity files, lists and crop
 

@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/edit.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Finding your way around a creature](tour.md) · Next: [Topology: making geometry, not just moving it](topology.md)
 
 # Editing an existing animal
@@ -122,7 +120,7 @@ In Edit Mode, in **Edge select**, click an edge that runs *along* a limb (from t
 
 - **No prefix** (blocks loading): open or over-shared edges, more than 12,288 display vertices, patch points with no bone, or *EXPORT BLOCKED* (read the reason; undo any vertex Delete, Merge or Duplicate).
 - **STOCK**: standard clips, bones, rings or IK chains are missing. It loads, but may behave differently.
-- **WARN**: advice. *clip 'X' will never play* means no motion-tree node uses that clip's name (see [Animations](anim.md); the game ignores case and a trailing `.max`, so `Idle1.max` is simply `Idle1`), with a rename hint when the name is a near miss. The same line says when the game's tree builder will not wire a clip it would otherwise know: `Soar` without a `Fly` clip, a `build_NN` or `damage_NN` run with a gap, or a blueprint that already has a node of that name playing another clip. *the blueprint wires a motion node to clip 'X', but this creature has no clip of that name* means a clip was renamed or deleted and its node now plays nothing (the game's own animals carry a few such nodes too).
+- **WARN**: advice. *clip 'X' will never play* means no motion uses that clip's name (see [Animations](anim.md); the game ignores case and a trailing `.max`, so `Idle1.max` is simply `Idle1`), with a rename hint when the name is a near miss. The same line says when the game will not make a motion for a clip it would otherwise know: `Soar` without a `Fly` clip, a `build_NN` or `damage_NN` run with a gap, or a blueprint that already has a motion of that name playing another clip. *the blueprint wires a motion node to clip 'X', but this creature has no clip of that name* means a clip was renamed or deleted and its motion now plays nothing (the game's own animals have a few such motions too).
 - **COMBINE**: results from **Combine Checks**, never blocking.
 
 ![Operator search listing Validate](img/edit_validate_search.jpg)
@@ -141,11 +139,11 @@ A **hard edge** is a crease: the shading breaks at a corner where two patches me
 
 - **Show Hard Edges** marks, as Blender's *Mark Sharp* edges, the sides where the creature already has a crease. You do not have to press it first. The creases the file already has are kept when you mark or clear another one.
 - In Edit Mode, select patches or edges and press **Make Hard** or **Make Smooth** (or use Mark Sharp yourself). The export writes them as the creature's hard edges.
-- A hard edge creases the shading at the corners where two patches meet. Between the corners the game keeps the shading smooth at its finer detail levels. The game does **not** copy a creature's hard edges into a combination of it, so a hard edge is how the creature itself looks. How a combination looks along it has not been measured in the game.
+- A hard edge creases the shading at the corners where two patches meet. Between the corners the game keeps the shading smooth at its finer detail levels. The game does **not** copy a creature's hard edges into a combination of it, so a hard edge is how the creature itself looks. Check how combinations look in the game.
 - **Show Material Slots** gives the mesh the creature's own materials as Blender material slots. Select patches and press **Set Material** (or assign a slot in Blender's Material tab). The export writes each patch's material. A slot number the creature does not have is refused.
 
 > [!NOTE]
-> Careful with the torso. When the game combines your creature, it repaints the material of the **first patch of the torso** with the blended skin. Check warns when most of the torso uses another material than its first patch, or when two torso materials look the same but have different names. Give the whole torso one material, or at least make its first patch the main one. No creature of the base game triggers either warning.
+> Careful with the torso. When the game combines your creature, it repaints the material of the **first patch of the torso** with the blended skin. Check warns when most of the torso uses another material than its first patch, or when two torso materials look the same but have different names. Give the whole torso one material, or at least make its first patch the main one.
 
 ## Next: take it into the game
 

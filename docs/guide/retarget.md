@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/retarget.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Fitting a mesh: an outside model becomes a creature](fit.md) · Next: [Skinning and re-skinning](skin.md)
 
 # Retargeting: an existing creature takes another shape

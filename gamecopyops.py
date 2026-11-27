@@ -211,7 +211,7 @@ class BZ_OT_create_test_game(bpy.types.Operator):
                              description="Copy the big archives too instead of linking to the original. Slower and about 5 GB larger, "
                                          "but the copy then does not depend on the original game")
     wait: BoolProperty(name="Wait", default=False, options={"SKIP_SAVE", "HIDDEN"},
-                       description="Do all the work inside this call (scripts and tests)")
+                       description="Do all the work inside this call (for scripts)")
 
     @classmethod
     def poll(cls, context):

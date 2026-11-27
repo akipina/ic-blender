@@ -139,9 +139,9 @@ def style_note(style: str) -> str:
     the effect code reads them (no reader was found in the decompiled source), so no choice between ``Fx1`` and ``Fx2`` is known. The editor
     therefore shows it as an ordinary pair of effects."""
     if style == "STYLE_CONDITIONAL":
-        return ("A conditional effect starts both of its effects together, and the game has no test that picks one of them. (The map's "
-                "'land_and_water' effect also checks whether it is over land or water, but we found nothing in the game that uses the answer.) "
-                "It is edited here as a pair of effects, and the preview plays both. When the first of them has ended, the game stops the other.")
+        return ("A conditional effect starts both of its effects together. It does not seem to pick one of them, not even in the map's "
+                "'land_and_water' effect. It is edited here as a pair of effects, and the preview plays both. When the first of them has "
+                "ended, the game stops the other.")
     if style == "STYLE_COMBO":
         return ("A combo starts all of its effects together, at the same moment. When the first of them has ended, the game stops the others "
                 "(a spray, a looping effect or a trail ends then; a ring or beam that does not loop plays out).")

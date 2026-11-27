@@ -616,8 +616,8 @@ def _make_camera(context, coll, root, model, sched, cuts, build, fps, start_fram
     _set_keys(_fc(act2, cam_data, "lens", 0), frames, lens, interp)
     cam_data.clip_end = float(max(far.max(), 10.0))                  # the far plane the clips' lens channels ask for, at most
     if lost:
-        notes.append(f"the camera has no track in the clip that plays for {lost} frame(s): the game reads that as position 0, "
-                     "no rotation (an unanimated camera of a clip); built the same")
+        notes.append(f"the camera has no track in the clip that plays for {lost} frame(s): the game places it at position 0 "
+                     "with no rotation, and so does this one")
     return cam
 
 
@@ -709,7 +709,7 @@ def _events(model, ebp, sched, subtitles):
         ev.append(row)
     for s in subtitles:
         ev.append({"t": s["start"], "kind": "subtitle", "text_id": s["locid"], "until": s["finish"], "quality": "approximate",
-                   "why": "dialogue timing comes from the scene's .subtitles file; it is not shown that the game displays "
+                   "why": "dialogue timing comes from the scene's .subtitles file; the game may not display "
                           "these lines in cut-scenes"})
     for e in sched:
         ev.append({"t": e.delay, "kind": "clip_start", "clip": e.clip, "duration_s": e.duration, "quality": "exact"})

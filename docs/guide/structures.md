@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/structures.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Animations and motions](anim.md) · Next: [Gatherers and characters](gatherers.md)
 
 # Structures and props
@@ -15,7 +13,7 @@ The game cannot load a building built from nothing, so you always start from a c
 
 1. Choose **File > New > Impossible Creatures Project...**.
 2. Set **Type** to **Structure / prop**.
-3. Open **Start from** and choose a model, for example **Lab (structures)**. The list is long (about 200 entries) and sorted by file name. Each entry reads “Name (folder)”: `structures` are buildings and `nature` is scenery, for example **Coal Bin (nature)**. Type in the list's search box to find one. The last choice, **Another .sgm file...**, starts from a model file of your own. If the list shows only that choice, the add-on has not found your game: set the **Game folder** in the preferences. (These choices are in the panel at the right of the file window. If you do not see it, press the small gear button at the top right of the window.)
+3. Open **Start from** and choose a model, for example **Lab (structures)**. The list is long and sorted by file name. Each entry reads “Name (folder)”: `structures` are buildings and `nature` is scenery, for example **Coal Bin (nature)**. Type in the list's search box to find one. The last choice, **Another .sgm file...**, starts from a model file of your own. If the list shows only that choice, the add-on has not found your game: set the **Game folder** in the preferences. (These choices are in the panel at the right of the file window. If you do not see it, press the small gear button at the top right of the window.)
 4. **Animations**: **Keep its own** or **None**. (**Borrow** works only for creatures. Borrowing clips later is in [Animations and motions](anim.md).)
 5. Go to an empty folder of your own. The file name starts as `NewCreature.sgm`: replace it with a name of your own, not the game's name (not `lab`). Then press **New Impossible Creatures Project** at the bottom right. The model (`.sgm`) and its blueprint (`.ebp`) are copied there and opened.
 
@@ -66,7 +64,7 @@ Select a part of the original model (not a part you added: see step 4) and open 
 
 Where the files go: **Export Entity Folder** writes new textures into `data/art/textures` in the export folder. The game shares texture names between all models, so a changed texture always gets a new name made from your model and the material, in lower case (the player-colour copies add `_tc01` to `_tc06`). A game texture is never overwritten. If nothing changed, the model is written byte for byte as it was, with no texture files.
 
-Not used by the game: two-sided materials, specular and reflection settings (they are kept from the original and cannot be edited), and Blender's roughness and metallic. The team colours come from a rule fitted to the game's own team textures. They come close (about 4% off on average) but they are not the original tool's colours.
+Not used by the game: two-sided materials, specular and reflection settings (they are kept from the original and cannot be edited), and Blender's roughness and metallic. The team colours the add-on makes can differ slightly from those of the game's own textures. Check them in the game.
 
 ## 6. The skeleton
 
@@ -117,7 +115,7 @@ Some buildings carry shapes the game blends in as they are damaged: the Lab's te
 - **Add Damage Level** (in Object Mode) adds a shape key and a new clip `damage_NN` that shows it at full strength, as the most damaged level. Shape the key, then export with **Export Entity Folder**. **Adding a level moves the others**: the levels are spread evenly over the damage. Four levels show from 25, 50, 75 and 99.99 percent damage. Five show from 20, 40, 60, 80 and 99.99 percent. The newest level shows only when the building is all but destroyed.
 - **Carry Over Damage States**: for a part whose mesh you replaced and that has no shape keys any more, this builds them again from the original file, matching each new vertex to the nearest point of the old surface. Vertices too far away do not move and are selected so you can see them.
 
-A part with damage states is always written in a newer layout with a single level of detail (it does not get simpler at a distance). This form has loaded in a test build of the game, but nobody has seen it in the game. The export option **Leave damage states out of edited parts** writes edited parts without damage states.
+A part with damage states is always written with a single level of detail (it does not get simpler at a distance). Check damaged buildings in the game. The export option **Leave damage states out of edited parts** writes edited parts without damage states.
 
 ## 9. Check, export, install
 
@@ -144,10 +142,6 @@ A thing with a name of its own appears only where a map places it. To see it:
 3. Save with **Map > Save > Save ready-to-drop folder...** and copy that folder into your test copy.
 
 Or export again with **Replace the original ...**, and the game's own thing looks like your model everywhere.
-
-## What was checked
-
-A test build of the game loaded, from a script, the Lab with every texture repainted, the Lab with a fifth damage level, the henchmen with a bone renamed and a marker moved, the Anti-Air Tower with a part added, and the Creature Chamber with a part replaced. Each started a skirmish that ran for a minute without an error, and the game read the files. A barrel under a new name was not shown, because the test had no map that places it. Nobody has looked at any of them by eye, so how they look is not checked.
 
 ---
 

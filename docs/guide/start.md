@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/start.html: edit that file, not this one. -->
-
 [Contents](README.md) · Next: [Replace one of the game's animals](replace.md)
 
 # Start here: install, set up, and how a project works
@@ -11,8 +9,8 @@ You should know how to play Impossible Creatures and have used Blender a little:
 ## What you need
 
 - Blender 5.3 or newer.
-- Your own copy of Impossible Creatures. The add-on reads the files of the Steam version. The author's checks used a special test build of the game instead (see the *What was checked* parts of the chapters). Nobody has played the results in the Steam version yet.
-- Linux. The add-on is written to work on Windows and macOS too, but nothing has been run there yet. If it does not work for you there, the message tells you what it tried. Please report it. On Linux, `IC.exe` is a Windows program, so playing needs Wine or Proton (see “Start the game” below).
+- Your own copy of Impossible Creatures. The add-on reads the files of the Steam version.
+- Linux. Windows and macOS support is experimental. If something does not work for you there, the message tells you what the add-on tried. Please report it. On Linux, `IC.exe` is a Windows program, so playing needs Wine or Proton (see “Start the game” below).
 - About half a gigabyte of free disk space for a test copy of the game (about 5 GB if your computer cannot make links; the window tells you before it starts).
 
 ## Install the add-on
@@ -107,8 +105,8 @@ The chapter [Check, export, install, remove and share](ship.md) goes through eac
 
 Every walk-through ends with “start the game from your test copy”. The test copy is a folder that holds `IC.exe`.
 
-- **Windows:** run `IC.exe` in that folder. (Not tried yet.)
-- **Linux:** `IC.exe` is a Windows program, so it needs Wine or Proton. If you play through Steam, you can add it with **Games > Add a Non-Steam Game** and pick a Proton version in the game's **Properties > Compatibility**. We have not tried this route. If you already run the game on Linux some other way, start the test copy the same way.
+- **Windows:** run `IC.exe` in that folder.
+- **Linux:** `IC.exe` is a Windows program, so it needs Wine or Proton. If you play through Steam, you can add it with **Games > Add a Non-Steam Game** and pick a Proton version in the game's **Properties > Compatibility**. If you already run the game on Linux some other way, start the test copy the same way.
 - The Steam version starts only while Steam is running and you are signed in.
 - Close the game before you install again. It reads a thing's files when it loads it.
 

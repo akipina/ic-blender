@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/skin.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Retargeting: an existing creature takes another shape](retarget.md) · Next: [Re-texturing and texturing from scratch](texture.md)
 
 # Skinning and re-skinning
@@ -95,7 +93,7 @@ It skips stub bones (wing and arm sockets), end bones (names such as `endjaw`) a
 
 <sub>Fig. 87</sub> · Auto Skin gives each orange point its nearest bone.
 
-2. **Reset All** re-skins the whole creature. It matches only about half of a stock skin, so fix seams by hand. With every point selected, the two "Selected" choices refuse.
+2. **Reset All** re-skins the whole creature. The result differs a lot from a stock skin, so fix seams by hand. With every point selected, the two "Selected" choices refuse.
 
 ![Whole rhinoceros after Reset All](img/skin_reset_all.jpg)
 

@@ -1235,7 +1235,7 @@ def readme_text(b: EntityBuild, parent_name: str = "") -> str:
         "2. Copy the 'data' folder of this item into the main folder of your copy of the game (the one that already has a Data folder)",
         "   and let your computer merge the two folders. On Linux, copy the files inside 'data' into the game's 'Data' folder instead.",
         "3. Start the game from your copy. The game reads loose files in its Data folder before the files packed inside its .sga archives,",
-        "   so these files are used instead of a packed file with the same path (the game's own Workshop installer delivers files this way).",
+        "   so these files are used instead of a packed file with the same path.",
         "4. To undo it, delete the files listed above from your copy again.",
         "",
         "About this export",
@@ -1248,8 +1248,7 @@ def readme_text(b: EntityBuild, parent_name: str = "") -> str:
          "- Not in this folder: textures (the model uses the ones the game already has)."),
         f"- data/hub/{b.item}.item is the add-on's list of the item's files and their checksums. The game itself does not read it.",
         *lua_words(b.mode, bool(b.stats_lua)),
-        "- None of this has been tried in the game yet. If something does not show up or the game complains, the file warnings.log in",
-        "  the game folder says why.",
+        "- If something does not show up or the game complains, the file warnings.log in the game folder says why.",
     ]
     if b.notes:
         lines += ["", "Notes from the export"] + [f"- {n}" for n in b.notes[:12]]

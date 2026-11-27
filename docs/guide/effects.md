@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/effects.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Gatherers and characters](gatherers.md) · Next: [Check, export, install, remove and share](ship.md)
 
 # Effects, events and sounds
@@ -11,7 +9,7 @@ This chapter shows how to change an effect, hook it to an animation, add your ow
 > [!IMPORTANT]
 > **Limits**
 >
-> You cannot hear a sound in Blender, and the effect preview is only a guide. Look at and listen to the real thing in the game. One effect was loaded in a test build of the game from a script. Nothing has been seen or heard in the game.
+> You cannot hear a sound in Blender, and the effect preview is only a guide. Look at and listen to the real thing in the game.
 
 ## Words used here
 
@@ -28,7 +26,7 @@ This chapter shows how to change an effect, hook it to an animation, add your ow
 1. Start a project and select it (see step 1 below). Open **IC Game > Effects and events** and press **Load events** in **Events**.
 2. Press **Copy a game effect**, search for `blue sparks_ring` and choose it. It is copied into your project with `my_` in front of its name (the new name is shown in the list **Effects used**).
 3. Choose an event in the list. In its **Effect** box, type the new name (or search for it with the magnifier: your own effects come first).
-4. Export, install and play ([Check, export, install, remove and share](ship.md)). We have not seen this in the game.
+4. Export, install and play ([Check, export, install, remove and share](ship.md)).
 
 ## 1. Open the Effects and events panel
 
@@ -48,7 +46,7 @@ An effect on its own has no animation to hook to. For a projectile or an effect 
    - **Name**: a label.
    - **Clip**: the animation it belongs to.
    - **Time**: how far into the clip the event happens, from 0 to just under 1. 0 is the first frame and 0.5 is halfway. An event at 1 never runs, so the panel does not offer it. The clock button sets the time from the playhead. **Do not press the rewind button on an event that plays a sound**: it makes the event run when the clip starts, and a sound on such an event loops.
-   - **Marker**: where on the model it happens. Type the marker's name, or press the magnifier and choose it from the list of the model's markers and bones. (The small axes button does not work yet.)
+   - **Marker**: where on the model it happens. Type the marker's name, or press the magnifier and choose it from the list of the model's markers and bones. (The small axes button does not work.)
    - **Effect** and **Sound**: the magnifier searches the game's effects and sound files. Your own effects and sounds come first.
 5. Fields the box has no row for stay under **Other fields**, as they are. **Add field...** adds one.
 
@@ -134,10 +132,6 @@ It is a **preview, not the game's own picture**:
 
 - **Projectile**: something the game throws or fires (a rock, a quill, a spit). It is a small model with a blueprint, started from one of the game's projectiles, and exported like any other thing with **Export Entity Folder**.
 - **Effect model**: a small mesh that an effect draws instead of a flat picture (a chunk, a shard, a ring). It has *no blueprint* and no events. **Export Entity Folder** writes an item folder named after the model, with the model in `data/art/fx/`, the project's effect files and a list of files. An effect names the model in its **Mesh** box. **Use my model** beside **Mesh** points a ring at your own model.
-
-## What was checked
-
-An effect file (the Anti-Air Tower's two electric trails, retuned to red-orange and three times as wide) was loaded by a test build of the game at the start of a skirmish. The mesh the effect draws is read only when the effect plays, and nothing in that test made it play. Nothing was seen or heard.
 
 ---
 

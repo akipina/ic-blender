@@ -142,7 +142,7 @@ class BZ_OT_validate(bpy.types.Operator):
         settings = getattr(context.scene, "bz_combine", None)
         from . import combocore, combopreview
         if not combocore.available():
-            return [f"COMBINE INFO setup: combine checks skipped: the combiner (combotest) is not importable "
+            return [f"COMBINE INFO setup: combine checks skipped: the creature combiner could not be loaded "
                     f"({combocore.IMPORT_ERROR})"]
         if model is None:
             return ["COMBINE INFO setup: combine checks skipped: the export failed (see above)"]

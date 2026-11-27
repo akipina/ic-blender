@@ -330,7 +330,7 @@ def add_bone_refusal(obj, arm, parent, name, src) -> str | None:
         if parent in bad:
             return f"its parent can't be exported: {bad[parent]}"
         if parent not in {c for c in cur if c is not None} and parent not in sk.added_names:
-            return f"'{parent}' is no bone the export writes (a copy, or a bone the skeleton guard refuses)"
+            return f"'{parent}' is no bone the export writes (a copy, or a bone Export refuses)"
     return None
 
 

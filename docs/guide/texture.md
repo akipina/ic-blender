@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/texture.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Skinning and re-skinning](skin.md) · Next: [Bones, limbs and connections (Boner)](boner.md)
 
 # Re-texturing and texturing from scratch

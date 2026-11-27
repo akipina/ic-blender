@@ -53,7 +53,7 @@ def write_tables(obj, patches=None, uvs=None) -> int:
     rows = patchsel.face_rows(P)
     if len(rows) != len(me.polygons):
         raise ValueError(f"{obj.name}: {len(me.polygons)} corner quads for {len(rows)} patches with corners "
-                         "-- the pool guard refuses this state; re-import or Undo")
+                         "-- the mesh no longer matches its patches; re-import or Undo")
     table = P[rows]                                     # (F, 16) pool indices in face order
     for k in range(16):
         _set_face_attr(me, ATTR_P % k, "INT", table[:, k].astype(np.int32))

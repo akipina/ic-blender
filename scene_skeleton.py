@@ -144,7 +144,7 @@ def skin_slots(raw: bytes, part: int, rig_edit: RigEdit, skin):
         low = plan.names[n].lower()
         k = next((k for k, nm in enumerate(u.names or []) if nm.lower() == low), None)
         if k is None:
-            raise ValueError(f"bone '{plan.names[n]}' is not in the palette of part {part} (internal: part_bones missed it)")
+            raise ValueError(f"bone '{plan.names[n]}' is not in the palette of part {part} (an add-on error)")
         slot[t] = k
     return [[(slot[b], w) for b, w in infl] for infl in skin]
 

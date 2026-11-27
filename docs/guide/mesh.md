@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/mesh.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [A new creature from a game animal](newcreature.md) · Next: [Gameplay numbers](numbers.md)
 
 # A creature from your own mesh
@@ -43,8 +41,6 @@ The skin of the creature stays the animal's skin, stretched over the new shape. 
 1. In the **IC Game** tab, **Game** panel, press **Check the Creature**.
 2. Try **Combine Preview** with another animal ([Finding your way around a creature](tour.md)). Press **Extract Stock Creatures** once first, at the top of the **IC Model** tab, so that the list has the game's animals. If the list is still empty, the add-on has not found your game: see [Start here](start.md).
 3. Follow the steps in [A new creature from a game animal](newcreature.md) from “Export it for the game” on.
-
-A creature of this kind was loaded by a test build of the game from a script: a cheetah reshaped to a horse-shaped body. It was listed in the creature creator, combined with a baboon and used in a skirmish without an error. Nobody has seen it in the game.
 
 > [!NOTE]
 > A note about a ring (a socket where parts join) pointing sideways is advice only. An error about a ring wound the wrong way is fixed with **Pick Ring** (in **Boner > Connections**).

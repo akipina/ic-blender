@@ -233,9 +233,9 @@ class BZ_OT_create_connection(bpy.types.Operator):
 
     limb: bpy.props.EnumProperty(name="Limb", items=_limb_items)
     parent: bpy.props.EnumProperty(name="Cut Into", items=[
-        ("AUTO", "Auto", "Torso if a Torso bone can host the ring, else Head (as in the base game)"),
-        ("TORSO", "Torso", "A socket in the torso (every limb's connection in the base game but antler rings, 0x800)"),
-        ("HEAD", "Head", "A ring in the head (the horse's and the snowy owl's antlers, 0x40)")], default="AUTO")
+        ("AUTO", "Auto", "Torso if a Torso bone can host the ring, else Head"),
+        ("TORSO", "Torso", "A socket in the torso (the usual place for a limb's connection)"),
+        ("HEAD", "Head", "A ring in the head, as antlers use")], default="AUTO")
     pick: bpy.props.BoolProperty(name="Pick Ring", default=True, description="Start Pick Ring for it (Edit Mode, "
                                  "3D Viewport)")
 
@@ -451,7 +451,7 @@ class BZ_OT_conn_flag(bpy.types.Operator):
         cls = boner.class_of(new)
         warns = []
         if cls not in classes:
-            warns.append(f"no limb has the {role} class {boner.class_label(new)} (the Object Editor warns; the combiner "
+            warns.append(f"no limb has the {role} class {boner.class_label(new)} (the combiner "
                          "needs it)")
         if word == "flags2" and any(boner.class_of(x.flags2) == cls for j, x in enumerate(rows) if j != idx):
             warns.append("another connection already attaches that class")
@@ -614,7 +614,7 @@ class BZ_OT_optimise_ring_start(bpy.types.Operator):
         if t is None:
             return {"CANCELLED"}
         if not combocore.available():
-            self.report({"ERROR"}, f"Optimise Ring Start refused: the combiner is not importable "
+            self.report({"ERROR"}, f"Optimise Ring Start refused: the creature combiner could not be loaded "
                                    f"({combocore.IMPORT_ERROR}): the weld cannot be measured")
             return {"CANCELLED"}
         err = store.pool_error(obj)

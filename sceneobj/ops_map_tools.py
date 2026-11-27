@@ -134,10 +134,9 @@ class BZ_OT_map_import_heightmap(bpy.types.Operator, ImportHelper):
     filter_glob: StringProperty(default="*.tga", options={"HIDDEN"})
     resample: EnumProperty(name="Other sizes", default="smooth", items=(
         ("smooth", "Smooth, corner to corner", "A picture of another size is stretched over the ground, the pixels between blended"),
-        ("nearest", "Like the Mission Editor", "Each point takes the nearest pixel (the editor's own way: pixels repeat)")),
+        ("nearest", "Nearest pixel", "Each point takes the nearest pixel (pixels repeat)")),
         description="What to do if the picture's size differs from the ground grid")
-    flip: BoolProperty(name="Flip rows", default=False, description="Flip the picture upside down (the Mission Editor does "
-                                                                    "not)")
+    flip: BoolProperty(name="Flip rows", default=False, description="Flip the picture upside down")
 
     @classmethod
     def poll(cls, context):
@@ -161,13 +160,13 @@ class BZ_OT_map_import_heightmap(bpy.types.Operator, ImportHelper):
         step = res["step"]
         lines = [f"Height map {os.path.basename(self.filepath)}: {res['changed']} of {res['points']} ground points changed (the largest by {res['largest_m']:.1f} m).",
                  f"The picture is {info['width']} x {info['height']} pixels, the ground {mv.width} x {mv.height} points"
-                 + (f"; stretched {'corner to corner' if info['mode'] == 'smooth' else 'like the Mission Editor does'}." if info["resampled"] else ": one pixel for each point."),
+                 + (f"; stretched {'corner to corner' if info['mode'] == 'smooth' else 'by the nearest pixel'}." if info["resampled"] else ": one pixel for each point."),
                  f"The ground now runs from {info['low'] * step:g} m to {info['high'] * step:g} m (the map keeps heights in steps of {step:g} m).",
                  "The map file changes when you save: the save reads each point's height and rebuilds the pathfinding."]
         if note:
             lines.append(note)
         if info.get("differs_between_channels"):
-            lines.append("The picture is not grey: the red value of each pixel was used, as the Mission Editor does.")
+            lines.append("The picture is not grey: the red value of each pixel was used.")
         _say(self, lines)
         return {"FINISHED"}
 
@@ -180,9 +179,9 @@ class BZ_OT_map_export_heightmap(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.tga", options={"HIDDEN"})
     size: EnumProperty(name="Size", default="points", items=(
         ("points", "One pixel per ground point", "65 x 65, 129 x 129, 257 x 257 ...: imports back exactly"),
-        ("cells", "As the manual says", "64 x 64, 128 x 128, 256 x 256 ... (one less across; a little blurred on the way back)")),
+        ("cells", "One pixel per cell", "64 x 64, 128 x 128, 256 x 256 ... (one less across; a little blurred on the way back)")),
         description="The picture's size")
-    flip: BoolProperty(name="Flip rows", default=False, description="Turn the picture upside down (the Mission Editor does not)")
+    flip: BoolProperty(name="Flip rows", default=False, description="Turn the picture upside down")
 
     @classmethod
     def poll(cls, context):
@@ -329,7 +328,7 @@ class BZ_OT_map_import_entities(bpy.types.Operator, ImportHelper):
     bl_options = {"REGISTER", "UNDO"}
     filename_ext = ".ent"
     filter_glob: StringProperty(default="*.ent", options={"HIDDEN"})
-    place: EnumProperty(name="Place", default="WHERE", items=(("WHERE", "Where they were", "Each object lands at the position it had in its map (the Mission Editor's way)"),
+    place: EnumProperty(name="Place", default="WHERE", items=(("WHERE", "Where they were", "Each object lands at the position it had in its map"),
                                                               ("CURSOR", "At the 3D cursor", "The middle of the group goes to the 3D cursor")))
     drop: BoolProperty(name="Drop to the ground", default=False, description="Set each object's height to the ground's at its place")
 
@@ -388,7 +387,7 @@ def fill_object_list(context, top) -> int:
 
 
 class BZ_OT_map_objlist_refresh(bpy.types.Operator):
-    """List the placed objects that pass the filters (the Mission Editor's Object List)"""
+    """List the placed objects that pass the filters"""
     bl_idname = "bz.map_objlist_refresh"
     bl_label = "Refresh the List"
 

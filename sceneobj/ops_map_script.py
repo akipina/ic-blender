@@ -40,7 +40,7 @@ def _poll(cls, context):
 class BZ_OT_script_group_new(bpy.types.Operator):
     bl_idname = "bz.script_group_new"
     bl_label = "Create group from selected"
-    bl_description = "Group the selected placed objects (the Mission Editor's Create Group)"
+    bl_description = "Group the selected placed objects"
     bl_options = {"REGISTER", "UNDO"}
     name: StringProperty(name="Group name", default="")
 
@@ -99,7 +99,7 @@ class BZ_OT_script_group_members(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
     action: EnumProperty(name="Action", items=[("ADD", "Add selected", "Add the selected objects to the group"),
                                                ("REMOVE", "Remove selected", "Take the selected objects out of the group"),
-                                               ("SET", "Regroup", "Make the group the selected objects only (the Mission Editor's Regroup)"),
+                                               ("SET", "Regroup", "Make the group the selected objects only"),
                                                ("SELECT", "Select members", "Select the group's objects in the 3D view")])
 
     @classmethod
@@ -271,7 +271,7 @@ def op_items(kind: str) -> list:
     """The enum items of every condition or action: the plain name as the label, the manual's line as the tooltip. Built once and kept
     (Blender needs the strings of a dynamic enum to stay alive)."""
     if kind not in _OP_ITEMS:
-        _OP_ITEMS[kind] = [(n, _E.display_name(n), _E.description(n) or f"{n} (the manual has no description of it)")
+        _OP_ITEMS[kind] = [(n, _E.display_name(n), _E.description(n) or f"{n} (no description)")
                            for n in _E.names(kind)]
     return _OP_ITEMS[kind]
 

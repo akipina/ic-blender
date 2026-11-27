@@ -108,12 +108,12 @@ def apply_limbs(m, src, rows, patch_limb, n_patches=None) -> List[str]:
     if boneless:
         warns.append(f"limb{'s' if len(boneless) != 1 else ''} "
                      f"{', '.join(boneless[:4])}{', ...' if len(boneless) > 4 else ''} "
-                     f"{'have' if len(boneless) != 1 else 'has'} no bones: the engine reports 'limbs are boneless!' and "
-                     "ComboTest.exe rejects it")
+                     f"{'have' if len(boneless) != 1 else 'has'} no bones: the game's model loader reports an error and "
+                     "the creature cannot be combined")
     orphans = int((pl < 0).sum())
     if orphans:
-        warns.append(f"{orphans} patch{'es are' if orphans != 1 else ' is'} in no limb: the combiner and the Object "
-                     "Editor expect every patch in exactly one limb (Boner > Limbs > Assign Selected to Limb)")
+        warns.append(f"{orphans} patch{'es are' if orphans != 1 else ' is'} in no limb: every patch must be in "
+                     "exactly one limb (Boner > Limbs > Assign Selected to Limb)")
     return warns
 
 
@@ -165,7 +165,7 @@ def _name_problem(name) -> "str | None":
     if any(ord(ch) > 126 or ord(ch) < 32 for ch in name):
         return "has characters outside plain ASCII"
     if len(name) > NAME_MAX:
-        return f"is {len(name)} characters (the Object Editor keeps {NAME_MAX})"
+        return f"is {len(name)} characters (the limit is {NAME_MAX})"
     return None
 
 
@@ -222,7 +222,7 @@ def apply_connections(m, src, rows, o2n=None) -> Tuple[List[int], List[str]]:
         else:
             if (base is None or bone != base.bone_name) and bone not in skeleton:
                 raise ValueError(f"connection {name}: host bone {bone!r} is not in the skeleton (a bone renamed since? "
-                                 "the engine asserts on it): set the connection bone to a bone of the creature")
+                                 "the creature would not load): set the connection bone to a bone of the creature")
             if base is None or name != base.name:
                 why = _name_problem(name)
                 if why:
@@ -230,8 +230,8 @@ def apply_connections(m, src, rows, o2n=None) -> Tuple[List[int], List[str]]:
             out.append(LimbConnection(name=name, flags1=f1, flags2=f2, vertex_indices=ints, bone_name=bone,
                                       zero_words=base.zero_words if base is not None else 2))
         if not ints:
-            warns.append(f"connection '{name}' has no ring: pick one (Boner > Connections > Pick Ring); until then the "
-                         "Object Editor warns about it and no limb grafts there")
+            warns.append(f"connection '{name}' has no ring: pick one (Boner > Connections > Pick Ring); until then "
+                         "no limb can attach there")
         srcs.append(s)
     m.limb_connections = out
     return srcs, warns
@@ -1140,8 +1140,8 @@ def added_limb_rows(rows, src, added, table_names=(), keep=(), by_stamp=False, p
         elif j >= 0:
             res.placed.append(f"{ab.name} -> {base[j].name}")
         if j < 0:
-            res.warnings.append(f"added bone '{ab.name}' is in no limb (its parent '{pname}' is in none): the Object "
-                                "Editor warns about a bone in no limb; " + (
+            res.warnings.append(f"added bone '{ab.name}' is in no limb (its parent '{pname}' is in none): every bone "
+                                "should be in a limb; " + (
                                     f"put '{pname}' into a limb (Boner > Limbs > Add Active Bone), or re-parent the "
                                     "bone under a bone of a limb" if src_parent else
                                     f"'{pname}' is an added bone in no limb too: re-parent it under a bone of a limb"))

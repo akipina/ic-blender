@@ -79,7 +79,7 @@ def clip_lines(model, source_path: str = "") -> List[str]:
         shown = {clips.clip_key(r): r for r in refs}
         for k in missing:
             out.append(f"WARN the blueprint {os.path.basename(ebp_beside(source_path))} wires a motion node to clip '{shown[k]}', but "
-                       "this creature has no clip of that name (renamed or deleted? the game's own animals carry a few such nodes too): "
+                       "this creature has no clip of that name (renamed or deleted?): "
                        "that node plays nothing. Rename the clip back, or give the creature a clip of that name")
     return out
 

@@ -702,6 +702,7 @@ class BZ_OT_export(bpy.types.Operator, ExportHelper):
         except Exception as e:                                   # a check that fails is said, never skipped
             problems = [f"WARN the export checks failed to run: {type(e).__name__}: {e}"]
         errs = core.blocking(problems)
+        from .sceneobj.ui_kit import plain
         src = store.source_path(obj)
         try:
             with open(src, "rb") as f:
@@ -710,18 +711,18 @@ class BZ_OT_export(bpy.types.Operator, ExportHelper):
             identical = False
         if errs and identical:                                   # nothing was edited: these are the source's own (a shipped Tellurian animal)
             for p in errs:
-                self.report({"WARNING"}, f"unchanged from the source, which has it too: {p}")
+                self.report({"WARNING"}, f"unchanged from the source, which has it too: {plain(p)}")
         elif errs and not self.export_anyway:
             for p in errs:
-                self.report({"ERROR"}, p)
+                self.report({"ERROR"}, plain(p))
             self.report({"ERROR"}, f"Export refused: {len(errs)} problem{'s' if len(errs) != 1 else ''} stop the game loading this "
                                    f"creature ({startops.count_text(problems)}). Fix them (Check the Creature lists everything), or Export again "
                                    "with 'Export Anyway' ticked")
             return {"CANCELLED"}
         for p in ([] if identical else errs):
-            self.report({"WARNING"}, f"exported anyway: {p}")
+            self.report({"WARNING"}, f"exported anyway: {plain(p)}")
         for w in summary.warnings:
-            self.report({"WARNING"}, w)
+            self.report({"WARNING"}, plain(w))
         in_place = _same_file(self.filepath, src)
         why = in_place_refusal(job) if (in_place and not identical) else None
         if why:
@@ -818,7 +819,7 @@ class BZ_OT_bake(bpy.types.Operator):
         try:
             self._apply_engine_normals(obj, bm, patches, density, arr.reshape(n, 3))
         except Exception as e:
-            self.report({"WARNING"}, f"Engine normals not applied: {e}")
+            self.report({"WARNING"}, f"The game's normals were not applied: {e}")
 
         baked = bpy.data.objects.new(obj.name + "_baked", bm)
         baked.matrix_world = obj.matrix_world.copy()
@@ -2648,8 +2649,8 @@ class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
     rebuild_lod: BoolProperty(
         name="Let the engine rebuild the detail ladder",
-        description="Write the older, game-tested layout; the game rebuilds distance detail itself. Off writes the newer layout, "
-                    "which loads in the Object Editor but has not been shown to load in the game",
+        description="Write the older layout; the game rebuilds distance detail itself. Off writes the newer layout, "
+                    "which may not load in the game",
         default=True)
     drop_damage_states: BoolProperty(
         name="Leave damage states out of edited parts",
@@ -2747,8 +2748,8 @@ class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
     rebuild_lod: BoolProperty(
         name="Let the engine rebuild the detail ladder",
-        description="Write the older, game-tested layout; the game rebuilds distance detail itself. Off writes the newer layout, "
-                    "which loads in the Object Editor but has not been shown to load in the game",
+        description="Write the older layout; the game rebuilds distance detail itself. Off writes the newer layout, "
+                    "which may not load in the game",
         default=True)
     drop_damage_states: BoolProperty(
         name="Leave damage states out of edited parts",

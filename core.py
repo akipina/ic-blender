@@ -726,7 +726,7 @@ def pick_extrude_side(patches, selected):
         pi, side, u = shared[0]
         cps = [int(p[pi][c]) for c in _SIDE_CPS[side]]
         return (f"side {cps} is shared by patches {sorted(set(u))}: extruding it would give an edge used by three "
-                "patches, which the loader rejects. Select the two corners of an open side (one patch uses it)")
+                "patches, which the game cannot load. Select the two corners of an open side (one patch uses it)")
     k = open_side_count(p)
     return (f"select the two corners of an open patch side (one used by a single patch); this creature has {k} open "
             f"side{'s' if k != 1 else ''}")
@@ -790,7 +790,7 @@ def ring_edge_error(corners, sides) -> Optional[str]:
     for i in range(k):
         a, b = int(corners[i]), int(corners[(i + 1) % k])
         if frozenset((a, b)) not in sides:
-            return f"edge {a}-{b} is no patch side (the engine welds a ring only along patch sides, 'pPatch')"
+            return f"edge {a}-{b} is no patch side (a ring can only follow patch sides)"
     return None
 
 
@@ -879,8 +879,8 @@ class RingPicker:
         if self.want is not None and len(self.picked) >= self.want:
             return f"the {self.slot_label} ring already has its {self.want} corners: close it on the first corner"
         if self.picked and not self.adjacent(self.picked[-1], i):
-            return (f"corner {i} is not joined to corner {self.picked[-1]} by a patch side (the engine welds a ring "
-                    "only along patch sides)")
+            return (f"corner {i} is not joined to corner {self.picked[-1]} by a patch side (a ring can only follow "
+                    "patch sides)")
         self.picked.append(i)
         return None
 
@@ -938,8 +938,8 @@ class RingPicker:
         k = sum(frozenset((c[i], c[(i + 1) % len(c)])) in self.preferred for i in range(len(c)))
         if 2 * k >= len(c):
             return None
-        return (f"only {k} of its {len(c)} sides border the {self.slot_label} limb's patches (stock rings have at least "
-                f"half): it is probably inside the {attach_text(self.flags1)} or around another socket")
+        return (f"only {k} of its {len(c)} sides border the {self.slot_label} limb's patches (normally at least "
+                f"half do): it is probably inside the {attach_text(self.flags1)} or around another socket")
 
     def status_text(self) -> str:
         return (f"Pick ring {self.name}: {self.slot_label} (flags2 0x{self.flags2:x}, attached to "
@@ -1442,8 +1442,8 @@ def moved_stray_warnings(m, moved) -> list:
             leg = boner.class_of(ids[jl]) & 0x20 and not ids[jl] & boner.NOSWAP
             out.append(f"added bone '{b}' owns {n} control point{'s' if n != 1 else ''} of '{m.limbs[jl].name}' and moved "
                        + (f"to '{m.limbs[j].name}'" if 0 <= j < len(m.limbs) else "to no limb")
-                       + f" with its parent '{p}': grafted as a donor, ComboTest.exe puts them on the root bone"
-                       + (" and fails an assertion (no export)" if leg else "")
+                       + f" with its parent '{p}': when this limb is combined onto another torso, those points go to the root bone"
+                       + (" and the combination fails" if leg else "")
                        + f" (re-parent it under a bone of '{m.limbs[jl].name}', or assign those points to one of its bones)")
     return out
 
@@ -1725,7 +1725,7 @@ def _apply_textures(m, textures, names=None, slots=None, warnings=None) -> dict:
                 warnings.append("the new texture table replaced the creature's textures, so the "
                                 + ", ".join(f"{len(v)} {what.get(t, t)} map{'s' if len(v) != 1 else ''} ({t})"
                                             for t, v in sorted(dropped.items()))
-                                + " that named the old ones came off the materials (the engine loads only embedded "
+                                + " that named the old ones came off the materials (the game loads only embedded "
                                   "textures); Paint Skin or Transfer Texture again to give it a new one")
         return changed
     for idx, (rgba, w, h) in textures.items():
@@ -1951,7 +1951,7 @@ def export_summary(built: BuiltExport, kept=(), written=(), dropped=(), warnings
             scale = max(1e-6, float(np.abs(ext_a).max()))
             if np.abs(ext_a - ext_b).max() > 1e-4 * scale:
                 warns.append(f"{len(kept)} kept clip(s) have bounds from the source geometry, whose extent changed "
-                             "(the engine culls by clip bounds) and could not be recomputed: edit or re-key a clip to re-encode it")
+                             "(the game uses these bounds to decide what to draw) and could not be recomputed: edit or re-key a clip to re-encode it")
         except Exception as e:                             # never silent
             warns.append(f"clip bounds check failed: {type(e).__name__}: {e}")
     return ExportSummary(parts=parts, warnings=warns, stock=list(built.stock or []))

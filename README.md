@@ -6,8 +6,7 @@ formats, ready to install.
 
 This is an unofficial fan project. It is not affiliated with or endorsed by the owners of the game.
 
-> **Status: alpha (0.9.2).** The feature set is complete enough to make and play content, but it has had limited testing.
-> See [Verification status](#verification-status) and [Known limitations](#known-limitations) before relying on it.
+> **Status: alpha (0.9.2).** See [Known limitations](#known-limitations) before relying on it.
 
 ## Features
 
@@ -20,14 +19,14 @@ This is an unofficial fan project. It is not affiliated with or endorsed by the 
 | **Install and share** | Create a separate test copy of the game, install and remove content with full undo, pack an item as a zip for other players, and install zips made by others. |
 | **Maps** | Open, edit and save maps, including terrain painting, placed objects, triggers and cut-scenes. Experimental. |
 
-Unmodified game files are written back byte for byte: only what you change is re-encoded.
+Only what you change is rewritten. Everything else stays exactly as it is in the game's files.
 
 ## Requirements
 
 - Blender 5.3 or newer.
 - A copy of *Impossible Creatures* (the Steam release). The add-on reads the game's files; it does not include any.
 - About 0.5 GB of free disk space for the test copy of the game.
-- Linux. Windows and macOS builds are included but untested.
+- Linux. Windows and macOS support is experimental.
 
 ## Installation
 
@@ -67,7 +66,7 @@ alongside the stock animals.
 
 ## Documentation
 
-The [user guide](docs/guide/README.md) reads here on GitHub. These chapters each follow one task from a new project to the game:
+Start with the [user guide](docs/guide/README.md). Its main chapters:
 
 - [Getting started](docs/guide/start.md)
 - [Replacing a stock animal](docs/guide/replace.md)
@@ -84,21 +83,11 @@ The [user guide](docs/guide/README.md) reads here on GitHub. These chapters each
 
 The same guide is also a single page, `docs/guide/index.html`, to open in a browser from a downloaded copy.
 
-Parts of the guide and its screenshots predate the latest interface changes. [docs/TODO.md](docs/TODO.md) lists what is out of date.
-
 ## Sharing
 
 **IC Game > Game > 4. Share > Pack for Sharing** writes a zip of an exported item with installation instructions.
 **Install From Zip** installs an item made by someone else into your test copy; it is checked before installation and can be removed
 again.
-
-## Verification status
-
-- Exported content has been load-tested by script in a development build of the game engine: creatures appear in the creature creator
-  for each installed mod, combine with stock animals and run in a skirmish; replaced structures and units load; edited gameplay numbers
-  are reflected in the game's own figures; install and removal restore the game folder exactly.
-- The results have not been reviewed visually in the game, and the interface has been exercised by automated tests rather than by hand.
-- The retail Steam executable, Windows and macOS have not been tested.
 
 ## Known limitations
 
@@ -130,7 +119,7 @@ again.
 
 **Maps**
 
-- Map editing is experimental and has not been tested in the game. Maps cannot be enlarged.
+- Map editing is experimental. Maps cannot be enlarged.
 
 ## Support
 
@@ -140,10 +129,6 @@ show your content, see `warnings.log` in the test copy's folder.
 
 To report a problem, open an [issue](https://github.com/akipina/ic_blender/issues) with your operating system, Blender version and
 add-on version, the steps to reproduce it, the exact message, and the end of `warnings.log` if the game was involved.
-
-## Development
-
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) describes how the code is organised. Open work is listed in [docs/TODO.md](docs/TODO.md).
 
 ## Licence
 

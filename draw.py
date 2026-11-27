@@ -367,7 +367,7 @@ def _draw_connections(obj, verts):
     if status and len(status) != len(conns):
         _note(obj.name, f"ring status unavailable: {status[0] if isinstance(status[0], str) else len(status)}")
     elif not status and not combocore.available():
-        _note(obj.name, f"ring status unavailable (rings drawn cyan): the combiner is not importable "
+        _note(obj.name, f"ring status unavailable (rings drawn cyan): the creature combiner could not be loaded "
                         f"({combocore.IMPORT_ERROR})")
     elif str(_notes.get(obj.name, "")).startswith("ring status unavailable"):
         _notes.pop(obj.name, None)                            # recovered

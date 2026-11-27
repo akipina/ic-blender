@@ -164,10 +164,11 @@ class _InstallSource:
             self.report({"ERROR"}, text)
             return {"CANCELLED"}
         self.report({"INFO"}, text)
+        from .sceneobj.ui_kit import plain
         for n in warnings:
-            self.report({"WARNING"}, n)
+            self.report({"WARNING"}, plain(n))
         for n in infos:
-            self.report({"INFO"}, n)
+            self.report({"INFO"}, plain(n))
         return {"FINISHED"}
 
 

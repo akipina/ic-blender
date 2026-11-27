@@ -627,7 +627,7 @@ To play it:
 2. Copy the Data folder from here into the game's folder (the folder that holds IC.exe), so the files end up in
    Data/scenarios/{group}/ next to the game's own. Say yes if it asks to merge the folders.
 3. Start the game. The game reads loose files in its Data folder before the ones inside its archives, so the map should be in the
-   map list. This has not been tried in the game from this add-on: if the map does not show up, tell whoever gave you the add-on.
+   map list. If it is not there, check that the files are in that folder of the copy you start the game from.
 
 To take the map out again, delete the {name} files from Data/scenarios/{group}/.
 
@@ -689,7 +689,7 @@ def save_map(context, top, filepath: str, *, ready_to_drop: bool = False, replac
         try:
             fidelity = edit.pathfinding_fidelity(plan.raw)
         except Exception as exc:                           # noqa: BLE001
-            plan.notes.append(f"How closely the rebuilt pathfinding matches the game's own could not be measured: {exc}")
+            plan.notes.append(f"The accuracy of the rebuilt pathfinding could not be worked out: {exc}")
     files = {(f"{sub}/{name}{rest}" if sub else f"{name}{rest}"): data for sub, rest, data in sibling_files(plan, source)}
     sctx = H.SaveContext(context=context, top=top, name=name, group=group, folder=folder, target=target, ready_to_drop=ready_to_drop,
                          source=source, original=plan.raw, view=plan.mv, sgb=new_bytes, report={"changes": [], "warnings": []},
@@ -774,7 +774,7 @@ def _library_lines(rep) -> list:
         out.append(f"Pathfinding: updated ({p.get('impa_cells_changed', 0)} passability cells and {p.get('prmp_cells_changed', 0)} "
                    f"precise cells changed): {p.get('reason', '')}".rstrip(": ") + ".")
     elif mode == "rebuilt":
-        how = "with the game's own method" if p.get("engine", "pathbake") == "pathbake" else "with the older estimate"
+        how = "with the game's own method" if p.get("engine", "pathbake") == "pathbake" else "with a less exact estimate"
         out.append(f"Pathfinding: rebuilt {how} from the ground, the painted cells and the scenery ({p.get('reason', '')}).")
     else:
         out.append("Pathfinding: kept as it was" + (f" ({p['reason']})" if p.get("reason") else "") + ".")
@@ -797,7 +797,7 @@ def report_lines(report: dict) -> list:
     out += [f"Warning: {w}" for w in report.get("feature_warnings", ())]
     fid = report.get("fidelity")
     if fid:
-        out.append("How close a pathfinding rebuilt like the game's is to the game's own on this map: " + str(fid.get("summary", "")))
+        out.append("Accuracy of rebuilt pathfinding on this map: " + str(fid.get("summary", "")))
     made = set(report.get("feature_files", ()))
     others = [p for p in report["files"] if p != report["path"] and os.path.basename(p) != "README.txt" and p not in made]
     root = os.path.dirname(report["path"])

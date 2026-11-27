@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/numbers.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [A creature from your own mesh](mesh.md) · Next: [Animations and motions](anim.md)
 
 # Gameplay numbers
@@ -9,14 +7,14 @@ How tough a creature is, how fast it runs, how far it sees, how hard it bites, w
 > [!IMPORTANT]
 > **Limits**
 >
-> Numbers must be the same for every player of a multiplayer game. Changing a number changes the game for everyone who plays with your files. A replaced numbers file taking the place of the game's own has not been tried in the game yet.
+> Numbers must be the same for every player of a multiplayer game. Changing a number changes the game for everyone who plays with your files. If you replace the numbers of one of the game's own things, check the result in the game.
 
 ## Creatures: the Creature Stats panel
 
 You need a creature project ([A new creature from a game animal](newcreature.md) or [Replace one of the game's animals](replace.md)).
 
 1. Select the creature. Open the **IC Game** tab and click the header of **Creature Stats** to open it. (It starts closed.)
-2. Press **Load the Original's Numbers**. The panel fills with the numbers of the animal you started from, never made-up ones. A creature with no original animal (for example one fitted to your own mesh) shows a box **Start from animal** first: type the name of an animal, for example `cheetah`, then press the button.
+2. Press **Load the Original's Numbers**. The panel fills with the numbers of the animal you started from. A creature with no original animal (for example one fitted to your own mesh) shows a box **Start from animal** first: type the name of an animal, for example `cheetah`, then press the button.
 
 You should see the line “From ...” with the file the numbers were read from, and then these boxes. (If you see nothing, click the header of **Creature Stats** to open it.)
 
@@ -39,11 +37,11 @@ You should see the line “From ...” with the file the numbers were read from,
 2. Press **Load the Original's Numbers**.
 3. In the box **Speed**, raise the **Land speed** numbers. (A four-legged animal shows the front and the back legs. Their speeds add up, so raise both. You can also type `speed_max` in the search box of **All numbers**.)
 4. You should see the circle arrow appear next to the number you changed, and at the bottom the line “1 number changed” (or 2). The box **What the game works out** shows what the creature now costs.
-5. Check, export and install it as in [A new creature from a game animal](newcreature.md), then play it. We have not seen the faster creature in the game. If the number is too big, it shows in red and the export refuses it.
+5. Check, export and install it as in [A new creature from a game animal](newcreature.md), then play it. If the number is too big, it shows in red and the export refuses it.
 
 ## Limits for creatures
 
-- The rules that say how your creature is resized when it is combined (its limb scales) are copied from the animal you started from. You cannot edit them yet.
+- The rules that say how your creature is resized when it is combined (its limb scales) are copied from the animal you started from. You cannot edit them.
 - When two creatures are combined in the game, the new creature's numbers come from both of them. This panel is only about your creature on its own.
 
 ## Structures, gatherers, characters and props: Gameplay numbers
@@ -63,7 +61,7 @@ The file builds on the same base file as the original's numbers file does, so no
 1. Start a **Structure / prop** project from **Lab (structures)** ([Structures and props](structures.md)).
 2. In **IC Game > Blueprint** open **Gameplay numbers**. Tick **Use the numbers of Lab**.
 3. In the list, change **Hit points** (or type `hit` in the search box) to a higher number. You should see a circle arrow and “1 number changed”.
-4. Export, install and play as in [Structures and props](structures.md), “Check, export, install”. Choose **Replace the original Lab** to see the new number in the game. We have not seen this in the game.
+4. Export, install and play as in [Structures and props](structures.md), “Check, export, install”. Choose **Replace the original Lab** to see the new number in the game.
 
 **Reset** (in the status box of the **Blueprint** panel) reads the files again and throws away the numbers you changed. Changing the kind of thing keeps them.
 

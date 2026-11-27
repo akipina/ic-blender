@@ -631,7 +631,7 @@ class BZ_OT_add_damage_level(bpy.types.Operator):
             tail += f" The part's {restored} stored damage states were made shape keys first."
         try:
             now = spacing_text(clip_names(data) + [c for o in objs for c in json.loads(str(o.get(KEY_ADDED, "[]")))])
-            tail += f" The levels are spread evenly (the game's own spacing, which the add-on gives an authored Damage node too), so every level moved: now {now}."
+            tail += f" The levels are spread evenly, so every level moved: now {now}."
         except Exception:                                     # noqa: BLE001 -- the words are a help, never a failure
             pass
         self.report({"INFO"}, f"Added shape key '{kb.name}' and clip '{clip}' (the most damaged level): shape the key, then "

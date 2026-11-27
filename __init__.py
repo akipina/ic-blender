@@ -89,15 +89,15 @@ def _setup_paths():
     here = os.path.dirname(os.path.abspath(__file__))
     parent = os.path.dirname(here)
     _add_path("construct", [os.path.join(here, "_deps")], os.path.join("construct", "__init__.py"),
-              "construct not found: the bundled _deps/ is missing")
+              "A helper library (construct) was not found: reinstall the add-on")
     env = os.environ.get("BZ_ICPARSE")
     _add_path("ICParse", [env] if env else [os.path.join(parent, "ICParse")],
               os.path.join("ICParse", "__init__.py"), "The add-on's file-format library was not found: reinstall the add-on")
     env = os.environ.get("BZ_COMBOTEST")
     _add_path("combotest", [env] if env else [os.path.join(parent, "pyRDN", "combotest")],
               os.path.join("combotest", "__init__.py"),
-              "combotest not found: combine preview and combine validation are unavailable; set $BZ_COMBOTEST "
-              "to the pyRDN/combotest project dir")
+              "The creature combiner was not found, so Combine Preview and the combine checks are unavailable: "
+              "reinstall the add-on")
     env = os.environ.get("BZ_DEPS_BIN")
     _add_path("lupa", [env] if env else [os.path.join(here, "_deps_bin", _platform_tag())],
               os.path.join("lupa", "__init__.py"),

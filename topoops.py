@@ -115,7 +115,7 @@ def finalize(plan: TopoPlan, patches_old) -> TopoPlan:
     plan.keep, plan.o2n, plan.n_kept = keep, o2n, int(keep.sum())
     pf = plan.virtual_to_final(Pv.reshape(-1)).reshape(-1, 16) if len(Pv) else np.zeros((0, 16), dtype=np.int64)
     if len(pf) and (pf < 0).any():
-        raise ValueError("a new patch uses a dropped point (plan bug)")
+        raise ValueError("a new patch uses a dropped point (an add-on error)")
     plan.patches_final = pf
     merged = plan.alias != np.arange(n)                  # dropped = neither kept nor merged into a survivor
     plan.info.setdefault("dropped", int((~keep & ~merged).sum()))
@@ -263,7 +263,7 @@ def weld_plan(V, patches, selected, threshold, target=None, rings=(), uv=None, m
         if total > 2:
             keys = [k for k, _u in entries]
             plan.refusal = (f"welding would give the side between corners {sorted(pair)} {total} patches (sides "
-                            f"{keys[:3]}): the loader takes at most two per edge. Weld a different pair of corners")
+                            f"{keys[:3]}): an edge can take at most two. Weld a different pair of corners")
             return plan
         if len(entries) == 2:
             (k1, _u1), (k2, _u2) = entries
@@ -708,7 +708,7 @@ def extrude_sides_plan(V, patches, sides, tables) -> TopoPlan:
         if len(users) != 1:
             a, b = traversal(P[r], k)[0], traversal(P[r], k)[3]
             plan.refusal = (f"side {a}-{b} of patch {r} is shared by patches {sorted({u[0] for u in users})}: extruding "
-                            "it would give an edge used by three patches, which the loader rejects. Select open sides")
+                            "it would give an edge used by three patches, which the game cannot load. Select open sides")
             return plan
     if len(P) + len(sides) > MAX_PATCHES:
         plan.refusal = f"extruding {len(sides)} sides would make {len(P) + len(sides)} patches (max {MAX_PATCHES})"

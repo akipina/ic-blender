@@ -1227,7 +1227,7 @@ class BZ_OT_fit_mesh(_Operator):
                                   "duplicates (UV islands): the layout used a welded copy (your mesh is untouched)")
         if (open_edges or topo.nonmanifold) and self.layout == "OWN_QUADS":
             self.report({"WARNING"}, f"{obj.name} is not one closed skin ({open_edges} open edges after welding, "
-                                     f"{topo.nonmanifold} true non-manifold edges): the Object Editor rejects such a mesh "
+                                     f"{topo.nonmanifold} true non-manifold edges): a creature must be one closed skin "
                                      "(see Validate)")
         elif open_edges:
             self.report({"INFO"}, f"{obj.name} is not closed ({open_edges} open edges after welding); the QuadriFlow "

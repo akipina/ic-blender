@@ -216,8 +216,8 @@ class BZCombineSettings(bpy.types.PropertyGroup):
     as_spec: bpy.props.BoolProperty(name="Take Picks Verbatim", default=False, update=_on_setting,
                                     description="Combine like a saved design, without the part-button rules")
     script_source: bpy.props.EnumProperty(
-        name="Script", items=[("game", "Game", "The archives' attrcombiner.lua (what IC.exe runs)"),
-                              ("tool", "ComboTest.exe", "ComboTest.exe's built-in copy (its exports' costs)")],
+        name="Script", items=[("game", "Game", "The attrcombiner.lua the game itself runs"),
+                              ("tool", "Modding Tool", "The copy built into the game's creature combiner tool (RDNTools): its costs can differ from the game's")],
         default="game", update=_on_setting)
     use_rules: bpy.props.BoolProperty(name="Limb-Scale Rules", default=True, update=_on_setting,
                                       description="Apply the creatures' .lsc limb-scale rules")
@@ -522,7 +522,7 @@ def compute_preview(scene, obj, settings, progress=None):
     """Combine ``obj`` per ``settings`` and make it the ghost. Returns the PreviewResult (``error`` set when the
     combine failed); raises for missing inputs (no combiner, no stock creature, an export that can't be gathered)."""
     if not combocore.available():
-        raise combocore.CombinerUnavailable(f"the combiner (combotest) is not importable: {combocore.IMPORT_ERROR}")
+        raise combocore.CombinerUnavailable(f"the creature combiner could not be loaded: {combocore.IMPORT_ERROR}")
     t0 = time.perf_counter()
     step = (lambda i: progress(i)) if progress else (lambda i: None)
     info = {}
@@ -716,8 +716,9 @@ class BZ_OT_combine_materialize(bpy.types.Operator, ExportHelper):
             return {"CANCELLED"}
         if is_stale(context.scene, obj, context.scene.bz_combine):
             self.report({"WARNING"}, "The preview is stale (edits since): materializing the combination as previewed")
+        from .sceneobj.ui_kit import plain
         for e in pr.load_errors:
-            self.report({"WARNING"}, f"The combined creature won't load in the game: {e}")
+            self.report({"WARNING"}, f"The combined creature won't load in the game: {plain(e)}")
         from ICParse.sgm import parser as sgm_parser
         path = bpy.path.abspath(self.filepath)
         if not path.lower().endswith(".sgm"):
@@ -763,7 +764,7 @@ class BZ_OT_combine_materialize(bpy.types.Operator, ExportHelper):
         self.report({"WARNING"} if pr.load_errors else {"INFO"},
                     f"Materialized {pr.header()} -> {os.path.basename(path)} ({len(pr.result.model.patches)} patches)"
                     + (", with .lua / .lsc" if self.companions else "")
-                    + (f"; it won't load: {len(pr.load_errors)} check_model error(s)" if pr.load_errors else ""))
+                    + (f"; it won't load: {len(pr.load_errors)} error(s)" if pr.load_errors else ""))
         return {"FINISHED"}
 
 
@@ -844,7 +845,7 @@ def validate_combines(scene, obj, model=None, progress=None) -> list:
     ``COMBINE ...`` lines; the summary goes on the object (``bz_combine_summary``)."""
     settings = scene.bz_combine
     if not combocore.available():
-        return [f"COMBINE INFO setup: combine checks skipped: the combiner (combotest) is not importable "
+        return [f"COMBINE INFO setup: combine checks skipped: the creature combiner could not be loaded "
                 f"({combocore.IMPORT_ERROR})"]
     info = {}
     if model is None:
@@ -894,8 +895,9 @@ class BZ_OT_combine_validate(bpy.types.Operator):
             wm.progress_end()
         merge_validation(obj, lines)
         issues = [x for x in lines if x.startswith(("COMBINE ERROR", "COMBINE WARN"))]
+        from .sceneobj.ui_kit import plain
         for x in issues:
-            self.report({"ERROR"} if x.startswith("COMBINE ERROR") else {"WARNING"}, x)
+            self.report({"ERROR"} if x.startswith("COMBINE ERROR") else {"WARNING"}, plain(x))
         tail = lines[-1] if lines else "no result"
         self.report({"INFO"}, f"{len(issues)} combine issue(s) in {time.perf_counter() - t:.1f} s; {tail}")
         return {"FINISHED"}

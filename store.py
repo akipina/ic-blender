@@ -289,7 +289,7 @@ def migrate(obj):
     err = core.pool_error(None, n, patches(obj), len(legacy_vb) if legacy_vb is not None else None,
                           per_patch_lengths(obj))
     if err:
-        return f"cannot verify this object's control-point pool (stored before the pool guard): {err}"
+        return f"cannot verify this object's control-point pool (saved by an older version of the add-on): {err}"
     if KEY_POOL_N not in obj:
         obj[KEY_POOL_N] = n
     upgrade_limb_tables(obj)

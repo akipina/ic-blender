@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/ship.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Effects, events and sounds](effects.md) · Next: [Troubleshooting](trouble.md)
 
 # Check, export, install, remove and share
@@ -85,7 +83,7 @@ Unzipping gives one folder named after the item. Inside it:
 1. Make a test copy if you have none.
 2. In the box **4. Share** press **Install From Zip** and choose the zip. Or press **Install From Folder** and choose a folder that has a `data` folder in it. A folder you unzipped from a shared zip works too: choose the folder that holds `README.txt` and `data`. Its README and its `retail_roster` folder are left alone.
 
-The add-on opens it with care. It accepts only files inside `data`, makes names lower case, and refuses anything that tries to write outside its folder, a shortcut, a locked (password) zip and a zip that is far too big. Then it runs the same check as for your own work. If the check refuses it, nothing is installed, and the Share box says “The check refused ...” and lists why, with an **Install Anyway** button that reads the same zip again and installs it as it is. It may not work. The add-on keeps no copy of a refused item. **Remove** takes an installed item out.
+The add-on accepts only files inside `data`, makes names lower case, and refuses anything that tries to write outside its folder, a shortcut, a locked (password) zip and a zip that is far too big. Then it runs the same check as for your own work. If the check refuses it, nothing is installed, and the Share box says “The check refused ...” and lists why, with an **Install Anyway** button that reads the same zip again and installs it as it is. It may not work. The add-on keeps no copy of a refused item. **Remove** takes an installed item out.
 
 ## Players who do not use the add-on
 
@@ -100,7 +98,7 @@ Players can install without the add-on like this: close the game, copy the whole
 
 ## Windows
 
-The add-on has not been run on Windows yet. The code is written for it (drive letters such as `C:\Games\...`, backslashes, folder names without regard to capital letters) and tested as text. If something does not work on Windows, the message tells you what the add-on tried. Please report it.
+Windows support is experimental. If something does not work on Windows, the message tells you what the add-on tried. Please report it.
 
 ---
 

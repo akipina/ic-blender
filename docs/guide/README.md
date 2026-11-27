@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py: edit the template and the chapters, not this file. -->
-
 # Making and changing Impossible Creatures models in Blender
 
 Change creatures, buildings, workers, effects and maps in Blender, and play your work in the game. The add-on has three sidebar tabs: **IC Model**, **IC Game** and **IC Map**. Never try your work in the game you bought. Use a test copy, which chapter 1 shows how to make.
@@ -24,7 +22,7 @@ Chapters 1 to 11 are walk-throughs. Each one takes one kind of work from a new p
 14. [Topology: making geometry, not just moving it](topology.md): Delete, grow, weld, fill, subdivide, extrude, mirror and attach -- and what a patch costs.
 15. [Sculpting: brushes instead of control points](sculpt.md): Sculpt Mode brushes on the exact surface, refitted into the patches you touched.
 16. [Making an animal from scratch: a rhino](scratch.md): From the New Creature scaffold to a crude rhino with a horn, skin, clips and a combine check.
-17. [Fitting a mesh: an outside model becomes a creature](fit.md): Any mesh becomes a patch creature: budgets, the real ceiling, and the fit-to-rig split.
+17. [Fitting a mesh: an outside model becomes a creature](fit.md): Any mesh becomes a patch creature: patch budgets, limits and the fit-to-rig split.
 18. [Retargeting: an existing creature takes another shape](retarget.md): Make a working creature take another shape.
 19. [Skinning and re-skinning](skin.md): Which bone moves which control point, and how to change it.
 20. [Re-texturing and texturing from scratch](texture.md): Paint the creature's own texture, edit UVs, transfer a source mesh's skin.

@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/tour.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Troubleshooting](trouble.md) · Next: [Editing an existing animal](edit.md)
 
 # Finding your way around a creature
@@ -8,9 +6,9 @@ A creature is not made of triangles. It is made of **patches**: small curved sur
 
 ## Where your work is kept, and Relink Source
 
-Files the add-on makes for you (a converted mesh, a fitted creature) go next to your saved `.blend`, or, while the file is unsaved, into Blender's user data folder under `pyic/projects` with a name nothing else holds. Never into the temp folder, which a restart can empty.
+Files the add-on makes for you (a converted mesh, a fitted creature) go next to your saved `.blend`, or, while the file is unsaved, into Blender's user data folder under `pyic/projects` with a name nothing else holds.
 
-A creature remembers the `.sgm` it was built on. If that file moves, is renamed or is changed, the **Problems** box says so and offers **Relink Source**: pick the file. The same file is accepted at once. A different file with the same number of control points and patches is accepted after a warning (the export will build on *its* skeleton, materials and clips). A file with another body is refused, because the object's tables would point into the wrong places.
+A creature remembers the `.sgm` it was built on. If that file moves, is renamed or is changed, the **Problems** box says so and offers **Relink Source**: pick the file. The same file is accepted at once. A different file with the same number of control points and patches is accepted after a warning (the export will build on *its* skeleton, materials and clips). A file with another body is refused.
 
 ## Opening a creature
 
@@ -26,9 +24,9 @@ Two objects appear: the creature (its control points) and its rig (the skeleton)
 
 Gatherers, characters, structures and props use the same button and open as ordinary meshes; see [Structures and props](structures.md) and [Gatherers and characters](gatherers.md).
 
-The 3D view shows a model the way the game draws it, not as a mirror image: the game's axes are left-handed and the add-on reflects them into Blender's. A creature faces Blender's −Y, and its `_l` bones sit on the −X side, as they show in the game. Writing on a texture reads the same in Blender and in the game.
+The 3D view shows a model the way the game draws it, not as a mirror image. A creature faces Blender's −Y, and its `_l` bones sit on the −X side, as they show in the game. Writing on a texture reads the same in Blender and in the game.
 
-A `.blend` file saved with an add-on older than 0.9.2 holds its models flipped left to right. Every tool refuses such a model with the message *“This was made with an older version of IC Blender. Import the original file again.”* To fix it, open the model again with **File > Import** (or start the project again). Nothing is changed behind your back.
+A `.blend` file saved with an add-on older than 0.9.2 holds its models flipped left to right. Every tool refuses such a model with the message *“This was made with an older version of IC Blender. Import the original file again.”* To fix it, open the model again with **File > Import** (or start the project again).
 
 ## What you are looking at
 

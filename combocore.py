@@ -82,7 +82,7 @@ def available() -> bool:
 
 def _require():
     if combotest is None:
-        raise CombinerUnavailable(f"the combiner (combotest) is not importable: {IMPORT_ERROR}")
+        raise CombinerUnavailable(f"the creature combiner could not be loaded: {IMPORT_ERROR}")
 
 
 class CombinerUnavailable(RuntimeError):
@@ -103,7 +103,7 @@ def lua_info() -> dict:
         return _LUA_INFO
     info = {"version": None, "impl": None, "error": ""}
     if combotest is None:
-        info["error"] = "combotest not importable"
+        info["error"] = "the creature combiner could not be loaded"
     else:
         try:
             from combotest.attrcombine import lua_runtime_class
@@ -579,9 +579,9 @@ STAT_LABELS_NO_LUA = OrderedDict([
 DROP_WORDS = {}
 if ct_slots is not None:
     DROP_WORDS = {ct_slots.NO_SOCKET: "the torso creature has no socket for it",
-                  ct_slots.FLAGGED: "marked Non-Swappable in Boner (fins, stubs, insect mid legs): the game's builder never takes "
-                                    "it from another creature, so it stays on its own creature. Take Picks Verbatim (Advanced) "
-                                    "shows it grafted anyway, as a saved design file could carry it",
+                  ct_slots.FLAGGED: "marked Non-Swappable in Boner (fins, stubs, insect mid legs): the game never takes it from "
+                                    "another creature, so it stays on its own creature. Take Picks Verbatim (Advanced) combines "
+                                    "it anyway",
                   ct_slots.NO_LIMB: "the donor has no limb for it (the torso creature's own stays)"}
 
 
@@ -695,7 +695,7 @@ def picker_refusal_text(*parents) -> str:
         why = picker_refusals(p.model)
         if why:
             more = f" (and {len(why) - 1} more)" if len(why) > 1 else ""
-            return f"ComboTest.exe does not take {creature_name(p)}: {why[0]}{more}"
+            return f"Cannot combine {creature_name(p)}: {why[0]}{more}"
     return ""
 
 
@@ -1023,7 +1023,7 @@ def settle_winding_lines(lines: Sequence[str], model, stock_dir: Optional[str] =
                 verdicts.append(winding_verdict(W[cs], tc, dirs))
         if verdicts and all(v == "unclear" for v in verdicts):
             out[i] = (f"COMBINE INFO precheck: ring {key}: lies sideways to the torso's centre, so its direction cannot say which way it is "
-                      f"wound (the stock cheetah's wing rings are the same). Not an error: the combines below weld it against stock partners")
+                      f"wound. Not an error: the combines below weld it against stock partners")
     return out
 
 
@@ -1072,7 +1072,7 @@ def ring_fix(points, corners, slot_key, torso_centre_, partner_dirs) -> "tuple[l
     if len(X) != len(corners):
         raise ValueError(f"{len(X)} positions for {len(corners)} corners")
     if combotest is None:
-        return corners, [f"winding and start not checked: the combiner is not importable ({IMPORT_ERROR})"]
+        return corners, [f"winding and start not checked: the creature combiner could not be loaded ({IMPORT_ERROR})"]
     from combotest import validate as V
     notes = []
     if torso_centre_ is None:
@@ -1158,7 +1158,7 @@ def ring_start_plan(points, corners, slot_key, torso_centre_, partner_dirs, part
         raise ValueError(f"{len(X)} positions for {len(corners)} corners")
     plan = RingStartPlan(slot_key=slot_key, corners=list(corners), k=len(corners))
     if combotest is None:
-        plan.reason = f"the combiner is not importable ({IMPORT_ERROR}): the weld cannot be measured"
+        plan.reason = f"the creature combiner could not be loaded ({IMPORT_ERROR}): the weld cannot be measured"
         return plan
     from combotest import validate as V
     plan.margin = float(V.TWIST_MARGIN_DEG if margin is None else margin)
@@ -1177,7 +1177,7 @@ def ring_start_plan(points, corners, slot_key, torso_centre_, partner_dirs, part
                        f"no stock {slot_key} ring has {len(corners)} corners to compare with")
         return plan
     if torso_centre_ is not None and winding_verdict(X, torso_centre_, refs, same_only=True) == "out":
-        plan.reason = ("wound with its normal out of the torso (every base-game ring points into it): re-pick it "
+        plan.reason = ("wound with its normal out of the torso (a ring must point into the torso): re-pick it "
                        "(Pick Ring reverses it) -- no rotation fixes a reversed ring")
         return plan
     best_pairing = [V.best_alignment(V._corner_dirs(X), dd)[2] for dd in refs]   # shift-invariant: the same two rings
@@ -1300,14 +1300,14 @@ def ring_status(world, patches, patch_limb, limb_ids, rows, stock_dir: Optional[
         if st.flags1 & core.CLASS_MASK != core.TORSO_CODE:
             continue                                        # not a torso socket: the combiner does not graft at it
         if combotest is None:
-            st._flag("WARN", f"winding and start not checked: the combiner is not importable ({IMPORT_ERROR})")
+            st._flag("WARN", f"winding and start not checked: the creature combiner could not be loaded ({IMPORT_ERROR})")
             continue
         from combotest import validate as V
         X = W[st.ring]
         dirs, _names = partner_ring_dirs(stock_dir, key, exclude_stem)
         refs = [d for d in dirs if len(d) == len(st.ring)]
         if tc is not None and winding_verdict(X, tc, refs) == "out":
-            st._flag("ERROR", "wound with its normal out of the torso (every base-game ring points into it): Pick Ring "
+            st._flag("ERROR", "wound with its normal out of the torso (a ring must point into the torso): Pick Ring "
                               "puts it in the stock order")
             continue
         if not refs:

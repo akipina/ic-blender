@@ -44,7 +44,7 @@ def new_map(context, *, title: str, template_key: str, players: int, kind: int =
     sc = _sc()
     game_dir = game_dir or prefs.resolve_game_dir(context)[0]
     if not game_dir:
-        raise ValueError("A new map starts from the Mission Editor's terrain templates, which are in the game's files, and no game folder was "
+        raise ValueError("A new map starts from one of the game's terrain templates, which are in the game's files, and no game folder was "
                          "found. Set the game folder in the add-on's preferences.")
     t = sc.template(template_key)
     raw = view.game_data(game_dir).read(t.path)
@@ -61,7 +61,7 @@ def new_map(context, *, title: str, template_key: str, players: int, kind: int =
 
 
 class BZ_OT_new_map(bpy.types.Operator):
-    """Make a new Impossible Creatures map from one of the Mission Editor's terrain templates"""
+    """Make a new Impossible Creatures map from one of the game's terrain templates"""
     bl_idname = "bz.new_map"
     bl_label = "New Impossible Creatures Map"
     bl_options = {"REGISTER", "UNDO"}

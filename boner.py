@@ -357,8 +357,7 @@ def standard_root_refusal(std, root, owner) -> Optional[str]:
     ``std.root`` ignoring case (None when absent); ``owner``: the limb already listing it (None when free). A limb needs a
     bone: with none the engine's model loader reports 'limbs are boneless!' and ComboTest.exe does not take the creature
     (harness-verified), so a boneless stub is never made."""
-    tail = ("a limb with no bones makes the engine's model loader report 'limbs are boneless!' and ComboTest.exe won't "
-            "take the creature")
+    tail = ("a limb with no bones is an error in the game's model loader, and the creature cannot be combined")
     if root is None:
         return (f"the skeleton has no bone '{std.root}' for the {class_label(std.limb_id)} limb's root: add it first (Boner "
                 f"> Bones > Add Bone under Active), or give an existing limb this class; {tail}")
@@ -406,7 +405,7 @@ def limb_name_error(name, others, what="limb") -> Optional[str]:
     if any(ord(ch) > 126 or ord(ch) < 32 for ch in name):
         return f"'{name}' has characters outside plain ASCII: {what} names are stored as ASCII"
     if len(name.encode("ascii")) > LIMB_NAME_MAX:
-        return f"'{name}' is {len(name)} characters: the Object Editor keeps at most {LIMB_NAME_MAX}"
+        return f"'{name}' is {len(name)} characters: a name can have at most {LIMB_NAME_MAX}"
     low = name.lower()
     clash = next((o for o in others if str(o).lower() == low), None)
     if clash is not None:
@@ -625,7 +624,7 @@ def _host_refusal(verb, lists, new, limb_ids, limb_names, hosts):
     parts = [f"{where.get(k, (k, None))[0]} (hosts {', '.join(hosts[k][:3])}{', ...' if len(hosts[k]) > 3 else ''})"
              for k in gone]
     return (f"{verb} would take {'; '.join(parts)} out of the Torso: a torso connection's host bone stays a Torso bone, or "
-            "ComboTest.exe fails 'Index >= 0'")
+            "the creature cannot be combined as the torso")
 
 
 @dataclass
@@ -654,8 +653,8 @@ def _finish_edit(limb_lists, new_lists):
 
 
 def _boneless_refusal(j, limb_names, bones) -> str:
-    return (f"limb '{limb_names[j]}' would have no bones left (it has only {', '.join(bones)}): the engine reports 'limbs "
-            "are boneless!'; give it another bone first, or delete that limb")
+    return (f"limb '{limb_names[j]}' would have no bones left (it has only {', '.join(bones)}): a limb needs a "
+            "bone; give it another bone first, or delete that limb")
 
 
 def _check_index(index, limb_lists):
@@ -813,8 +812,8 @@ def bone_edit_warnings(edit, before, limb_ids, limb_names, owner_counts, limb_ho
         leg = class_of(limb_ids[j]) & 0x20 and not int(limb_ids[j]) & NOSWAP
         out.append(f"{b} owns {n} control point{'s' if n != 1 else ''} of '{limb_names[j]}' and is now in "
                    + (f"'{where[k]}'" if k in where else "no limb")
-                   + f": grafted as a donor, ComboTest.exe puts them on the root bone"
-                   + (" and fails an assertion (no export)" if leg else "")
+                   + f": when this limb is combined onto another torso, those points go to the root bone"
+                   + (" and the combination fails" if leg else "")
                    + f" (give {b} back to '{limb_names[j]}', or those points to one of its bones)")
     had = {(j, _low(b)) for j, b, _c in ICval.torso_standard_roots(limb_ids, before)}
     for j, b, cls in ICval.torso_standard_roots(limb_ids, edit.lists):
@@ -833,7 +832,7 @@ def bone_edit_warnings(edit, before, limb_ids, limb_names, owner_counts, limb_ho
 PARENT_TORSO = 0x800
 PARENT_HEAD = 0x40
 CONN_FLAGS = tuple(f for f in LIMB_FLAGS if f.bit != NOSWAP)
-NOSWAP_CONN_NOTE = ("Non-Swappable is not a connection box: the loader masks it off the connection's classes, so it "
+NOSWAP_CONN_NOTE = ("Non-Swappable is not a connection box: the game ignores it on a connection, so it "
                     "belongs on the limb (Boner > Limbs)")
 # the stock host bone by child class (combotest.validate.STOCK_HOSTS, used when combotest does not import)
 _STOCK_HOSTS = {0x40: "neck1", 0x80: "pelvis", 0x25: "spine3", 0x26: "spine3", 0x29: "pelvis", 0x2A: "pelvis",
@@ -880,9 +879,9 @@ def unmirrored_left(limb_ids):
     return [i for i, x in enumerate(limb_ids) if class_of(x) & 1 and (class_of(x) & ~1) | 2 not in have]
 
 
-SOCKETLESS_WHY = ("ComboTest.exe refuses the whole creature in either role ('Assertion of (pDesLimb->m_pLimbConn)') "
-                  "until a connection carries that class again")
-UNMIRRORED_WHY = "ComboTest.exe fails 'Assertion of (LimbToAdd.m_pLimb)' combining the creature, in either role"
+SOCKETLESS_WHY = ("the creature cannot be combined, as the torso or as a donor, until a connection carries that class "
+                  "again")
+UNMIRRORED_WHY = "the creature cannot be combined, as the torso or as a donor"
 
 
 def socket_warnings(ids_before, ids_after, f2_before, f2_after, limb_names) -> list:
@@ -995,7 +994,7 @@ def host_refusal(host, parent_class, skeleton_names, limb_ids, limb_bone_lists) 
     for lid, bones in zip(limb_ids, limb_bone_lists):
         if class_of(lid) == class_of(parent_class) and _low(host) not in {_low(b) for b in bones}:
             return (f"'{host}' is not in the bones of the parent limb ({class_label(parent_class)}): a host bone is a bone "
-                    "of the limb the ring is cut into (the Object Editor warns, ComboTest.exe asserts 'Index >= 0')")
+                    "of the limb the ring is cut into, or the creature may not combine")
     return None
 
 
@@ -1181,8 +1180,8 @@ def stub_plan(suffix, patch, patches, patch_limb, limb_ids, limb_names, limb_bon
         return "the creature has no Torso limb: a stub socket is cut into the Torso", None
     if owner not in torso:
         where = f"limb '{limb_names[owner]}'" if 0 <= owner < len(limb_names) else "no limb"
-        return (f"patch {patch} is in {where}, not the Torso: a stub socket is the ring of one Torso patch (every "
-                "base-game stub ring is)"), None
+        return (f"patch {patch} is in {where}, not the Torso: a stub socket is the ring of one Torso "
+                "patch"), None
     quad = stub_quad(P[patch])
     if len(set(quad)) != 4:
         return f"patch {patch} has only {len(set(quad))} distinct corners: a stub ring needs 4", None
@@ -1269,23 +1268,22 @@ SEAM_BONES = ("neck1", "tail1", "pelvis", "spine2", "spine3", "front_leg1_l", "f
 UNIVERSAL_BONES = ("pelvis", "spine1", "spine2", "spine3", "neck1", "neck2", "neck3", "head", "jaw1", "endjaw", "nose",
                    "tail1", "tail2", "tail3", "tail4", "endtail", "rear_leg1_l", "rear_leg1_r")
 HARD_CODED_USES = (
-    (PROC_ANIM_BONES, "procedural animation (IC.exe ProcAnim: swimming and flying adjustments)"),
+    (PROC_ANIM_BONES, "procedural animation (swimming and flying adjustments)"),
     (TAIL_CLEARANCE_BONES, "tail ground clearance"),
     (COMBINER_BONES, "the combiner's lookups (pelvis drop, sockets, seams)"),
-    (COMBINER_UNOBSERVED_BONES, "a name ComboTest.exe looks up (no effect observed in its exports)"),
+    (COMBINER_UNOBSERVED_BONES, "a name the combiner looks up (renaming it may change nothing)"),
     (SEAM_BONES, "seam skinning (the combiner re-skins seam vertices by bone name: a design replacing the limb "
                  "whose bone this was tears the seam, vertices on the root bone)"),
-    (SCALING_BONES, "creature scaling (CreatureScalingInfo ShrunkenBoneList)"),
-    (UNIVERSAL_BONES, "its place among the 18 bones every base-game creature has (Validate's STOCK bone line)"),
+    (SCALING_BONES, "creature scaling"),
+    (UNIVERSAL_BONES, "its place among the 18 bones every base-game creature has"),
 )
 
 
 # what a rename away from the name was MEASURED to do in the game's tools (the generic uses above say where it is read)
 MEASURED_LOSS = {
-    "tail1": ("measured in ComboTest.exe: with another creature's tail the tail seam tears, and with a kept tail the "
-              "combined creature loses its TailWag clip and tail ground clearance"),
-    "tail2": ("measured in ComboTest.exe (cheetah tail2 renamed, as the torso + bull head): the combined creature loses "
-              "its TailWag procedural clip"),
+    "tail1": ("when combined: with another creature's tail the tail seam tears, and with its own tail the combined "
+              "creature loses its TailWag clip and tail ground clearance"),
+    "tail2": ("used as the torso, the combined creature can lose its TailWag procedural clip"),
 }
 
 

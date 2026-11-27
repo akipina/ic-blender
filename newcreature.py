@@ -77,7 +77,7 @@ class BZ_OT_new_creature(bpy.types.Operator, ExportHelper):
             self.report({"WARNING"}, p)
         self.report({"INFO"}, f"New creature {name}: {len(model.vertices)} control points, {len(model.patches)} patches, "
                               f"{len(model.bones)} bones, {len(model.limb_connections)} rings, {len(model.animations)} clips"
-                              f" -> {os.path.basename(path)} (rulebook {'clean' if not problems else f'{len(errs)} errors, {len(warns)} warnings'})")
+                              f" -> {os.path.basename(path)} (check: {'clean' if not problems else f'{len(errs)} errors, {len(warns)} warnings'})")
         return {"FINISHED"}
 
 

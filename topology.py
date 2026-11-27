@@ -190,8 +190,8 @@ def topology_refusals(src, topo: BoneTopology, rules: Optional[Rules] = None) ->
                        "delete, or first move the connection (Boner > Connections: Set, by the host bone)")
         only = [rules.limb_names[j] for j, bl in enumerate(low_lists) if bl == [name.lower()]]
         if only:
-            out.append(f"bone '{name}' was deleted, but it is the only bone of limb '{only[0]}' ('limbs are boneless!' in "
-                       "game): Undo, give the limb another bone first, or delete the limb")
+            out.append(f"bone '{name}' was deleted, but it is the only bone of limb '{only[0]}' (a limb with no bones is an "
+                       "error in game): Undo, give the limb another bone first, or delete the limb")
     added_keys = {int(k) for k, _pk in rules.added.values()}
     name_of_key = {int(k): nm for nm, (k, _pk) in rules.added.items()}
     for i, p in topo.parents:

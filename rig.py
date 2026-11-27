@@ -373,7 +373,7 @@ def bone_topology(arm_obj, sk=None, model=None, src_stubs=None, added=None):
             bad.append(f"bone '{name}' was re-parented from '{was}' under '{now}', " + (
                 "a stub bone Add Stub Socket created (a stub limb's only bone): re-parent it under the stub's host" if stub
                 else f"which the export refuses ({why})" if why else "which is no bone the export writes (a copy of a "
-                "bone, or a bone the skeleton guard refuses)") + ", or Undo")
+                "bone, or a bone Export refuses)") + ", or Undo")
     return topology.BoneTopology(deleted=deleted, parents=tuple(parents)), bad
 
 

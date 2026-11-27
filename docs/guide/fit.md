@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/fit.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Making an animal from scratch: a rhino](scratch.md) · Next: [Retargeting: an existing creature takes another shape](retarget.md)
 
 # Fitting a mesh: an outside model becomes a creature
@@ -74,7 +72,7 @@ For a creature that combines, keep the torso under 6,584 vertices and the limbs 
 
 ## Your own quads, as they are
 
-For a clean, low quad mesh whose faces you want as the patches, set **Layout** to **Own Quads** in **Fit Patches to Mesh**: each quad becomes one patch, with no fitting and no patch budget. (The old button **Convert Mesh to Creature** is gone from the panel. This does the same job.)
+For a clean, low quad mesh whose faces you want as the patches, set **Layout** to **Own Quads** in **Fit Patches to Mesh**: each quad becomes one patch, with no fitting and no patch budget.
 
 ## A mesh at creature scale
 

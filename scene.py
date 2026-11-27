@@ -764,8 +764,8 @@ def export_scene_object(obj, legacy: bool = True, only=None, force: bool = False
             if mplan.left_out:
                 dropped[pi] = mplan.left_out
             if report.get("forced_v2"):
-                notes.append(f"{o.name}: written in the v2.0 layout, because it has damage states (one detail level; not yet "
-                             f"seen in the game)")
+                notes.append(f"{o.name}: written in the v2.0 layout, because it has damage states (one detail level; the game "
+                             f"may not load it)")
         rebuilt.append(pi)
     raw = scene_damage.write_key_clips(raw, objs if only is None else [o for o in objs if int(o[KEY_SCENE_PART]) in only],
                                        data, written_keys, notes)  # 4. edited shape-key Actions: their clips' weights

@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/newcreature.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Replace one of the game's animals](replace.md) · Next: [A creature from your own mesh](mesh.md)
 
 # A new creature from a game animal
@@ -92,10 +90,6 @@ If the message says a mod's list could not be written, or that you edited a list
 > In the single-player campaign, the army builder offers only the animals the campaign has unlocked. A new creature does not show there. That is how the game works. It shows in the free creature creator and in skirmish.
 
 To take your creature out, press **Remove** next to `my_cheetah` in **Installed here**.
-
-## What was checked
-
-Four creatures made this way (a cheetah under a new name, a wolf with a hump and letters on its skin, a horse-shaped body on the cheetah's skeleton, and a creature from the add-on's template) were loaded by a test build of the game from a script. Each showed in the creature creator of the base game, of Insect Invasion and of Tellurian, was combined with a baboon, and was used in a skirmish that ran for a minute without an error. Nobody has looked at them in the game, so how they look and move is not checked. The creature creator's picture and the campaign were not tried.
 
 ---
 

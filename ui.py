@@ -443,8 +443,8 @@ class BZ_PT_boner(bpy.types.Panel):
             row.label(text=f"{t.patches[i]}p {len(t.bones[i])}b · {t.status[i]}")
         boneless = [r.name for r, st in zip(t.rows, t.status) if st == "no bones"]
         if boneless:
-            _alert(lb, f"{', '.join(boneless[:3])}{', ...' if len(boneless) > 3 else ''}: no bones -- the engine "
-                       "reports 'limbs are boneless!' and ComboTest.exe won't take this creature")
+            _alert(lb, f"{', '.join(boneless[:3])}{', ...' if len(boneless) > 3 else ''}: no bones -- the creature "
+                       "cannot be combined")
         for note in t.notes[:3]:                            # added bones the stored rows list elsewhere (or at all)
             lb.label(text=note, icon="INFO")
         for w in t.warnings[:2]:
@@ -489,7 +489,7 @@ class BZ_PT_boner(bpy.types.Panel):
         for k in range(0, len(bones), per):
             col.label(text=", ".join(bones[k:k + per]) + ("," if k + per < len(bones) else ""))
         if not bones:
-            _alert(col, "none: the engine reports 'limbs are boneless!' and ComboTest.exe won't take this creature")
+            _alert(col, "none: a limb with no bones means the creature cannot be combined")
         arm = store.rig(obj)
         if arm is None:
             bb.label(text="(no rig: bone lists name the rig's bones)", icon="INFO")
@@ -558,12 +558,12 @@ class BZ_PT_boner(bpy.types.Panel):
         missing = boner.limbs_without_connection([x.limb_id for x in t.limbs.rows], [r.flags2 for r in t.rows])
         if missing:
             _alert(lb, f"no connection: {', '.join(t.limbs.rows[j].name for j in missing[:3])}"
-                       f"{', ...' if len(missing) > 3 else ''} (ComboTest.exe refuses the creature until each has one)",
+                       f"{', ...' if len(missing) > 3 else ''} (the creature cannot be combined until each has one)",
                    icon="ERROR")
         unpaired = boner.unmirrored_left([x.limb_id for x in t.limbs.rows])
         if unpaired:
             _alert(lb, f"no Right partner: {', '.join(t.limbs.rows[j].name for j in unpaired[:3])}"
-                       f"{', ...' if len(unpaired) > 3 else ''} (ComboTest.exe refuses the creature: re-class the "
+                       f"{', ...' if len(unpaired) > 3 else ''} (the creature cannot be combined: re-class the "
                        "partner limb too)", icon="ERROR")
         if active < 0:
             return

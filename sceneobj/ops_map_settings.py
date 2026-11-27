@@ -104,7 +104,7 @@ class BZ_OT_map_make_preview(bpy.types.Operator):
     bl_label = "Make Preview Picture"
     bl_options = {"REGISTER", "UNDO"}
 
-    method: EnumProperty(name="From", items=[("GAME", "The ground picture", "Like the Mission Editor: the map's ground picture with the water drawn on it"),
+    method: EnumProperty(name="From", items=[("GAME", "The ground picture", "The map's ground picture with the water drawn on it"),
                                             ("BLENDER", "A render from Blender", "Render the ground as it is now (sculpted, painted) from above, with the water drawn on it")],
                          default="GAME")
 

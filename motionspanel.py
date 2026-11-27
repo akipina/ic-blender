@@ -466,7 +466,7 @@ class BZ_OT_motions_load(bpy.types.Operator):
         try:
             load(t, context.scene)
         except MO.MotionError as e:
-            self.report({"ERROR"}, str(e))
+            self.report({"ERROR"}, ui_kit.plain(str(e)))
             return {"CANCELLED"}
         return {"FINISHED"}
 
@@ -569,7 +569,7 @@ class BZ_OT_motions_add_copy(bpy.types.Operator):
                 table.rows[n].clip = self.clip
             MO.check_name(table.rows[n].name)
         except MO.MotionError as e:
-            self.report({"ERROR"}, str(e))
+            self.report({"ERROR"}, ui_kit.plain(str(e)))
             return {"CANCELLED"}
         fill(state, table)
         select_node(state, n)
@@ -759,7 +759,7 @@ class BZ_UL_motions(bpy.types.UIList):
 def _hint(layout, text: str, icon: str = "NONE") -> None:
     import textwrap
     col = layout.column(align=True)
-    for i, line in enumerate(textwrap.wrap(text, 44) or [""]):
+    for i, line in enumerate(textwrap.wrap(ui_kit.plain(text), 44) or [""]):
         col.label(text=line, icon=icon if i == 0 else "NONE")
 
 
@@ -1069,7 +1069,7 @@ class BZ_OT_clip_new(bpy.types.Operator):
         try:
             msg += " " + give_motion(t, context.scene, name, self.then, instead)
         except MO.MotionError as e:
-            self.report({"WARNING"}, msg + f" It has no motion yet: {e}")
+            self.report({"WARNING"}, msg + f" It has no motion yet: {ui_kit.plain(str(e))}")
             return {"FINISHED"}
         self.report({"INFO"}, msg)
         return {"FINISHED"}

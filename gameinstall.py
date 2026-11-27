@@ -206,7 +206,7 @@ def last_check(folder: str):
 
 # ---- operators -----------------------------------------------------------------------------------------------------------------------
 class BZ_OT_install_item(bpy.types.Operator):
-    """Check the exported item, then copy it into the Test game folder, as the game's own Workshop installer would"""
+    """Check the exported item, then copy it into the Test game folder"""
     bl_idname = "bz.install_item"
     bl_label = "Install into Test Game"
     bl_options = {"REGISTER"}
@@ -224,9 +224,9 @@ class BZ_OT_install_item(bpy.types.Operator):
             return {"CANCELLED"}
         self.report({"INFO"}, out.text)
         for note in out.warnings:
-            self.report({"WARNING"}, note)
+            self.report({"WARNING"}, ui_kit.plain(note))
         for note in out.infos:
-            self.report({"INFO"}, note)
+            self.report({"INFO"}, ui_kit.plain(note))
         return {"FINISHED"}
 
 
@@ -261,7 +261,7 @@ class BZ_OT_remove_item(bpy.types.Operator):
         _STATE_CACHE.pop(game, None)
         self.report({"INFO"}, f"Removed '{res.item_id}': {len(res.deleted)} files deleted, {len(res.restored)} put back as they were.")
         for note in res.notes:
-            self.report({"WARNING"}, note)
+            self.report({"WARNING"}, ui_kit.plain(note))
         return {"FINISHED"}
 
 

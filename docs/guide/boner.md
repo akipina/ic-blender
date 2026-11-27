@@ -1,5 +1,3 @@
-<!-- Written by build_guide.py from chapters/boner.html: edit that file, not this one. -->
-
 [Contents](README.md) · Previous: [Re-texturing and texturing from scratch](texture.md) · Next: [The Blueprint panel](blueprint.md)
 
 # Bones, limbs and connections (Boner)
@@ -136,7 +134,7 @@ You can't delete the root, bones the game looks up by name, stub bones, host bon
 ## Joint limits
 
 - **Joint limits**: each rig bone's `bz_joint_limits` property, in radians. **Reset to Stock** restores it.
-- No game tool has been seen to use them in play. The creature's IK chains are kept as they are, and are not edited here.
+- Joint limits may have no effect in the game. The creature's IK chains are kept as they are, and are not edited here.
 
 ## Validate, Combine Preview and the Quick combine tier
 

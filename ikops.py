@@ -129,9 +129,9 @@ class BZ_OT_ik_add_chain(bpy.types.Operator):
     start: bpy.props.EnumProperty(name="From", items=_bone_items, options={"SKIP_SAVE"})
     end: bpy.props.EnumProperty(name="To", items=_bone_items, options={"SKIP_SAVE"})
     flags: bpy.props.EnumProperty(name="Kind", items=FLAG_ITEMS, default="1",
-                                  description="The chain's flags word (one stock bit; no shipped tool reads it)")
+                                  description="The kind of chain")
     enabled: bpy.props.IntProperty(name="Enabled", default=1, min=0, max=65535,
-                                   description="The chain's enabled word (1 on 754 of 769 base-game chains)")
+                                   description="Whether the chain is enabled (normally 1)")
 
     @classmethod
     def poll(cls, context):
@@ -222,7 +222,7 @@ class BZ_OT_ik_remove_chain(bpy.types.Operator):
 
 
 class BZ_OT_ik_edit_chain(bpy.types.Operator):
-    """Rename an IK chain or change its words (the flags bit and the enabled word)"""
+    """Rename an IK chain or change its kind and enabled values"""
     bl_idname = "bz.ik_edit_chain"
     bl_label = "Edit IK Chain"
     bl_options = {"REGISTER", "UNDO"}
@@ -231,7 +231,7 @@ class BZ_OT_ik_edit_chain(bpy.types.Operator):
     name: bpy.props.StringProperty(name="Name", default="", options={"SKIP_SAVE"})
     flags: bpy.props.IntProperty(name="Flags", default=1, min=0, max=65535,
                                  description="Chain kind bit: Head 1, Spine 2, Arm 4, Leg 8, Tail 16, Ear 64, Jaw 128, ...")
-    enabled: bpy.props.IntProperty(name="Enabled", default=1, min=0, max=65535, description="The enabled word (stock: 1)")
+    enabled: bpy.props.IntProperty(name="Enabled", default=1, min=0, max=65535, description="The enabled value (normally 1)")
 
     @classmethod
     def poll(cls, context):
