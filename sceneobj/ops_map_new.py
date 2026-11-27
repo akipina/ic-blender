@@ -15,6 +15,7 @@ from bpy.props import BoolProperty, EnumProperty, IntProperty, StringProperty
 from . import map_hooks as H
 from . import map_settings as S
 from . import prefs
+from .. import enumitems
 
 ORDER = 64
 
@@ -24,10 +25,12 @@ def _sc():
     return scenario
 
 
+@enumitems.stable
 def _kind_items(self, context):
     return [(k, kn, f"{kn} ground and sky") for k, kn in _sc().template_kinds()]
 
 
+@enumitems.stable
 def _size_items(self, context):
     return [(s, f"{sn} ({c}x{c}, {m} m)", f"A map {m} m across") for s, sn, c, m in _sc().template_sizes()]
 

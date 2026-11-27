@@ -330,7 +330,7 @@ def draw_problems(layout, obj, skip=()) -> int:
     if not got:
         return 0
     box = layout.box()
-    box.label(text=f"Problems ({len(got)}): Export refuses until they are gone", icon="ERROR")
+    box.label(text=f"Problems ({len(got)}): fix before Export", icon="ERROR")
     from . import startops
     for iss in got:
         _alert(box, iss.text)

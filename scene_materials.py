@@ -276,7 +276,14 @@ def game_archives(data_root=None):
     must not push a re-export to another name)."""
     import glob
     from ICParse.data import ICData, default_root
-    root = data_root or default_root()
+    root = data_root
+    if not root:                                      # the Game folder setting counts, not only the default Steam folder
+        try:
+            from .sceneobj import prefs
+            root = prefs.resolve_game_dir(None)[0]
+        except Exception:                             # noqa: BLE001 -- no preferences (outside Blender): the usual folders
+            root = None
+    root = root or default_root()
     sgas = sorted(glob.glob(os.path.join(root, "*.sga"))) if root and os.path.isdir(root) else []
     return ICData(*sgas) if sgas else None
 

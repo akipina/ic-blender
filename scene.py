@@ -140,6 +140,8 @@ def build_scene(context, data, source_path=None, clips_as_actions=True, markers=
     list of mesh objects (the largest first). ``markers``: also build the attach points as empties
     (``sceneobj/slice_markers.py``; the plain model import does, the map importers do not)."""
     src = source_path or data.source_path
+    from . import scenesafety
+    earlier = {o.as_pointer() for o in scenesafety.objects_of(src)}      # an import again must not re-stamp these (their file changed)
     images = _images(data)
     mats = material.build_blender_materials(
         [{"tex": mt["texture"], "color": mt["color"]} for mt in data.materials],
@@ -227,8 +229,7 @@ def build_scene(context, data, source_path=None, clips_as_actions=True, markers=
     if markers and objs:
         from .sceneobj import slice_markers
         slice_markers.build_markers(context, data, src, arm_obj, group, objs)
-    from . import scenesafety
-    scenesafety.stamp_source(src)                           # the file the model was built on: an export checks it is still that file
+    scenesafety.stamp_source(src, skip=earlier)                           # the file the model was built on: an export checks it is still that file
     for o in context.view_layer.objects:
         o.select_set(False)
     if objs:

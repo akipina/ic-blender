@@ -241,7 +241,7 @@ def draw_share(layout, context) -> None:
     row.enabled = have
     row.operator(BZ_OT_pack_for_sharing.bl_idname, icon="PACKAGE")
     if not have:
-        box.label(text="Export for the game first (step 2); then you can pack it.", icon="INFO")
+        box.label(text="Export for the game first (step 2).", icon="INFO")
     elif _LAST["zip"]:
         box.label(text=f"Last zip: {os.path.basename(_LAST['zip'])}", icon="CHECKMARK")
     box.label(text="Install an item someone else made:")

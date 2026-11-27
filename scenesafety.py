@@ -73,14 +73,17 @@ def objects_of(src: str) -> list:
     return [o for o in bpy.data.objects if o.get("bz_source") == src]
 
 
-def stamp_source(src: str, path: str = None) -> bool:
-    """Stamp the SHA-1 and size of the source file on every object of the model (``path``: the file, when it is not ``src`` itself).
+def stamp_source(src: str, path: str = None, skip=()) -> bool:
+    """Stamp the SHA-1 and size of the source file on every object of the model (``path``: the file, when it is not ``src`` itself;
+    ``skip``: ``as_pointer()`` of objects of an earlier import, which keep the stamp of the file they were built on).
     False when there is no file to stamp (the model comes from an archive)."""
     path = path or _source_file(src)
     if not path or not os.path.isfile(path):
         return False
     size, sha = file_sha1(path)
     for o in objects_of(src):
+        if skip and o.as_pointer() in skip:
+            continue
         o[KEY_SHA1] = sha
         o[KEY_SIZE] = int(size)
     return True

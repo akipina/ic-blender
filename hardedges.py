@@ -407,7 +407,7 @@ if bpy is not None:
         return ops
 
     class BZ_OT_hard_edges(bpy.types.Operator):
-        """Make the shared sides around the selected patches (or the selected edges) hard, so the shading is creased there, or smooth again"""
+        """Make the edges between the selected patches (or the selected edges) hard or smooth again"""
         bl_idname = "bz.hard_edges"
         bl_label = "Hard Edges"
         bl_options = {"REGISTER", "UNDO"}
@@ -431,8 +431,7 @@ if bpy is not None:
             adopt_stored_creases(obj)           # the file's own creases first: Make Hard / Make Smooth change only what is selected
             bm, edges = _selected_seam_edges(obj)
             if not edges:
-                self.report({"ERROR"}, "Select patches (Face select) or edges first. Only a side that two patches share can be "
-                                       "hard: the outer edge of the creature cannot")
+                self.report({"ERROR"}, "Select patches or edges first. Only an edge shared by two patches can be hard")
                 return {"CANCELLED"}
             for e in edges:
                 e.smooth = not self.hard
@@ -448,7 +447,7 @@ if bpy is not None:
             return {"FINISHED"}
 
     class BZ_OT_hard_edges_show(bpy.types.Operator):
-        """Mark on the mesh (as Blender's sharp edges) the sides the creature's smoothing groups make hard. Edges you marked yourself stay"""
+        """Mark the creature's hard edges on the mesh as sharp edges. Edges you marked yourself stay"""
         bl_idname = "bz.hard_edges_show"
         bl_label = "Show Hard Edges"
         bl_options = {"REGISTER", "UNDO"}
@@ -460,8 +459,7 @@ if bpy is not None:
         def execute(self, context):
             obj = context.active_object
             n = show_creases(obj)
-            self.report({"INFO"}, f"{n} hard edge(s) are marked (cyan in Edit Mode). Mark or clear more with Make Hard / Make "
-                                  "Smooth; Export keeps what you leave")
+            self.report({"INFO"}, f"{n} hard edge(s) are marked (cyan in Edit Mode). Change them with Make Hard / Make Smooth")
             return {"FINISHED"}
 
     class BZ_OT_materials_show(bpy.types.Operator):
@@ -477,8 +475,7 @@ if bpy is not None:
         def execute(self, context):
             obj = context.active_object
             n = show_materials(obj)
-            self.report({"INFO"}, f"{n} material slots: select patches in Edit Mode, pick a slot in the Material tab and press "
-                                  "Assign (or use Set Material). Export writes them")
+            self.report({"INFO"}, f"{n} material slots added. In Edit Mode, select patches, pick a slot in the Material tab and press Assign")
             return {"FINISHED"}
 
     def _material_items(self, context):
@@ -531,16 +528,8 @@ def draw_box(layout, obj) -> None:
         r = box.row(align=True)
         r.operator(BZ_OT_hard_edges.bl_idname, text="Make Hard").hard = True
         r.operator(BZ_OT_hard_edges.bl_idname, text="Make Smooth").hard = False
-        box.label(text="Select patches (Face select) or edges first.")
     box.operator(BZ_OT_hard_edges_show.bl_idname, icon="EDGESEL")
-    box.label(text="A hard edge creases the shading at the corners")
-    box.label(text="where two patches meet; between corners it stays")
-    box.label(text="smooth. The game does not copy hard edges into a")
-    box.label(text="combination of this creature.")
     if obj.mode == "EDIT" and len(obj.data.materials):
         box.operator(BZ_OT_set_patch_material.bl_idname, icon="MATERIAL")
     else:
         box.operator(BZ_OT_materials_show.bl_idname, icon="MATERIAL")
-    box.label(text="Each patch has one material (a texture); the")
-    box.label(text="slots are the creature's own. The first torso patch's")
-    box.label(text="material is the one a combination repaints.")

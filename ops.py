@@ -19,6 +19,7 @@ from . import gnsurface
 from . import material
 from . import rig
 from . import store
+from . import enumitems
 
 
 class BZ_OT_import(bpy.types.Operator, ImportHelper):
@@ -715,9 +716,8 @@ class BZ_OT_export(bpy.types.Operator, ExportHelper):
         elif errs and not self.export_anyway:
             for p in errs:
                 self.report({"ERROR"}, plain(p))
-            self.report({"ERROR"}, f"Export refused: {len(errs)} problem{'s' if len(errs) != 1 else ''} stop the game loading this "
-                                   f"creature ({startops.count_text(problems)}). Fix them (Check the Creature lists everything), or Export again "
-                                   "with 'Export Anyway' ticked")
+            self.report({"ERROR"}, f"Not exported: {len(errs)} problem{'s' if len(errs) != 1 else ''} would stop the game loading this "
+                                   f"creature ({startops.count_text(problems)}). Fix them, or tick Export Anyway.")
             return {"CANCELLED"}
         for p in ([] if identical else errs):
             self.report({"WARNING"}, f"exported anyway: {plain(p)}")
@@ -726,8 +726,8 @@ class BZ_OT_export(bpy.types.Operator, ExportHelper):
         in_place = _same_file(self.filepath, src)
         why = in_place_refusal(job) if (in_place and not identical) else None
         if why:
-            self.report({"ERROR"}, f"Export to {os.path.basename(src)} refused: it is this creature's own base file, so "
-                                   f"{why} would be applied twice. Export under another name")
+            self.report({"ERROR"}, f"Not exported: {os.path.basename(src)} is this creature's own base file, and "
+                                   f"{why} would be applied twice. Use another file name.")
             return {"CANCELLED"}
         try:
             _atomic_write(self.filepath, out)
@@ -768,6 +768,28 @@ def _guard_poll(cls, context, obj=None, edit=False):
         cls.poll_message_set(err)
         return False
     return True
+
+
+KEY_BAKE_STAMP = "bz_bake_stamp"     # on a baked mesh: what it was made from (see :func:`bake_stamp`)
+KEY_BAKE_POSED = "bz_bake_posed"
+
+
+def bake_stamp(obj, density: int, posed: bool = False) -> str:
+    """A fingerprint of what a baked mesh shows: the patches, UVs, materials and textures, the density and (a rest-pose bake) the control
+    points. Paint Skin rebuilds a bake whose stamp is no longer the creature's, so paint lands on the layout that is exported."""
+    import zlib
+    if obj.mode == "EDIT":
+        obj.update_from_editmode()
+    h = zlib.crc32(f"{int(density)}|{bool(posed)}".encode())
+    if not posed:
+        co = np.empty(len(obj.data.vertices) * 3, dtype=np.float64)
+        obj.data.vertices.foreach_get("co", co)
+        h = zlib.crc32(co.astype(np.float32).tobytes(), h)
+    for part in (store.patches(obj), store.patch_uv(obj), store.patch_mat(obj), store.patch_type(obj)):
+        h = zlib.crc32(np.ascontiguousarray(part).tobytes(), h)
+    names, tex, col = store.material_slots(obj)
+    h = zlib.crc32(repr((names, tex, np.round(col, 6).tolist(), store.texture_images(obj))).encode(), h)
+    return str(h & 0xFFFFFFFF)
 
 
 class BZ_OT_bake(bpy.types.Operator):
@@ -822,6 +844,8 @@ class BZ_OT_bake(bpy.types.Operator):
             self.report({"WARNING"}, f"The game's normals were not applied: {e}")
 
         baked = bpy.data.objects.new(obj.name + "_baked", bm)
+        baked[KEY_BAKE_STAMP] = bake_stamp(obj, density, self.posed)
+        baked[KEY_BAKE_POSED] = bool(self.posed)
         baked.matrix_world = obj.matrix_world.copy()
         context.collection.objects.link(baked)
         # nudge viewport to a shading mode that shows textures
@@ -930,6 +954,14 @@ class BZ_OT_paint_skin(bpy.types.Operator):
     def execute(self, context):
         obj = _active_native(context)
         baked = bpy.data.objects.get(obj.name + "_baked")
+        if baked is not None:
+            density = int(getattr(context.scene, "bz_density", 4))
+            if baked.get(KEY_BAKE_STAMP) != bake_stamp(obj, density, bool(baked.get(KEY_BAKE_POSED))):
+                old_mesh = baked.data                      # the UVs, texture or points changed since it was made: paint on a fresh one
+                bpy.data.objects.remove(baked, do_unlink=True)
+                if old_mesh is not None and old_mesh.users == 0:
+                    bpy.data.meshes.remove(old_mesh)
+                baked = None
         if baked is None:
             bpy.ops.bz.bake_surface()
             baked = bpy.data.objects.get(obj.name + "_baked")
@@ -1098,6 +1130,7 @@ class BZ_OT_apply_uvs(bpy.types.Operator):
         return {"FINISHED"}
 
 
+@enumitems.stable
 def _limb_items(self, context):
     obj = context.active_object
     names = store.limb_names(obj) if obj else []
@@ -1171,6 +1204,7 @@ def _selected_patches(obj):
 _ALL_LIMB_ITEMS: list = []
 
 
+@enumitems.stable
 def _all_limb_items(self, context):
     """Every limb, stubs and new limbs included (Assign can give a limb its first patches); kept referenced for
     Blender's dynamic enum strings."""
@@ -1221,6 +1255,7 @@ class BZ_OT_assign_limb(bpy.types.Operator):
         return {"FINISHED"}
 
 
+@enumitems.stable
 def _skin_bone_items(self, context):
     obj = context.active_object
     names = store.bone_rig_names(obj) if obj else []
@@ -1292,8 +1327,7 @@ class BZ_OT_extrude_patch(bpy.types.Operator):
             for v in made:
                 bm.verts.remove(v)
             bm.verts.ensure_lookup_table(); bm.verts.index_update()
-            self.report({"ERROR"}, "Extrude Patch: the mesh has free vertex slots from an earlier delete, so the new "
-                                   "points could not be appended. Leave and re-enter Edit Mode (Tab, Tab), then extrude")
+            self.report({"ERROR"}, "Extrude Patch could not add points after an earlier delete. Press Tab twice, then try again.")
             return {"CANCELLED"}
         from . import patchsel
         patchsel.add_face(bm, new_cp, int(pmat[pi]) if len(obj.data.materials) else 0)   # the new patch's corner quad (patch selection)
@@ -1830,19 +1864,10 @@ class BZ_OT_skin_auto(bpy.types.Operator):
             obj.data.update()
         forget_skin_stats(obj)
         draw.invalidate(obj.name)
-        n_src = len(store.bone_names(obj))
-        took = sorted({int(k) for k in new if int(k) >= n_src})
-        added_note = ""
-        if n_bones > n_src:
-            added_note = (f"; added bones among the targets, {len(took)} of them given points" if eligible[n_src:].any()
-                          else "; no added bone is a target (end site, non-deforming or not on the rig)")
-        if pending:
-            added_note += (f"; {', '.join(repr(n) for n in pending[:4])}{', ...' if len(pending) > 4 else ''} not "
-                           "adopted yet, so no target (Boner > Bones > Adopt Added Bones)")
-        how = ", handles to their nearest corner's bone" if self.handles_follow_corners else ""
-        self.report({"INFO"}, f"Auto Skin: {len(pts)} control points to their nearest bone{how} ({changed} changed, "
-                              f"{len(np.unique(new))} bones; stub, end-site and non-deforming bones skipped"
-                              f"{added_note}). Check By Bone and fix by hand")
+        left_out = (f" Added bones not adopted yet, so left out: {', '.join(repr(n) for n in pending[:4])}"
+                    f"{', ...' if len(pending) > 4 else ''}.") if pending else ""
+        self.report({"INFO"}, f"Auto Skin: {len(pts)} control points weighted to their nearest bone ({changed} changed)."
+                              f"{left_out} Look over the result in By Bone.")
         return {"FINISHED"}
 
 
@@ -1861,8 +1886,7 @@ class BZ_OT_pick_bone(bpy.types.Operator):
         return _skin_poll(cls, context, edit=False)
 
     def execute(self, context):
-        self.report({"ERROR"}, "Pick Bone is interactive (it runs in a 3D Viewport): from a script, set "
-                               "scene.bz_boner.bone to the bone's name")
+        self.report({"ERROR"}, "Pick Bone only works in a 3D Viewport. In a script, set scene.bz_boner.bone to the bone's name.")
         return {"CANCELLED"}
 
     def invoke(self, context, event):
@@ -1885,8 +1909,7 @@ class BZ_OT_pick_bone(bpy.types.Operator):
         self._update_screen(context)
         if not self._start_modal(context):
             self._cleanup(context)
-            self.report({"ERROR"}, "Pick Bone needs an interactive 3D Viewport (Blender runs in background mode): set "
-                                   "scene.bz_boner.bone to the bone's name")
+            self.report({"ERROR"}, "Pick Bone needs a 3D Viewport. In background mode, set scene.bz_boner.bone to the bone's name.")
             return {"CANCELLED"}
         area.header_text_set(self.status_text())
         return {"RUNNING_MODAL"}
@@ -2018,6 +2041,7 @@ class BZ_OT_pick_bone(bpy.types.Operator):
             gpu.matrix.pop()
 
 
+@enumitems.stable
 def _conn_items(self, context):
     obj = context.active_object
     conns = store.connections(obj) if obj else []
@@ -2026,6 +2050,7 @@ def _conn_items(self, context):
             for i, (n, b, v) in enumerate(conns)] or [("-1", "(no connections)", "")]
 
 
+@enumitems.stable
 def _bone_items(self, context):
     """The skeleton's bones as imported: connection rows name hosts by the file's names (a bone renamed in Blender since
     is offered under its import name; the export writes its new name)."""
@@ -2231,8 +2256,8 @@ class BZ_OT_set_connection_ring(bpy.types.Operator):
         ordered = [v.index for v in bm.select_history if isinstance(v, bmesh.types.BMVert) and v.select]
         selected = [v.index for v in bm.verts if v.select]
         if len(set(ordered)) != len(selected):
-            self.report({"ERROR"}, f"Ring not set: select the ring corners in order with Shift+click ({len(selected)} "
-                                   f"selected, {len(set(ordered))} of them in click order), or use Pick Ring")
+            self.report({"ERROR"}, f"Ring not set: Shift+click the corners in order ({len(selected)} selected, "
+                                   f"{len(set(ordered))} in click order), or use Pick Ring.")
             return {"CANCELLED"}
         try:
             picker = ring_picker(obj, ci)
@@ -2295,8 +2320,8 @@ class BZ_OT_pick_ring(bpy.types.Operator):
         return _guard_poll(cls, context, edit=True) and bool(store.connections(context.active_object))
 
     def execute(self, context):
-        self.report({"ERROR"}, "Pick Ring is interactive (it runs in a 3D Viewport): from a script, select the corners "
-                               "in order and run Set Connection Ring (bpy.ops.bz.set_connection_ring)")
+        self.report({"ERROR"}, "Pick Ring only works in a 3D Viewport. In a script, select the corners in order and run "
+                               "bpy.ops.bz.set_connection_ring.")
         return {"CANCELLED"}
 
     def invoke(self, context, event):
@@ -2548,6 +2573,7 @@ class BZ_OT_set_connection_bone(bpy.types.Operator):
         return {"FINISHED"}
 
 
+@enumitems.stable
 def _anim_items(self, context):
     obj = context.active_object
     names = list(obj.get("bz_anims", [])) if obj else []
@@ -2640,6 +2666,20 @@ def _markers_text(geo) -> str:
     return ("; markers: " + ", ".join(parts)) if parts else ""
 
 
+def _game_folder_refusal(filepath, data_dir=None) -> str:
+    """Why an export of ``filepath`` (and its texture folder ``data_dir``) must not happen -- it would write into the game's own folder --, or ''.
+    The same check Export Entity Folder makes."""
+    from .sceneobj import panels_blueprint as PB
+    here = os.path.dirname(os.path.abspath(bpy.path.abspath(str(filepath))))
+    for d in (here, data_dir):
+        if d:
+            try:
+                PB.check_target(d)
+            except PB.Refused as e:
+                return str(e)
+    return ""
+
+
 class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
     """Export the object to .sgm with edited parts and clips; the rest is unchanged"""
     bl_idname = "bz.export_scene"
@@ -2649,8 +2689,7 @@ class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
     rebuild_lod: BoolProperty(
         name="Let the engine rebuild the detail ladder",
-        description="Write the older layout; the game rebuilds distance detail itself. Off writes the newer layout, "
-                    "which may not load in the game",
+        description="Write the older layout and let the game rebuild distance detail. Off may not load in the game",
         default=True)
     drop_damage_states: BoolProperty(
         name="Leave damage states out of edited parts",
@@ -2658,13 +2697,11 @@ class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
         default=False)
     carry_over_damage: BoolProperty(
         name="Carry over damage states",
-        description="An edited part whose source has damage states but which has no shape keys gets them carried onto its "
-                    "new mesh by surface position",
+        description="Copy the source's damage states onto the new mesh of an edited part that has none",
         default=False)
     remove_deleted_parts: BoolProperty(
         name="Remove parts deleted in Blender",
-        description="A part whose object was deleted is removed from the model, with its clip channels, instead of keeping "
-                    "the source's geometry",
+        description="Remove a part from the model when its object is deleted, instead of keeping its source geometry",
         default=False)
 
     export_anyway: BoolProperty(
@@ -2712,16 +2749,19 @@ class BZ_OT_export_scene(bpy.types.Operator, ExportHelper):
             from . import scene_materials as bzmat
             data_dir = bzmat.data_folder_of(self.filepath)
             if data_dir is None:
-                self.report({"ERROR"}, f"This model now needs {len(geo.files)} texture file(s) the game does not have, which belong in a Data folder "
-                                       f"(Data/art/textures). Export into a folder inside a Data folder, or use Export Entity "
-                                       f"Folder. Nothing was written.")
+                self.report({"ERROR"}, f"This model needs {len(geo.files)} new texture file(s). Export into a folder inside a Data folder, "
+                                       f"or use Export Entity Folder. Nothing was written.")
                 return {"CANCELLED"}
+        why = _game_folder_refusal(self.filepath, data_dir)
+        if why:
+            self.report({"ERROR"}, why + " Nothing was written.")
+            return {"CANCELLED"}
         try:
-            _atomic_write(self.filepath, out)
-            if data_dir is not None:
+            if data_dir is not None:                # the textures first: a model that names a texture never lands without it
                 bzmat.write_files(data_dir, geo.files)
+            _atomic_write(self.filepath, out)
         except OSError as e:
-            self.report({"ERROR"}, f"Export failed: cannot write {self.filepath}: {e}")
+            self.report({"ERROR"}, f"Export failed: cannot write {e.filename or self.filepath}: {e.strerror or e}. The model file was not changed.")
             return {"CANCELLED"}
         if data_dir is not None:
             self.report({"INFO"}, f"Wrote {len(geo.files)} texture file(s) into {os.path.join(data_dir, 'art', 'textures')}")
@@ -2748,8 +2788,7 @@ class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
     filter_glob: StringProperty(default="*.sgm", options={"HIDDEN"})
     rebuild_lod: BoolProperty(
         name="Let the engine rebuild the detail ladder",
-        description="Write the older layout; the game rebuilds distance detail itself. Off writes the newer layout, "
-                    "which may not load in the game",
+        description="Write the older layout and let the game rebuild distance detail. Off may not load in the game",
         default=True)
     drop_damage_states: BoolProperty(
         name="Leave damage states out of edited parts",
@@ -2757,13 +2796,11 @@ class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
         default=False)
     carry_over_damage: BoolProperty(
         name="Carry over damage states",
-        description="An edited part whose source has damage states but which has no shape keys gets them carried onto its "
-                    "new mesh by surface position",
+        description="Copy the source's damage states onto the new mesh of an edited part that has none",
         default=False)
     remove_deleted_parts: BoolProperty(
         name="Remove parts deleted in Blender",
-        description="A part whose object was deleted is removed from the model, with its clip channels, instead of keeping "
-                    "the source's geometry",
+        description="Remove a part from the model when its object is deleted, instead of keeping its source geometry",
         default=False)
 
     export_anyway: BoolProperty(
@@ -2804,16 +2841,19 @@ class BZ_OT_export_scene_geometry(bpy.types.Operator, ExportHelper):
             from . import scene_materials as bzmat
             data_dir = bzmat.data_folder_of(self.filepath)
             if data_dir is None:
-                self.report({"ERROR"}, f"This model now needs {len(geo.files)} texture file(s) the game does not have, which belong in a Data folder "
-                                       f"(Data/art/textures). Export into a folder inside a Data folder, or use Export Entity "
-                                       f"Folder. Nothing was written.")
+                self.report({"ERROR"}, f"This model needs {len(geo.files)} new texture file(s). Export into a folder inside a Data folder, "
+                                       f"or use Export Entity Folder. Nothing was written.")
                 return {"CANCELLED"}
+        why = _game_folder_refusal(self.filepath, data_dir)
+        if why:
+            self.report({"ERROR"}, why + " Nothing was written.")
+            return {"CANCELLED"}
         try:
-            _atomic_write(self.filepath, out)
-            if data_dir is not None:
+            if data_dir is not None:                # the textures first: a model that names a texture never lands without it
                 bzmat.write_files(data_dir, geo.files)
+            _atomic_write(self.filepath, out)
         except OSError as e:
-            self.report({"ERROR"}, f"Export failed: cannot write {self.filepath}: {e}")
+            self.report({"ERROR"}, f"Export failed: cannot write {e.filename or self.filepath}: {e.strerror or e}. The model file was not changed.")
             return {"CANCELLED"}
         if data_dir is not None:
             self.report({"INFO"}, f"Wrote {len(geo.files)} texture file(s) into {os.path.join(data_dir, 'art', 'textures')}")

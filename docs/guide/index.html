@@ -190,7 +190,7 @@ docs.blender.org explains them.</p>
 </ol>
 
 <p>If you do not see the two tabs, the add-on did not load. In <strong>Edit &gt; Preferences &gt; Add-ons &gt; IC Blender</strong> a red box
-called <strong>Parts of the add-on that could not be loaded</strong> says why. Send that text with your report.</p>
+called <strong>Add-on parts that failed to load</strong> says why. Send that text with your report.</p>
 
 <p>To upgrade, install the new zip the same way and restart Blender. Only if the add-on then fails to load, remove it, restart
 Blender and install the zip again.</p>
@@ -426,7 +426,7 @@ you can do.</p>
   <li>In the box <strong>1. Check</strong>, press <strong>Check the Creature</strong>.</li>
 </ol>
 
-<p>For the wolf you should see &ldquo;2 warning(s): the Info editor lists them&rdquo;. That is expected. Read them in the <strong>Info</strong> editor
+<p>For the wolf you should see &ldquo;2 warning(s): see the Info editor&rdquo;. That is expected. Read them in the <strong>Info</strong> editor
 (<a href="#start">Start here</a> says how to open it). One says the clip &ldquo;Crouch&rdquo; is never played; the game's own wolf has the same clip.
 The other is the notice that this replaces the game's wolf. Both are harmless. A warning is advice, not a stop sign. A problem in red must be
 fixed first: the game would not load the creature, and the export refuses it. See <a href="#trouble">Troubleshooting</a>.</p>
@@ -435,7 +435,7 @@ fixed first: the game would not load the creature, and the export refuses it. Se
 
 <ol>
   <li>In the box <strong>2. Export for the Game</strong>, read the lines under the title. They say what the creature is built on, then &ldquo;Export as: Replace the original
-  wolf&rdquo; and what that means.</li>
+  wolf&rdquo;.</li>
   <li>Press <strong>Export Creature for the Game</strong>. A window opens. At the top, <strong>Replace the original wolf</strong> is chosen. Under it is
   the warning from the box at the top of this chapter.</li>
   <li>You can leave the rest as it is. <strong>Icon picture</strong> lets you choose a picture for the creature creator.
@@ -569,14 +569,14 @@ Preview</strong> in the <strong>IC Model</strong> tab, choose another animal, pr
   <li>In <strong>1. Check</strong>, press <strong>Check the Creature</strong>.</li>
 </ol>
 
-<p>A creature made from a game animal shows about a dozen warnings, for example &ldquo;12 warning(s): the Info editor lists them&rdquo;. They say that
+<p>A creature made from a game animal shows about a dozen warnings, for example &ldquo;12 warning(s): see the Info editor&rdquo;. They say that
 some of the animal's animations are never played, and that the creature creator still shows the original animal's picture. The original animal has
 the same ones, and they are harmless. Only a problem in red must be fixed first. See <a href="#trouble">Troubleshooting</a>, which explains the common warnings.</p>
 
 <h3 id="newcreature-5-export-it-for-the-game">5. Export it for the game</h3>
 
 <ol>
-  <li>In <strong>2. Export for the Game</strong>, the box says &ldquo;Built on cheetah's blueprint, stats and limb scales&rdquo; and &ldquo;Export as: A new
+  <li>In <strong>2. Export for the Game</strong>, the box says &ldquo;Built on cheetah's blueprint and stats&rdquo; and &ldquo;Export as: A new
   creature of my own&rdquo;.</li>
   <li>Press <strong>Export Creature for the Game</strong>. A window opens.</li>
   <li>Fill it in:
@@ -751,8 +751,8 @@ positions.</p>
 
 <p>Check it with <strong>Check the Creature</strong> (<strong>IC Game</strong> tab, <strong>Game</strong> panel; the same check is the button <strong>Validate (will it load?)</strong> in
 the Tools box of the <strong>IC Model</strong> tab), shape it further, and save the model with <strong>Export Model</strong>. <strong>Export Creature for the
-Game</strong> refuses it. The check says so in advance: &ldquo;This creature has no connection rings, so the creature creator
-cannot use it and Export for the Game refuses it. Use Retarget Creature to Mesh (IC Model tab, Tools) to get a creature with rings.&rdquo; If you press the export button anyway,
+Game</strong> refuses it. The check says so in advance: &ldquo;This creature has no connection rings, so Export refuses it.
+Use Retarget Creature to Mesh (IC Model tab, Tools).&rdquo; If you press the export button anyway,
 you see lines such as &ldquo;connection ring 'head' missing&rdquo; and then &ldquo;Export for the Game refused: nothing was written&rdquo;. They mean the same. For a creature that
 plays in the game, go back to the Retarget route.</p>
 
@@ -1716,7 +1716,7 @@ dots mark (...) means more text that depends on your case.</p>
 <tr><th>What you see</th><th>What to do</th></tr>
 <tr><td><code>No game found. Set the Game folder above, or set the IC_INSTALL environment variable.</code></td><td>In <strong>Edit &gt; Preferences &gt; Add-ons &gt; IC Blender</strong>, set <strong>Game folder</strong> to the folder that holds <code>IC.exe</code>. Ignore the part about IC_INSTALL.</td></tr>
 <tr><td><code>No game folder found: set the Game folder in the add-on's preferences (Edit > Preferences > Add-ons, IC Blender), or set the IC_INSTALL environment variable.</code></td><td>The same. Until the game is found, the list <strong>Start from</strong> in the New Project window shows only <strong>Default skeleton</strong> (for a creature) or <strong>Another .sgm file...</strong> (for the other types).</td></tr>
-<tr><td><code>Parts of the add-on that could not be loaded (a red box in the preferences)</code></td><td>A part of the add-on did not start. The box says which part and why. Restart Blender. If it stays, install the zip again, and send the text of the box with your report.</td></tr>
+<tr><td><code>Add-on parts that failed to load (a red box in the preferences)</code></td><td>A part of the add-on did not start. The box says which part and why. Restart Blender. If it stays, install the zip again, and send the text of the box with your report.</td></tr>
 <tr><td><code>This was made with an older version of IC Blender. Import the original file again.</code></td><td>The <code>.blend</code> was saved with an add-on older than 0.9.2, which kept models flipped left to right. Open the model again with <strong>File &gt; Import</strong>, or start the project again.</td></tr>
 <tr><td><code>The model file &lt;name&gt; was changed on disk after it was opened here ... Import &lt;name&gt; again to carry on from the file as it is now.</code></td><td>Another program, or an export from another Blender session, changed the project's file. Import it again with <strong>File &gt; Import</strong>. In the creature panels the box <strong>Problems</strong> offers <strong>Relink Source</strong> for a file that moved.</td></tr>
 </table>
@@ -1780,7 +1780,7 @@ dots mark (...) means more text that depends on your case.</p>
 <div class="tablewrap">
 <table>
 <tr><th>What you see</th><th>What it means</th></tr>
-<tr><td><code>N warning(s): the Info editor lists them</code></td><td>The check found advice, no problem. Read the lines in the Info editor. Only lines in red must be fixed.</td></tr>
+<tr><td><code>N warning(s): see the Info editor</code></td><td>The check found advice, no problem. Read the lines in the Info editor. Only lines in red must be fixed.</td></tr>
 <tr><td><code>The clip '&lt;clip&gt;' is not played by any motion, so the game never plays it ...</code></td><td>The animation is in the file, but no rule tells the game when to play it. Harmless for the game's own animals (they have such clips). For a clip of your own, see <a href="#anim">Animations and motions</a>.</td></tr>
 <tr><td><code>the creature creator picture is still the original &lt;animal&gt;'s (give an icon picture to change it)</code></td><td>The creature creator still shows the original animal's picture. Choose an <strong>Icon picture</strong> when you export, or keep <strong>Make the icon from the creature</strong> ticked.</td></tr>
 <tr><td><code>This REPLACES the game's own &lt;name&gt; ...</code></td><td>This is the notice for a replacement. It is what you chose. See <a href="#replace">Replace one of the game's animals</a>.</td></tr>
@@ -1802,8 +1802,8 @@ dots mark (...) means more text that depends on your case.</p>
 <table>
 <tr><th>What you see</th><th>What to do</th></tr>
 <tr><td><code>Choose a target mesh (the shape the creature should take)</code></td><td>The window opened with <strong>Target Mesh</strong> empty. Press the button again and choose your mesh in <strong>Target Mesh</strong> before you press OK.</td></tr>
-<tr><td><code>... a creature is one closed skin. Merge by Distance or separate extra shells (Edit Mode: P &gt; By Loose Parts) and retarget to the skin alone</code></td><td>Your mesh has loose parts. Select it, press <kbd>Tab</kbd>, then <strong>Mesh &gt; Clean Up &gt; Merge by Distance</strong>. If it is several pieces on purpose, use <strong>Fit Patches to Mesh</strong> with <strong>Fit Separate Pieces</strong> ticked.</td></tr>
-<tr><td><code>&lt;mesh&gt;'s object transform was ignored (the fit is in its local space): apply the transform first ...</code></td><td>Select the mesh, press <kbd>Ctrl</kbd>+<kbd>A</kbd> and choose <strong>All Transforms</strong>, then fit again.</td></tr>
+<tr><td><code>... a creature is one closed skin. Merge by Distance or split extra pieces off (Edit Mode: P &gt; By Loose Parts)</code></td><td>Your mesh has loose parts. Select it, press <kbd>Tab</kbd>, then <strong>Mesh &gt; Clean Up &gt; Merge by Distance</strong>. If it is several pieces on purpose, use <strong>Fit Patches to Mesh</strong> with <strong>Fit Separate Pieces</strong> ticked.</td></tr>
+<tr><td><code>&lt;mesh&gt;'s object transform was ignored. Apply the transform first ...</code></td><td>Select the mesh, press <kbd>Ctrl</kbd>+<kbd>A</kbd> and choose <strong>All Transforms</strong>, then fit again.</td></tr>
 <tr><td><code>Patch budget 300 is over 263: it will load, but may not combine</code></td><td>Lower <strong>Patch Budget</strong> (in the panel at the bottom left after the fit) if you want the creature to combine.</td></tr>
 </table>
 </div>
@@ -1813,7 +1813,7 @@ dots mark (...) means more text that depends on your case.</p>
 <tr><th>What you see</th><th>What to do</th></tr>
 <tr><td><code>There is already a clip or an Action called '&lt;name&gt;'. Choose another name.</code></td><td>Press the button again and type a name the rig does not have.</td></tr>
 <tr><td><code>Give the clip a name of 1 to 32 characters.</code></td><td>Type a name.</td></tr>
-<tr><td><code>The rig has no clip to start from. Borrow Clips... brings clips from another model ...</code></td><td>Press <strong>Borrow Clips...</strong> in the <strong>Motions</strong> panel.</td></tr>
+<tr><td><code>The rig has no clip to start from. Use Borrow Clips... first.</code></td><td>Press <strong>Borrow Clips...</strong> in the <strong>Motions</strong> panel.</td></tr>
 <tr><td><code>Few bones share names with that model: its clips will move little.</code></td><td>The other model's bones have other names than yours, so the borrowed animation hardly moves. Borrow from a model with the same skeleton.</td></tr>
 <tr><td><code>Borrowing failed (...). Press Ctrl+Z to undo what it did ...</code></td><td>Press <kbd>Ctrl</kbd>+<kbd>Z</kbd>, then try another model or file.</td></tr>
 </table>
@@ -1822,12 +1822,12 @@ dots mark (...) means more text that depends on your case.</p>
 <div class="tablewrap">
 <table>
 <tr><th>What you see</th><th>What to do</th></tr>
-<tr><td><code>Name the clip first (type it in the Clip box above the list) ...</code></td><td>The model has no clip yet. Type a clip name in the <strong>Clip</strong> box of the Events box.</td></tr>
+<tr><td><code>Name the clip first: type it in the Clip box above the list.</code></td><td>The model has no clip yet. Type a clip name in the <strong>Clip</strong> box of the Events box.</td></tr>
 <tr><td><code>Choose an event first.</code></td><td>Click an event in the list in <strong>Events</strong>, then try again.</td></tr>
 <tr><td><code>The clip '&lt;clip&gt;' has no event that starts an effect.</code></td><td>Nothing to show for that clip. Choose an event of the clip, give it an <strong>Effect</strong>, and try again.</td></tr>
 <tr><td><code>Copy the effect into your project first (Copy to my project).</code></td><td>A game effect cannot be edited in place. Press <strong>Copy to my project</strong> in <strong>Effect editor</strong>.</td></tr>
 <tr><td><code>There is an effect called '&lt;name&gt;' already ...: choose another name.</code></td><td>Type another name.</td></tr>
-<tr><td><code>This creature has no animation clips yet, so no event of another animal fits it. Import or make its clips first.</code></td><td>Make or borrow clips first (<a href="#anim">Animations and motions</a>), then copy the events.</td></tr>
+<tr><td><code>This creature has no clips yet. Import or make its clips first.</code></td><td>Make or borrow clips first (<a href="#anim">Animations and motions</a>), then copy the events.</td></tr>
 <tr><td><code>The blueprint the events were read from has changed since ... Press Load events ...</code></td><td>Press <strong>Load events</strong> again. It reads the file as it is now and drops the event changes you had not exported.</td></tr>
 <tr><td><code>The game cannot play ... sound ... Save the sound again as WAV with plain PCM, 16 bit.</code></td><td>Open the sound in a sound program and save it again as a WAV file, 16 bit, plain PCM.</td></tr>
 </table>
@@ -1838,7 +1838,7 @@ dots mark (...) means more text that depends on your case.</p>
 <table>
 <tr><th>What you see</th><th>What to do</th></tr>
 <tr><td><code>... connection ring 'head' missing ... / Export for the Game refused: nothing was written</code></td><td>The same problem as the next row, seen from the export button: the creature has no connection rings. See below.</td></tr>
-<tr><td><code>This creature has no connection rings, so the creature creator cannot use it and Export for the Game refuses it. Use Retarget Creature to Mesh (IC Model tab, Tools) to get a creature with rings.</code></td><td>The creature came from <strong>Fit Patches to Mesh</strong>, which makes the shape only. Start from a game animal and use <strong>Retarget Creature to Mesh</strong> (<a href="#mesh">A creature from your own mesh</a>).</td></tr>
+<tr><td><code>This creature has no connection rings, so Export refuses it. Use Retarget Creature to Mesh (IC Model tab, Tools).</code></td><td>The creature came from <strong>Fit Patches to Mesh</strong>, which makes the shape only. Start from a game animal and use <strong>Retarget Creature to Mesh</strong> (<a href="#mesh">A creature from your own mesh</a>).</td></tr>
 <tr><td><code>the creature would not load: ... / Export for the Game refused: fix these first (Check the Creature lists them all)</code></td><td>Press <strong>Check the Creature</strong> and read the red lines in the <strong>Info</strong> editor. Each says what to fix. If you deleted, merged or duplicated vertices, press <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</td></tr>
 <tr><td><code>N control points used by patches have no bone (points ...): the game needs every patch point skinned to a bone. Boner > Bones > Select Unassigned selects them (orange in the By Bone overlay); assign them to a bone or run Auto Skin</code></td><td>In Edit Mode, press the small <strong>Select</strong> button next to the line &ldquo;Unassigned: N&rdquo; in the <strong>Boner</strong> panel (<strong>Bones</strong>). Then press <strong>Assign Selected</strong> or <strong>Auto Skin</strong> (<a href="#skin">Skinning and re-skinning</a>). The button appears only in Edit Mode.</td></tr>
 <tr><td><code>The name '&lt;name&gt;': 3 to 24 characters of a-z, 0-9 and _ (lower case, no spaces)</code></td><td>Change <strong>Name</strong> in the export window. A red line shows the problem as you type.</td></tr>
@@ -1868,7 +1868,7 @@ dots mark (...) means more text that depends on your case.</p>
 <tr><td><code>part '&lt;name&gt;' comes to N vertices once split at UV seams and flat faces; the game draws at most 12,288 per part. Reduce its detail (Decimate, fewer seams) or split it into two parts</code></td><td>Do what it says. Apply a Decimate modifier to the part, or make it two parts.</td></tr>
 <tr><td><code>N vertices of '&lt;part&gt;' are weighted only to deleted bone(s) ..., so they follow no bone in Blender. Undo the delete and use Armature > Delete Bones, Merge Weights (it hands the weights to the parent), or weight those vertices to another bone</code></td><td>Do what it says. Delete bones with <strong>Armature &gt; Delete Bones, Merge Weights</strong>, not with <kbd>X</kbd>.</td></tr>
 <tr><td><code>bones '&lt;a&gt;' and '&lt;b&gt;' have the same name ignoring case ... / bone '&lt;name&gt;...' has a N-character name; the game reads at most ... / bone '&lt;name&gt;' (the first bone) cannot be deleted ...</code></td><td>Rename the bone. Bone names are at most 79 characters. The first bone must stay.</td></tr>
-<tr><td><code>The game needs power-of-two sides, at most 1024: export refuses this (a red line in the IC Material panel)</code></td><td>Use <strong>Replace Image</strong> with <strong>Scale to a size the game takes</strong> ticked, or resize the picture.</td></tr>
+<tr><td><code>Sides must be a power of two, at most 1024 (a red line in the IC Material panel)</code></td><td>Use <strong>Replace Image</strong> with <strong>Scale to a size the game takes</strong> ticked, or resize the picture.</td></tr>
 </table>
 </div>
 <h3 id="trouble-sharing-and-installing-a-zip">Sharing and installing a zip</h3>

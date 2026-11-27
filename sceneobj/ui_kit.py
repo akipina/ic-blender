@@ -219,8 +219,7 @@ class BZ_UL_rows(bpy.types.UIList):
 
 # ---------------------------------------------------------------------------------------------------- sub-panels
 class SubPanel(bpy.types.Panel):
-    """Base of the sub-panels of the Entity panel (``BZ_PT_entity``). A subclass sets ``bl_idname``, ``bl_label``, ``bl_order`` and
-    ``capability`` and draws itself; it is shown only when the active entity has that capability, and starts closed."""
+    """Base of the Entity panel's sub-panels: a subclass sets ``bl_idname``, ``bl_label``, ``bl_order`` and ``capability``"""
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = TAB_MODEL
@@ -239,14 +238,14 @@ def draw_scene_pointer(layout, obj, *, rig_box=None) -> None:
     is the short info box and the export buttons the panel always had. ``rig_box(layout, obj)`` draws the rig / animation box
     (the panel passes its own)."""
     if panel_registered("BZ_PT_entity"):
-        layout.label(text="Parts, skeleton, materials, checks and export are in the Entity panel below", icon="OUTLINER_COLLECTION")
+        layout.label(text="More tools are in the Entity panel below", icon="OUTLINER_COLLECTION")
         return
     info = layout.box()
     info.label(text=str(obj.get("bz_name", obj.name)), icon="OUTLINER_OB_MESH")
     parts = [o for o in bpy.data.objects if o.get("bz_scene") and o.get("bz_source") == obj.get("bz_source")]
     kind = {"CHARACTER": "gatherer / character", "STRUCTURE": "structure / prop"}.get(obj.get("bz_project", ""), "scene object")
     info.label(text=f"{kind}: {len(parts)} part(s), {sum(len(o.data.vertices) for o in parts)} vertices")
-    info.label(text="(edit faces, UVs, weights, bones, textures, markers, damage keys and parts, then Export)")
+    info.label(text="Edit faces, UVs, bones and parts, then Export")
     if obj.get("bz_rig"):
         if rig_box is not None:
             rig_box(layout, obj)

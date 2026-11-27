@@ -7,6 +7,7 @@ import os
 
 import bpy
 from . import ui_kit
+from .. import enumitems
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
@@ -66,14 +67,14 @@ def _set_diffuse(mat, img) -> None:
 
 
 class BZ_OT_ic_material_replace_image(bpy.types.Operator, ImportHelper):
-    """Use another picture as this material's texture (it is written as a new texture file at export)"""
+    """Use another picture as this material's texture"""
     bl_idname = "bz.ic_material_replace_image"
     bl_label = "Replace Image"
     bl_options = {"REGISTER", "UNDO"}
 
     filter_glob: StringProperty(default="*.png;*.tga;*.bmp;*.jpg;*.jpeg;*.tif;*.tiff", options={"HIDDEN"})
     scale: BoolProperty(name="Scale to a size the game takes", default=True,
-                        description="Scale a picture whose sides are not powers of two (or are over 1024) to the nearest size the game draws")
+                        description="Scale the picture to the nearest size the game takes (a power of two, at most 1024)")
 
     @classmethod
     def poll(cls, context):
@@ -90,21 +91,19 @@ class BZ_OT_ic_material_replace_image(bpy.types.Operator, ImportHelper):
         if not (_pow2(w) and _pow2(h)) or w > 1024 or h > 1024:
             if not self.scale:
                 bpy.data.images.remove(img)
-                self.report({"ERROR"}, f"The picture is {w} x {h}; the game needs both sides a power of two, at most 1024. "
-                                       f"Tick 'Scale to a size the game takes' or resize it first.")
+                self.report({"ERROR"}, f"The picture is {w} x {h}; both sides must be a power of two, at most 1024. "
+                                       f"Tick 'Scale to a size the game takes' or resize it.")
                 return {"CANCELLED"}
             img.scale(_nearest_pow2(w), _nearest_pow2(h))
         img.pack()
         img.use_fake_user = True
         _set_diffuse(mat, img)
-        self.report({"INFO"}, f"'{mat.name}' now shows {os.path.basename(self.filepath)} ({img.size[0]} x {img.size[1]}); "
-                              f"it is written as a new texture at export")
+        self.report({"INFO"}, f"'{mat.name}' now shows {os.path.basename(self.filepath)} ({img.size[0]} x {img.size[1]}).")
         return {"FINISHED"}
 
 
 class BZ_OT_ic_material_new(bpy.types.Operator):
-    """Add a new game material to this part (in Edit Mode it is given to the selected faces). The export makes its shader
-    from the model's first shader and writes its texture"""
+    """Add a new material to this part (in Edit Mode, to the selected faces)"""
     bl_idname = "bz.ic_material_new"
     bl_label = "New IC Material"
     bl_options = {"REGISTER", "UNDO"}
@@ -130,14 +129,12 @@ class BZ_OT_ic_material_new(bpy.types.Operator):
         obj.active_material_index = len(obj.material_slots) - 1
         if obj.mode == "EDIT":
             bpy.ops.object.material_slot_assign()
-        self.report({"INFO"}, f"Added '{mat.name}'. Give it faces with Assign (Material properties, Edit Mode) and paint or "
-                              f"replace its {size} x {size} texture")
+        self.report({"INFO"}, f"Added '{mat.name}'. Assign faces to it in Edit Mode, then paint its {size} x {size} texture.")
         return {"FINISHED"}
 
 
 class BZ_OT_ic_team_mask(bpy.types.Operator):
-    """Make the team-colour mask of this material to paint: white where the player colour goes. A stock team material
-    starts from the game's own team area"""
+    """Make a team-colour mask to paint: white where the player colour goes"""
     bl_idname = "bz.ic_team_mask"
     bl_label = "Team Mask"
     bl_options = {"REGISTER", "UNDO"}
@@ -255,19 +252,23 @@ def draw_material(layout, context) -> None:
     if mat.get(sm.KEY_SHADER):
         info = json.loads(mat[sm.KEY_SHADER])
         same = mat.get(sm.KEY_SHADER_SRC) == obj.get("bz_source")
-        box.label(text=f"Game shader: {info['name']}" + ("" if same else " (of another model: copied at export)"), icon="MATERIAL")
+        box.label(text=f"Game shader: {info['name']}" + ("" if same else ", from another model"), icon="MATERIAL")
     elif mat.get(sm.KEY_PLACEHOLDER):
-        box.label(text=f"Faces name '{mat[sm.KEY_PLACEHOLDER]}', which the file has no shader for", icon="INFO")
+        box.label(text=f"No shader in the file for '{mat[sm.KEY_PLACEHOLDER]}'", icon="INFO")
     else:
-        box.label(text="New material: its shader is made at export", icon="ADD")
+        box.label(text="New material", icon="ADD")
     img = sm.diffuse_image(mat)
     if img is not None:
         w, h = img.size
-        state = "changed: written as a new texture" if sm.image_changed(img) or img.name != mat.get(sm.KEY_IMAGE_SRC) \
+        # reading every pixel to compare with the import's stamp is slow for a big picture: the answer is kept for a moment, and asked again
+        # at once when the picture's size, its stamp or its unsaved flag (which paint sets) changes
+        changed = enumitems.recent(("material image", img.name_full, tuple(img.size), str(img.get(sm.KEY_SCENE_HASH)), bool(img.is_dirty)),
+                                   lambda: sm.image_changed(img))
+        state = "changed: written as a new texture" if changed or img.name != mat.get(sm.KEY_IMAGE_SRC) \
             else "as in the file"
         box.label(text=f"Texture: {img.name} ({w} x {h}), {state}", icon="IMAGE_DATA")
         if not (_pow2(w) and _pow2(h)) or w > 1024 or h > 1024:
-            box.label(text="The game needs power-of-two sides, at most 1024: export refuses this", icon="ERROR")
+            box.label(text="Sides must be a power of two, at most 1024", icon="ERROR")
     else:
         box.label(text="No texture: drawn in its colour", icon="COLOR")
     row = box.row(align=True)
@@ -282,11 +283,7 @@ def draw_material(layout, context) -> None:
         sub.label(text="Preview:")
         for value, label, _d in PLAYERS:
             sub.operator("bz.ic_team_preview", text=label.split()[-1]).player = value
-        box.label(text="Paint the team area in player 1's green; the export makes the other colours.", icon="INFO")
-    col = layout.column(align=True)
-    col.scale_y = 0.8
-    col.label(text="Not used by the game: two-sided, roughness and the other")
-    col.label(text="Blender settings; only the texture, opacity and team colour.")
+        box.label(text="Paint the team area in player 1's green.", icon="INFO")
 
 
 class BZ_PT_ic_material(bpy.types.Panel):
@@ -312,10 +309,10 @@ CLASSES = (BZ_OT_ic_material_replace_image, BZ_OT_ic_material_new, BZ_OT_ic_team
 def register():
     bpy.types.Material.bz_ic_opacity = FloatProperty(
         name="Opacity", min=0.0, max=1.0, default=1.0,
-        description="How opaque the game draws this material (0 = not at all); the texture's own cut-outs stay")
+        description="How opaque the game draws this material (0 = not at all)")
     bpy.types.Material.bz_team_on = BoolProperty(
         name="Team colour", default=False,
-        description="Draw this material in each player's colour: the export writes one texture per player colour")
+        description="Draw this material in each player's colour")
 
 
 def unregister():

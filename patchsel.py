@@ -598,7 +598,7 @@ class BZ_MT_delete(bpy.types.Menu):
         lay.operator_context = "INVOKE_DEFAULT"
         lay.operator(BZ_OT_delete_patch.bl_idname, text="Patches", icon="MESH_PLANE")
         lay.separator()
-        lay.label(text="Blender's own delete (Export refuses until you Undo):")
+        lay.label(text="Blender's delete (Export refuses it):")
         lay.operator("mesh.delete", text="Vertices").type = "VERT"
         lay.operator("mesh.delete", text="Edges").type = "EDGE"
 

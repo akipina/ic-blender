@@ -47,11 +47,11 @@ The game's creature creator joins two animals. A creature that cannot be joined 
 1. Open the **IC Game** tab and the **Game** panel.
 2. In **1. Check**, press **Check the Creature**.
 
-A creature made from a game animal shows about a dozen warnings, for example “12 warning(s): the Info editor lists them”. They say that some of the animal's animations are never played, and that the creature creator still shows the original animal's picture. The original animal has the same ones, and they are harmless. Only a problem in red must be fixed first. See [Troubleshooting](trouble.md), which explains the common warnings.
+A creature made from a game animal shows about a dozen warnings, for example “12 warning(s): see the Info editor”. They say that some of the animal's animations are never played, and that the creature creator still shows the original animal's picture. The original animal has the same ones, and they are harmless. Only a problem in red must be fixed first. See [Troubleshooting](trouble.md), which explains the common warnings.
 
 ## 5. Export it for the game
 
-1. In **2. Export for the Game**, the box says “Built on cheetah's blueprint, stats and limb scales” and “Export as: A new creature of my own”.
+1. In **2. Export for the Game**, the box says “Built on cheetah's blueprint and stats” and “Export as: A new creature of my own”.
 2. Press **Export Creature for the Game**. A window opens.
 3. Fill it in:
    - **Name**: the creature's file name. It is your file name already. If it is wrong, a red line says what is wrong, as soon as you type.

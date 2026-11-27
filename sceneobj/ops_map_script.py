@@ -16,6 +16,7 @@ from ICParse.sgb import triggers as _T
 from . import map_hooks as H
 from . import map_script as MS
 from . import ops_map_export as X
+from .. import enumitems
 
 ORDER = 63
 
@@ -276,6 +277,7 @@ def op_items(kind: str) -> list:
     return _OP_ITEMS[kind]
 
 
+@enumitems.stable
 def _op_items_for(self, context):
     return op_items("condition" if self.which == "conditions" else "action")
 
@@ -418,6 +420,7 @@ class BZ_OT_script_text_new(bpy.types.Operator):
 _BP_ITEMS: list = []
 
 
+@enumitems.stable
 def _bp_items(self, context):
     items = X._blueprint_items(self, context)
     _BP_ITEMS[:] = items

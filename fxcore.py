@@ -262,7 +262,7 @@ def unused_project_effects(source: str, game_dir: Optional[str], names: Sequence
     """The effects the project holds that nothing plays: not named by ``names`` (the effects the creature's events name), not started by an effect
     that is, and not a replacement of a game effect (a project effect with a game effect's name is played wherever the game names that one, so
     it is used even when no event of this creature names it). Typically a prefixed copy (``my_...``) that no event was pointed at."""
-    reached = {n.lower() for n, _w, _f in chain(source, game_dir, names)}
+    reached = {n.lower() for n, _w, _f in chain_cached(source, game_dir, names)}
     theirs = {fxlua.normalise_name(n).lower() for n in game_effect_names(game_dir)} if game_dir else set()
     return [n for n in project_effect_names(source) if fxlua.normalise_name(n).lower() not in reached and fxlua.normalise_name(n).lower() not in theirs]
 

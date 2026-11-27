@@ -5,6 +5,7 @@ lives in bpy-free `core` functions so it is unit-tested headlessly.
 """
 from __future__ import annotations
 
+import re
 import time
 
 import numpy as np
@@ -93,14 +94,24 @@ class BZ_OT_validate(bpy.types.Operator):
             # so the modelling tools carry on. A creature with no rings at all (a plain mesh) is not being built on, it needs Retarget
             # Creature to Mesh, and with nothing of that kind missing an export refusal stays an error.
             unfinished = any(p.startswith("STOCK") for p in problems) and bool(store.connections(obj))
+            refused = "the game would not take the item"
+            # the item check names each missing connection ring in a line of its own (twelve for a plain mesh): say them in one
+            rings = [m.group(1) for e in ex_err if e.startswith(refused) for m in [re.search(r"connection ring '(\w+)' missing", e)] if m]
+            if rings:
+                ex_err = [e for e in ex_err if not (e.startswith(refused) and "connection ring '" in e and " missing" in e)]
+                what = f"connection ring{'s' if len(rings) > 1 else ''} {', '.join(repr(r) for r in rings)} missing"
+                if unfinished:
+                    problems.append(f"WARN export: Export for the Game cannot take this creature yet: {what}. Create the missing connection "
+                                    "(Boner, Create Connection) and pick its ring, then press Check again.")
+                else:
+                    problems.append(f"{refused}: {what}. Without them it cannot be combined: use Retarget Creature to Mesh, or create the "
+                                    "connections in Boner.")
             for e in ex_err:
                 if e in problems:
                     continue
-                if unfinished and e.startswith("the game would not take the item"):
-                    todo = ("Create the missing connection (Boner, Create Connection) and pick its ring, "
-                            if "connection ring" in e else "Add what the other lines say this creature lacks, ")
-                    problems.append(f"WARN export: Export for the Game and the creature creator cannot take this creature yet: {e} {todo}"
-                                    "then press Check again. Until then you can go on modelling.")
+                if unfinished and e.startswith(refused):
+                    problems.append(f"WARN export: Export for the Game cannot take this creature yet: {e} Add what the other lines say "
+                                    "this creature lacks, then press Check again.")
                 else:
                     problems.append(e)
             problems += [f"WARN export: {w}" for w in ex_warn if not any(w in p for p in problems)]
@@ -126,11 +137,11 @@ class BZ_OT_validate(bpy.types.Operator):
             self.report({"INFO"}, t)
         tail = f", {len(combine)} combine issue(s)" if combine else ""
         if errs:
-            self.report({"ERROR"}, f"{len(errs)} problem(s) stop the game loading or exporting this creature, {len(stock)} thing(s) every "
-                                   f"game creature has and this one lacks, {len(warns)} warning(s){tail}. The Info editor lists them")
+            self.report({"ERROR"}, f"{len(errs)} problem(s) stop the game loading this creature. Also {len(stock)} missing standard "
+                                   f"thing(s), {len(warns)} warning(s){tail}. See the Info editor")
         else:
-            self.report({"WARNING"}, f"The game loads this creature; {len(stock)} thing(s) every game creature has and this one lacks, "
-                                     f"{len(warns)} warning(s){tail}. The Info editor lists them")
+            self.report({"WARNING"}, f"The game loads this creature. {len(stock)} missing standard thing(s), "
+                                     f"{len(warns)} warning(s){tail}. See the Info editor")
         return {"FINISHED"}
 
     @staticmethod

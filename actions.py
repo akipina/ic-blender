@@ -600,6 +600,71 @@ def plan_export(arm_obj, renames=True, deleted=()):
     return ClipPlan(kept, encode, drop, warnings)
 
 
+_PLAN_CACHE: dict = {}        # (rig name, renames, deleted) -> (stamp, when, ClipPlan or the ValueError it raised)
+_PLAN_SECONDS = 1.0           # what the stamp cannot see (a key moved without a key added or removed) shows within this long
+
+
+def _fc_count(act) -> int:
+    """How many F-curves the Action has, without building the list :func:`_fcurves` does."""
+    try:
+        n = 0
+        for layer in act.layers:
+            for strip in layer.strips:
+                for slot in act.slots:
+                    bag = strip.channelbag(slot)
+                    if bag is not None:
+                        n += len(bag.fcurves)
+        if n:
+            return n
+    except Exception:
+        pass
+    try:
+        return len(act.fcurves)
+    except Exception:
+        return 0
+
+
+def _plan_stamp(arm_obj, renames, deleted) -> tuple:
+    """What :func:`plan_export` depends on, read cheaply: the rig (bones, constraints, drivers, NLA tracks, clip table), every Action's name,
+    stamps, users, frame range and F-curve count, and which armatures share the rig's identity. No F-curve is read."""
+    ad = arm_obj.animation_data
+    me = str(arm_obj.get(KEY_ARM_UID, "") or "")
+    rig_part = (arm_obj.name, me, str(list(arm_obj.get(KEY_CLIPS, []) or [])), bool(renames), tuple(str(d) for d in deleted),
+                tuple(pb.name for pb in arm_obj.pose.bones),
+                tuple((pb.name, c.enabled, c.influence) for pb in arm_obj.pose.bones for c in pb.constraints),
+                0 if ad is None else (ad.action.name if ad.action is not None else "", len(ad.drivers),
+                                      tuple((t.name, t.mute, tuple(st.action.name if st.action is not None else "" for st in t.strips))
+                                            for t in ad.nla_tracks)),
+                len(getattr(getattr(arm_obj.data, "animation_data", None), "drivers", ()) or ()),
+                tuple(o.name for o in bpy.data.objects if me and o is not arm_obj and o.type == "ARMATURE"
+                      and str(o.get(KEY_ARM_UID, "") or "") == me))
+    acts = tuple((a.name, a.get(KEY_CLIP), a.get(KEY_IMPORT_NAME), a.get(KEY_HASH), a.get(KEY_ARM), a.get(KEY_ARM_UID), a.users,
+                  bool(a.use_fake_user), tuple(a.frame_range), _fc_count(a)) for a in bpy.data.actions)
+    return rig_part, acts
+
+
+def plan_export_cached(arm_obj, renames=True, deleted=()):
+    """:func:`plan_export` for DRAW code (panels redraw many times a second and ask for it several times each): the plan made a moment ago
+    is returned while the rig and the Actions look the same (:func:`_plan_stamp`), and it is made again at the latest after a second.
+    Raises ValueError exactly as :func:`plan_export` does. The result is shared: do not change it. Export always calls :func:`plan_export`."""
+    import time
+    key = (arm_obj.name, bool(renames), tuple(str(d) for d in deleted))
+    stamp = _plan_stamp(arm_obj, renames, deleted)
+    now = time.monotonic()
+    hit = _PLAN_CACHE.get(key)
+    if hit is None or hit[0] != stamp or now - hit[1] > _PLAN_SECONDS:
+        try:
+            value = plan_export(arm_obj, renames=renames, deleted=deleted)
+        except ValueError as e:
+            value = e
+        if len(_PLAN_CACHE) > 32:
+            _PLAN_CACHE.clear()
+        hit = _PLAN_CACHE[key] = (stamp, now, value)
+    if isinstance(hit[2], ValueError):
+        raise hit[2]
+    return hit[2]
+
+
 def encode_actions(arm_obj, model, actions, default_fps, bone_names=None):
     """ICParse clips for the given (Action, clip name) pairs, sampled from Blender's own evaluation and encoded
     against ``model`` (the export model: its bind decides track presence, its geometry the bounds). Bones are sampled

@@ -167,11 +167,25 @@ def status(stock_setting: str = "", extra_stock_dirs: Sequence[str] = (), paths_
 
 
 # ------------------------------------------------------------------------------------------------------ stock donors
+_LISTED: dict = {}                       # folder -> (its modified time, the .sgm names it held then)
+
+
 def _stock_files(d: str) -> List[str]:
+    """The .sgm files of a stock folder, sorted. A panel asks on every redraw: the listing is kept until the folder's own modified time moves
+    (a file added, removed or renamed there), so it is never out of date."""
     try:
-        return sorted(f for f in os.listdir(d) if f.lower().endswith(".sgm"))
+        stamp = os.stat(d).st_mtime_ns
     except OSError:
         return []
+    hit = _LISTED.get(d)
+    if hit is not None and hit[0] == stamp:
+        return hit[1]
+    try:
+        names = sorted(f for f in os.listdir(d) if f.lower().endswith(".sgm"))
+    except OSError:
+        return []
+    _LISTED[d] = (stamp, names)
+    return names
 
 
 def stock_dir_candidates(setting: str = "", extra: Sequence[str] = ()) -> List[str]:

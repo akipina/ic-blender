@@ -310,17 +310,15 @@ def replace_part_mesh(part, src, *, weights: bool = True, materials: str = "KEEP
 
 # ------------------------------------------------------------------------------------------------------------------ operators
 class BZ_OT_scene_replace_part(bpy.types.Operator):
-    """Put the selected mesh in the place of the active part: the part keeps its name, its bone and its materials, and the export
-    writes the new mesh into it"""
+    """Swap the active part's mesh for the selected mesh. The part keeps its name, bone and materials"""
     bl_idname = "bz.scene_replace_part"
     bl_label = "Replace Part With Selected Mesh"
     bl_options = {"REGISTER", "UNDO"}
 
     transfer_weights: BoolProperty(
         name="Copy the part's bone weights", default=True,
-        description="A skinned part's weights are copied onto the new mesh by Blender's Data Transfer (nearest surface); a rigid "
-                    "part's new mesh follows the same bone at full weight. A mesh that already has weights for the rig's "
-                    "bones keeps them")
+        description="Copy a skinned part's weights onto the new mesh. A rigid part's mesh follows the same bone. "
+                    "Weights the mesh already has are kept")
     materials: EnumProperty(name="Materials", items=MATERIAL_ITEMS, default="KEEP")
     keep_mesh: BoolProperty(name="Keep the selected mesh", default=False,
                             description="Leave the mesh object in the scene (by default it is consumed: its geometry is now the part)")
@@ -368,8 +366,7 @@ class BZ_OT_scene_replace_part(bpy.types.Operator):
 
 
 class BZ_OT_scene_use_mesh_as_model(bpy.types.Operator):
-    """Use the selected mesh as the whole model: it is fitted to the size and place of the model, replaces the largest part,
-    and the other parts are removed by the export"""
+    """Use the selected mesh as the whole model. It replaces the largest part and the other parts are removed on export"""
     bl_idname = "bz.scene_use_mesh_as_model"
     bl_label = "Use This Mesh as the Model"
     bl_options = {"REGISTER", "UNDO"}
@@ -378,8 +375,7 @@ class BZ_OT_scene_use_mesh_as_model(bpy.types.Operator):
     align: BoolProperty(name="Put it where the model stood", default=True,
                         description="Centre the mesh over the model and rest it on the model's floor")
     transfer_weights: BoolProperty(name="Copy the model's bone weights", default=True,
-                                   description="For a skinned model: the weights of every part are copied onto the mesh by "
-                                               "Blender's Data Transfer. Rigid models keep the bone of the part replaced")
+                                   description="Copy the weights of all parts onto the mesh (skinned models). A rigid model keeps the replaced part's bone")
     materials: EnumProperty(name="Materials", items=MATERIAL_ITEMS, default="KEEP")
     keep_mesh: BoolProperty(name="Keep the selected mesh", default=False)
 

@@ -19,6 +19,7 @@ from .sceneobj import ui_kit
 
 from . import actions as bzactions
 from . import core, rig, store
+from . import enumitems
 
 _ITEMS: list = []                       # enum items must stay referenced while Blender shows them
 
@@ -197,6 +198,7 @@ def _target_rig_names(context):
     return [b.name for b in t.rig.data.bones] if t is not None and t.rig is not None else []
 
 
+@enumitems.stable
 def _items(self, context):
     from . import motionspanel
     t = motionspanel._context_target(context)
@@ -263,7 +265,7 @@ class BZ_PG_borrow_clip(bpy.types.PropertyGroup):
 
 
 class BZ_OT_borrow_clips(bpy.types.Operator):
-    """Copy the animations of another model onto this rig as new clips (bones are matched by name). The next step lists the clips to tick"""
+    """Copy animations from another model onto this rig as new clips"""
     bl_idname = "bz.borrow_clips"
     bl_label = "Borrow Clips From..."
     bl_options = {"REGISTER", "UNDO"}
@@ -273,10 +275,9 @@ class BZ_OT_borrow_clips(bpy.types.Operator):
     filepath: StringProperty(name="Or a file", subtype="FILE_PATH", default="",
                              description="A .sgm model on disk to copy animations from (used instead of the list when set)")
     only: StringProperty(name="Only these clips", default="", options={"HIDDEN"},
-                         description="Clip names, comma separated (for a script). Empty copies every clip this rig does not have yet; the dialog asks "
-                                     "with a list of clips to tick instead")
-    new_name: StringProperty(name="New name", default="", options={"HIDDEN"}, description="For one clip: the name it gets here. A name the game "
-                             "knows (Walk, Run, Idle1 ...) gets its motion from the game; any other name needs a motion in the Motions box")
+                         description="Clip names to copy, separated by commas. Empty copies every clip the rig lacks")
+    new_name: StringProperty(name="New name", default="", options={"HIDDEN"}, description="Name for the copied clip (one clip only). A name the game knows, like Walk, "
+                             "uses the game's motion; any other name needs a motion in the Motions box")
     ask: BoolProperty(default=False, options={"HIDDEN", "SKIP_SAVE"}, description="Open the list of clips after this step (the dialog sets it)")
 
     @classmethod
@@ -327,8 +328,8 @@ class BZ_OT_borrow_clips_pick(bpy.types.Operator):
     donor: StringProperty(default="NONE", options={"HIDDEN", "SKIP_SAVE"})
     filepath: StringProperty(default="", options={"HIDDEN", "SKIP_SAVE"})
     new_name: StringProperty(name="New name", default="", options={"SKIP_SAVE"},
-                             description="Only when one clip is ticked: the name it gets here. A name the game knows (Walk, Run, Idle1 ...) gets its "
-                                         "motion from the game; any other name needs a motion in the Motions box")
+                             description="Name for the copied clip (one clip only). A name the game knows, like Walk, "
+                                         "uses the game's motion; any other name needs a motion in the Motions box")
     clips: bpy.props.CollectionProperty(type=BZ_PG_borrow_clip, options={"HIDDEN", "SKIP_SAVE"})
     words: StringProperty(default="", options={"HIDDEN", "SKIP_SAVE"})
 
@@ -362,7 +363,7 @@ class BZ_OT_borrow_clips_pick(bpy.types.Operator):
         col = self.layout.column()
         for line in ui_kit.wrap_lines(self.words, 52):
             col.label(text=line)
-        col.label(text="Tick the clips to borrow (none is ticked at first):")
+        col.label(text="Tick the clips to borrow:")
         flow = col.column(align=True)
         for c in self.clips:
             if c.have:

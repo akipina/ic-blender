@@ -25,6 +25,7 @@ from . import map_hooks as H
 from . import ops_map_import as M
 from . import panels_blueprint as PB
 from . import prefs
+from .. import enumitems
 
 ORDER = 61
 
@@ -1011,6 +1012,7 @@ class BZ_OT_map_check(bpy.types.Operator):
 _GROUND_ITEMS: list = []
 
 
+@enumitems.stable
 def _ground_items(self, context):
     top = active_map(context)
     game_dir = prefs.resolve_game_dir(context)[0]
@@ -1121,6 +1123,7 @@ class BZ_OT_map_use_ground(bpy.types.Operator):
 _BLUEPRINT_ITEMS: list = []
 
 
+@enumitems.stable
 def _blueprint_items(self, context):
     top = active_map(context)
     game_dir = prefs.resolve_game_dir(context)[0]
@@ -1184,6 +1187,7 @@ class BZ_OT_map_add_object(bpy.types.Operator):
 _OWNER_ITEMS: list = []
 
 
+@enumitems.stable
 def _owner_items(self, context):
     top = active_map(context)
     count = 8

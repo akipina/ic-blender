@@ -22,6 +22,7 @@ from . import combocore
 from . import draw
 from . import store
 from . import texdraw
+from . import enumitems
 
 COLLECTION = "IC Combine Preview"
 AUTO_DELAY = 0.8                   # seconds of quiet after the last edit before an auto refresh
@@ -133,8 +134,17 @@ def _index_job(d: str):
     return None
 
 
+@enumitems.stable
 def _stock_items(self, context):
+    # a menu asks for the items once per entry: building them lists every stock creature's parts, so keep them for a moment
     idx = donor_index(self)
+    items = enumitems.recent(("combine stock items", resolve_stock_dir(self), id(idx), self.other_stock_name, len(idx.entries) if idx else -1),
+                             lambda: _stock_items_list(self, idx))
+    _ENUM_ITEMS[:] = items
+    return _ENUM_ITEMS
+
+
+def _stock_items_list(self, idx) -> list:
     items = []
     if idx is not None and self.other_stock_name and self.other_stock_name not in idx.entries:
         items.append((MISSING_ITEM, f"(missing: {self.other_stock_name})", f"{self.other_stock_name!r} is not in "
@@ -155,8 +165,7 @@ def _stock_items(self, context):
             items = [("", "(indexing stock creatures...)", "The stock creatures are being indexed", "", 0)]
         else:
             items = [("", "(no stock creatures)", "Set the stock directory or press Extract Stock Creatures", "", 0)]
-    _ENUM_ITEMS[:] = items
-    return _ENUM_ITEMS
+    return items
 
 
 MISSING_ITEM = "__missing__"
@@ -427,6 +436,13 @@ def is_stale(scene, obj, settings) -> bool:
     except Exception as e:                     # can't tell: say stale, and why (once)
         _say_once(f"state digest failed (preview shown as stale): {type(e).__name__}: {e}")
         return True
+
+
+def is_stale_drawn(scene, obj, settings) -> bool:
+    """:func:`is_stale` for a redraw: it hashes every point, vertex group and painted skin, so it is worked out at most every half second
+    (at once when a new preview is made). Operators ask :func:`is_stale` itself."""
+    key = ("combine stale", _uid(obj), _ghost.get("digest"), id(_ghost.get("preview")))
+    return enumitems.recent(key, lambda: is_stale(scene, obj, settings), seconds=0.5)
 
 
 # --------------------------------------------------------------------------------------------------- the other animal
@@ -724,8 +740,7 @@ class BZ_OT_combine_materialize(bpy.types.Operator, ExportHelper):
         if not path.lower().endswith(".sgm"):
             path += ".sgm"
         if combocore.in_stock_pool(path, _stock_pool_dirs(context.scene.bz_combine)):
-            self.report({"ERROR"}, f"Not writing into the stock creature directory {os.path.dirname(path)}: the "
-                                   "combination would be listed as a stock donor. Choose another folder")
+            self.report({"ERROR"}, f"Not saved: {os.path.dirname(path)} holds the stock creatures. Choose another folder.")
             return {"CANCELLED"}
         try:
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -904,7 +919,7 @@ class BZ_OT_combine_validate(bpy.types.Operator):
 
 
 class BZ_OT_combine_extract_stock(bpy.types.Operator):
-    """Extract the game's 61 base creatures (model, blueprint, stats, rules) to Blender's user data folder: the combine donors, and files to open or study. No creature needs to be in the scene"""
+    """Extract the game's 61 stock creatures to Blender's user data folder, to combine or study"""
     bl_idname = "bz.combine_extract_stock"
     bl_label = "Extract Stock Creatures"
 

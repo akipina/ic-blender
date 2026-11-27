@@ -389,9 +389,8 @@ if bpy is not None:
                 return {"CANCELLED"}
             t_diag = fitops.bounding_diagonal(pts)
             if frame_mismatch(st.diag, t_diag, tgt.name) is not None:
-                self.report({"WARNING"}, f"{tgt.name} is {t_diag / st.diag:.2f} x the creature's size in the creature's "
-                                         "frame: place and scale it as the retarget did, unless the creature really has "
-                                         "that much extra surface")
+                self.report({"WARNING"}, f"{tgt.name} is {t_diag / st.diag:.2f} x the creature's size. "
+                                         "Place and scale it as the retarget did, unless the creature really has that much extra surface")
             limbs = limb_text(st.rows, store.patch_limb(obj), store.limb_names(obj))
             head = f"Trim Stray Surface ({obj.name} vs {tgt.name}): {st.text()}"
             obj["bz_last_trim_stats"] = {"patches": len(st.far), "stray": len(st.rows), "samples": st.total,
@@ -436,8 +435,8 @@ if bpy is not None:
         # ------------------------------------------------------------------------------------ Delete
         def _delete(self, context, obj, patches, st, tgt, limbs, head, t_all):
             if len(st.rows) >= len(patches):
-                self.report({"ERROR"}, f"Trim Stray Surface: every one of the {len(patches)} patches is stray -- the "
-                                       "creature is nowhere near the target (is it in the creature's frame?)")
+                self.report({"ERROR"}, f"Trim Stray Surface: all {len(patches)} patches are stray. "
+                                       "The creature is nowhere near the target")
                 return {"CANCELLED"}
             plan = patchsel.delete_plan(patches, st.rows, patchsel._ring_rows_for_plan(obj), store.point_count(obj))
             if plan.refusal:
@@ -476,9 +475,8 @@ if bpy is not None:
                        else ""))
             obj["bz_last_trim"] = line
             if open_now:
-                self.report({"WARNING"}, f"{open_now} open side(s) left: the game refuses an open patch mesh "
-                                         "(Validate names the dangling edges) -- close them with Fill Hole / Add "
-                                         "Quad / Weld before exporting")
+                self.report({"WARNING"}, f"{open_now} open side(s) left, and the game refuses an open creature. "
+                                         "Close them with Fill Hole, Add Quad or Weld before exporting")
             self.report({"INFO"}, line + f"; in {time.perf_counter() - t_all:.1f} s")
             return {"FINISHED"}
 
@@ -561,8 +559,7 @@ if bpy is not None:
                 self.report({"ERROR"}, "Trim Stray Surface: the open-side count changed, which a collapse cannot do "
                                        "-- Undo (Ctrl+Z) and report this")
             if len(after.rows):
-                self.report({"WARNING"}, f"{len(after.rows)} patch(es) are still stray after the collapse (their "
-                                         "points are shared with patches that are on the target, or pinned rings): "
+                self.report({"WARNING"}, f"{len(after.rows)} patch(es) are still stray after the collapse. "
                                          "Select them to see where, or Delete them")
             self.report({"INFO"}, line + f"; in {time.perf_counter() - t_all:.1f} s")
             return {"FINISHED"}

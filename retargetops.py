@@ -376,7 +376,7 @@ def resolve_target(op, context, obj, name):
         op.report({"ERROR"}, f"{tgt.name} is a {tgt.type.lower()} object, not a mesh")
         return None
     if store.is_native(tgt):
-        op.report({"ERROR"}, f"{tgt.name} is a patch creature (its vertices are control points, not a surface): "
+        op.report({"ERROR"}, f"{tgt.name} is a patch creature, not a surface. "
                              "Bake Textured Mesh it first and retarget to the bake")
         return None
     deps = context.evaluated_depsgraph_get()
@@ -390,7 +390,7 @@ def resolve_target(op, context, obj, name):
     topo = fitops.target_topology(me_eval, fitops.bounding_diagonal(pts))
     if topo.parts != 1:
         op.report({"ERROR"}, f"{fitops.parts_reason(tgt.name, topo)}: a creature is one closed skin. Merge by Distance or "
-                             "separate extra shells (Edit Mode: P > By Loose Parts) and retarget to the skin alone")
+                             "split extra pieces off (Edit Mode: P > By Loose Parts)")
         return None
     return tgt, me_eval
 
@@ -499,20 +499,20 @@ class BZ_OT_retarget_mesh(_Operator):
             self.report({"WARNING"}, f"{tgt.name} has an object transform: its world shape was used (transformed into "
                                      f"{obj.name}'s space)")
         if not ops._is_identity(obj.matrix_world):
-            self.report({"WARNING"}, f"{obj.name} has an object transform: the fit is in its local space, and Export "
-                                     "refuses a creature with a transform (apply or clear it)")
+            self.report({"WARNING"}, f"{obj.name} has an object transform, which Export refuses. "
+                                     "Apply or clear it")
         if not self.pin_rings:
-            self.report({"WARNING"}, f"the {n_ring} connection-ring control points moved with the fit, so combining may "
-                                     "scale them and warn; Pin Rings keeps the stock rings")
+            self.report({"WARNING"}, f"the {n_ring} connection-ring points moved with the fit, so combining may "
+                                     "warn. Use Pin Rings to keep the stock rings")
         if r.coverage.max_pct > 2.0:
             self.report({"WARNING"}, f"parts of the retargeted surface are up to {r.coverage.max_pct:.1f} % of the "
-                                     "size away from any target vertex (the target has no vertices there)")
+                                     "size from any target vertex. The target has no vertices there")
         if bone_drift > 2e-3:
-            self.report({"WARNING"}, f"a moved bone's orientation drifted by {1000 * bone_drift:.1f} mrad (very short bones "
-                                     "lose precision): the rest shape is exact, clips differ by that much")
+            self.report({"WARNING"}, f"a moved bone's orientation is off by {1000 * bone_drift:.1f} mrad. "
+                                     "The rest shape is exact; clips differ slightly")
         if not self.move_bones and arm is not None:
-            self.report({"INFO"}, "the bones keep their bind pose (valid; they may sit outside the new skin -- Move "
-                                  "Bones translates them by the skin they own)")
+            self.report({"INFO"}, "the bones keep their bind pose and may sit outside the new skin. "
+                                  "Use Move Bones to shift them with it")
         self.report({"INFO"}, line)
         return {"FINISHED"}
 

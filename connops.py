@@ -21,6 +21,7 @@ from . import draw
 from . import limbops
 from . import ops
 from . import store
+from . import enumitems
 
 
 # ------------------------------------------------------------------------------------------------ read-out
@@ -205,6 +206,7 @@ class BZ_OT_conn_set_active(bpy.types.Operator):
 _LIMB_ITEMS: list = []
 
 
+@enumitems.stable
 def _limb_items(self, context):
     """Create Connection's menu: the non-torso limbs no connection attaches (kept referenced for Blender)."""
     global _LIMB_ITEMS
@@ -300,9 +302,8 @@ class BZ_OT_create_connection(bpy.types.Operator):
             return {"CANCELLED"}
         _set_active(context, obj, len(rows) - 1, rows)
         n = boner.ring_corner_count(cls)
-        self.report({"INFO"}, f"Created connection '{name}' for limb '{lim.name}': Parent {boner.class_label(parent)}, "
-                              f"Child {boner.class_label(cls)}, host bone {host} ({how}). It has no ring yet: pick its "
-                              f"{n} corners (Pick Ring, Edit Mode)")
+        self.report({"INFO"}, f"Created connection '{name}' for limb '{lim.name}' (Parent {boner.class_label(parent)}, "
+                              f"Child {boner.class_label(cls)}, bone {host}). Next, pick its {n} ring corners with Pick Ring in Edit Mode")
         return {"FINISHED"}
 
 
@@ -670,6 +671,7 @@ class BZ_OT_optimise_ring_start(bpy.types.Operator):
 _STUB_ITEMS: list = []
 
 
+@enumitems.stable
 def _stub_items(self, context):
     """Add Stub Socket's menu: the stub-able classes (legs, arms, side / top wings) no limb and no connection has (kept
     referenced for Blender's dynamic enum strings)."""
@@ -851,7 +853,7 @@ class BZ_OT_add_stub_socket(bpy.types.Operator):
         arm = store.rig(obj)
         if plan.create and arm is None:
             self.report({"ERROR"}, f"Add Stub Socket refused: the skeleton has no bone '{plan.root}' and the creature has "
-                                   "no rig to create it on (re-import the creature with its rig)")
+                                   "no rig to add it to. Re-import the creature with its rig")
             return {"CANCELLED"}
         if plan.create and rig_edit_refusal(context, arm):
             self.report({"ERROR"}, f"Add Stub Socket refused: {rig_edit_refusal(context, arm)}")

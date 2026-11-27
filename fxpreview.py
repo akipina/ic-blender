@@ -370,7 +370,7 @@ def _prepare(context):
 
 
 class BZ_OT_fx_preview_bake(bpy.types.Operator):
-    """Show the effects the chosen clip's events start on the timeline (a preview: Press Play afterwards). Replaces the preview made before"""
+    """Show the effects started by the chosen clip's events on the timeline. Press Play to see them"""
     bl_idname = "bz.fx_preview_bake"
     bl_label = "Show the clip's effects"
     bl_options = {"REGISTER", "UNDO"}

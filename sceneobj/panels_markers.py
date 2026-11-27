@@ -15,6 +15,7 @@ from bpy.props import BoolProperty, EnumProperty, StringProperty
 from mathutils import Matrix
 
 from . import slice_markers as SM
+from .. import enumitems
 
 ORDER = 51
 
@@ -176,6 +177,7 @@ class BZ_OT_marker_rename(bpy.types.Operator):
         return {"FINISHED"}
 
 
+@enumitems.stable
 def _bone_items(self, context):
     key = _active_key(context)
     arm = SM.marker_rig(key) if key else None
@@ -290,9 +292,8 @@ def draw_markers(layout, context) -> None:
     missing = sorted(v for v in refs if not SM.finds(v, names | bones))
     if missing:
         box = layout.box()
-        box.label(text=f"{len(missing)} name(s) the blueprint uses are not here:", icon="ERROR")
+        box.label(text=f"{len(missing)} blueprint name(s) have no marker:", icon="ERROR")
         box.label(text=", ".join(missing[:6]) + (" ..." if len(missing) > 6 else ""))
-        box.label(text="Their effects play at the model's feet.")
     row = layout.row(align=True)
     row.operator("bz.marker_add", text="Add", icon="ADD")
     row.operator("bz.marker_delete", text="Delete", icon="REMOVE")
@@ -302,7 +303,7 @@ def draw_markers(layout, context) -> None:
     row.operator("bz.marker_select_users", text="Events")
     mk = _active_marker(context)
     if mk is not None and any(abs(s - 1.0) > 1e-4 for s in mk.scale):
-        layout.label(text="This marker is scaled: the game scales its effect too.", icon="ERROR")
+        layout.label(text="Scaled marker: its effect scales too.", icon="ERROR")
 
 
 class BZ_PT_scene_markers(bpy.types.Panel):

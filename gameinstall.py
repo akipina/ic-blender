@@ -31,6 +31,7 @@ import bpy
 from bpy.props import BoolProperty, StringProperty
 
 from .sceneobj import prefs, ui_kit
+from . import enumitems
 from . import gamecopyops, gameshare           # Create Test Game Copy, Pack for Sharing / Install From Zip (their own modules; their classes are registered with ours)
 
 KEY_LAST_ITEM = "bz_last_item_dir"          # scene["bz_last_item_dir"]: the item folder of the last "for the game" export (the contract)
@@ -181,6 +182,10 @@ def install_folder(context, folder: str, anyway: bool = False) -> Outcome:
     except OSError as e:                              # a full disk, a file in use: the install undid itself where it could
         _STATE_CACHE.pop(game, None)
         return Outcome(False, f"The install stopped: {e}. Anything already written was taken back; press Remove if the item is listed.", check=chk)
+    except Exception as e:                            # noqa: BLE001 -- a step after the files went in: say so, never a traceback
+        _STATE_CACHE.pop(game, None)
+        return Outcome(False, f"The install did not finish: {type(e).__name__}: {e}. The item may be installed already: press Remove if it is listed, "
+                              f"then install again.", check=chk)
     _STATE_CACHE.pop(game, None)
     _LAST_CHECK.update(folder="", check=None)
     bits = [f"{len(res.files)} files"]
@@ -212,9 +217,9 @@ class BZ_OT_install_item(bpy.types.Operator):
     bl_options = {"REGISTER"}
 
     item_dir: StringProperty(name="Item folder", subtype="DIR_PATH", default="",
-                             description="The item folder (it holds data/...); empty uses the folder picked in the panel, else the last export")
+                             description="The item folder to install. Empty: the folder picked in the panel, else the last export")
     anyway: BoolProperty(name="Install anyway", default=False,
-                         description="Install although the check found problems the game would refuse (the item may not work)")
+                         description="Install although the check found problems")
 
     def execute(self, context):
         folder = bpy.path.abspath(self.item_dir) if self.item_dir.strip() else item_folder(context)
@@ -300,7 +305,7 @@ def export_time(item: str):
 
 
 def _when(path: str) -> str:
-    t = export_time(path)
+    t = enumitems.recent(("gameinstall.export_time", path), lambda: export_time(path))     # the panel redraws far more often than a folder changes
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(t)) if t is not None else ""
 
 
@@ -318,20 +323,17 @@ def next_step(context) -> str:
     folder = test_game_folder(context)
     if folder is None:
         if gamecopyops.source_folder(context) is None:
-            return ("Next: tell the add-on where your game is. Open Edit > Preferences > Add-ons > IC Blender and set the Game folder "
-                    "to the folder that holds IC.exe.")
-        return "Next: press Create Test Game Copy. It makes your own copy of the game to try your work in."
+            return "Next: set the Game folder (the one with IC.exe) in Edit > Preferences > Add-ons > IC Blender."
+        return "Next: press Create Test Game Copy."
     if target_problem(context):
-        return ("Next: fix the Test game folder above: it cannot be used. Set it in Edit > Preferences > Add-ons > IC Blender, "
-                "or press Create Test Game Copy to make a new one.")
+        return "Next: fix the Test game folder above, or press Create Test Game Copy."
     item = item_folder(context)
     if not item or not os.path.isdir(item):
-        return f"Next: export your project for the game ({_export_button(context)}, step 2 above). Nothing has been exported yet."
+        return f"Next: export your project ({_export_button(context)}, step 2 above)."
     name = os.path.basename(os.path.normpath(item))
     if name not in {i.item_id for i in installed(folder) if not i.foreign}:
-        return f"Next: press Install into Test Game to put '{name}' into your test copy."
-    start = (f"Next: start the game from {folder}: run IC.exe there. If the game is already running, close it and start it again "
-             f"to see the change.")
+        return f"Next: press Install into Test Game to install '{name}'."
+    start = f"Next: run IC.exe in {folder}. Close the game first if it is running."
     hidden = _new_name_words(context, item)
     return f"{start} {hidden}" if hidden else start
 
@@ -344,7 +346,7 @@ def _export_button(context) -> str:
     store = _optional("store")
     if store is not None and store.creature_of(obj) is not None:
         return "press Export Creature for the Game"
-    return "select your creature, gatherer, character, structure or prop, then export it"
+    return "select your creature or thing, then export it"
 
 
 def _new_name_words(context, item: str) -> str:
@@ -356,8 +358,8 @@ def _new_name_words(context, item: str) -> str:
         return ""
     if os.path.normpath(bpy.path.abspath(str(holder.get(KEY_LAST_ITEM)))) != os.path.normpath(item) or holder.get("bz_last_item_mode") != "NEW":
         return ""
-    return ("Your thing has a name of its own, so nothing in the game shows it until a map or a script names it. To see it now, export again "
-            "with Replace the original (the game's own thing then looks like your model), or place it in a map that names it.")
+    return ("Your thing has a name of its own, so the game shows it only where a map names it. To see it now, export again with "
+            "Replace the original.")
 
 
 def draw_check_step(layout, context) -> None:
@@ -378,11 +380,11 @@ def draw_check_step(layout, context) -> None:
         obj = creature
         box.operator("bz.validate", text="Check the Creature", icon="CHECKMARK")
         if not store.connections(obj):
-            ui_kit.alert(box, "This creature has no connection rings, so the creature creator cannot use it and Export for the Game refuses it. "
-                              "Use Retarget Creature to Mesh (IC Model tab, Tools) to get a creature with rings.", width=62)
+            ui_kit.alert(box, "This creature has no connection rings, so Export refuses it. "
+                              "Use Retarget Creature to Mesh (IC Model tab, Tools).", width=62)
         found = obj.get("bz_validation")
         if found is None:
-            ui_kit.alert(box, "Not checked yet. Check shows what would stop the game from loading the creature.", icon="INFO", width=62)
+            ui_kit.alert(box, "Not checked yet.", icon="INFO", width=62)
             return
         found = [str(p) for p in found]
         core = _optional("core")
@@ -395,11 +397,9 @@ def draw_check_step(layout, context) -> None:
         if len(blocking) > 3:
             box.label(text=f"... and {len(blocking) - 3} more problems.")
         if warns:
-            box.label(text=f"{len(warns)} warning(s): the Info editor lists them after Check.", icon="INFO")
-        if blocking:
-            box.label(text="Fix these first: Export refuses a creature the game would not load.", icon="ERROR")
+            box.label(text=f"{len(warns)} warning(s): see the Info editor", icon="INFO")
         return
-    ui_kit.alert(box, "Select your creature, gatherer, character, structure or prop to check it.", icon="INFO", width=62)
+    ui_kit.alert(box, "Select something to check.", icon="INFO", width=62)
 
 
 def draw_game(layout, context) -> None:
@@ -422,7 +422,7 @@ def draw_game(layout, context) -> None:
     elif project_holder(obj) is None:
         ebox = layout.box()                                  # nothing to export is selected: the step is still there, so "step 2" in the Next line has a place
         ebox.label(text="2. Export for the Game", icon="PACKAGE")
-        ui_kit.alert(ebox, "Select your creature, gatherer, character, structure or prop to export it.", icon="INFO", width=62)
+        ui_kit.alert(ebox, "Select something to export.", icon="INFO", width=62)
 
     box = layout.box()
     box.label(text="3. Install into Test Game", icon="PLAY")
@@ -441,7 +441,7 @@ def draw_game(layout, context) -> None:
         box.label(text=folder, icon="FILE_FOLDER")
         info = copy_info(folder)
         if info is not None and not info.get("complete", True):
-            ui_kit.alert(box, "This copy was not finished (the copy was interrupted). Delete the folder and press Create Test Game Copy again.")
+            ui_kit.alert(box, "This copy was not finished. Delete the folder and press Create Test Game Copy again.")
         elif info is not None:
             box.label(text=f"A copy of the game made here on {str(info.get('made', ''))[:10]}")
         elif not problem:
@@ -464,7 +464,7 @@ def draw_game(layout, context) -> None:
     # the check that refused the item, with the way on
     refused = last_check(item) if have_item and folder is not None else None
     if refused is not None:
-        box.label(text="The check found problems the game would refuse:", icon="ERROR")
+        box.label(text="The check found problems:", icon="ERROR")
         for line in refused.lines(5):
             for part in ui_kit.wrap_lines(line, 62):
                 box.label(text=part, icon="BLANK1")
@@ -494,7 +494,7 @@ def draw_game(layout, context) -> None:
             row.label(text=f"{it.item_id}  ({what})")
             row.operator(BZ_OT_remove_item.bl_idname, text="Remove", icon="TRASH").item_id = it.item_id
         if other:
-            inst.label(text=f"{len(other)} more installed by other tools (not touched here)", icon="INFO")
+            inst.label(text=f"{len(other)} more installed by other tools", icon="INFO")
     gameshare.draw_share(layout, context)
 
 
@@ -523,7 +523,7 @@ CLASSES = (BZ_OT_install_item, BZ_OT_remove_item, BZ_OT_open_preferences, *gamec
 def register():
     bpy.types.Scene.bz_item_dir = StringProperty(
         name="Item folder", subtype="DIR_PATH", default="",
-        description="The item folder to install (it holds data/...). Empty: the folder of the last export for the game")
+        description="The item folder to install. Empty: the folder of the last export")
 
 
 def unregister():

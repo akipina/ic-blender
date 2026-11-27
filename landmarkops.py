@@ -597,13 +597,12 @@ class BZ_OT_landmarks_create(_Operator):
             if l.bone:
                 e["bz_landmark_bone"] = l.bone
             col.objects.link(e)
-        heading = f"({dl.heading[0]:+.2f}, {dl.heading[1]:+.2f})"
         names = ", ".join(l.name for l in lms)
         obj["bz_landmarks"] = [l.name for l in lms]
         for n in dl.notes:
             self.report({"WARNING"}, n)
-        self.report({"INFO"}, f"{len(lms)} landmarks in collection {name} at {obj.name}'s positions (heading {heading}): "
-                              f"{names}. Drag each Empty onto the target mesh, then Landmark Retarget"
+        self.report({"INFO"}, f"{len(lms)} landmarks in collection {name} at {obj.name}'s positions: "
+                              f"{names}. Drag each Empty onto the target mesh, then run Landmark Retarget"
                               + (f"; {replaced} earlier Empties replaced" if replaced else ""))
         return {"FINISHED"}
 
@@ -742,8 +741,8 @@ class BZ_OT_landmark_retarget(_Operator):
         for n in dl.notes:
             self.report({"WARNING"}, n)
         if r.coplanar:
-            self.report({"WARNING"}, "the landmarks are coplanar: the warp across their plane is undetermined (kept "
-                                     "affine there); add a landmark off the plane (a foot and the back, say)")
+            self.report({"WARNING"}, "the landmarks all lie in one plane, so the warp across it is a guess. "
+                                     "Add a landmark off the plane (a foot and the back, say)")
         if r.tps.max_residual > 0.01 * r.after.diag:
             self.report({"WARNING"}, f"the warp misses a landmark by {1000 * r.tps.max_residual:.1f} mm (Warp "
                                      f"Smoothing {self.regularisation:g}): lower it for an exact pass")
@@ -751,11 +750,11 @@ class BZ_OT_landmark_retarget(_Operator):
             self.report({"WARNING"}, f"{tgt.name} has an object transform: its world shape was used (transformed into "
                                      f"{obj.name}'s space)")
         if not ops._is_identity(obj.matrix_world):
-            self.report({"WARNING"}, f"{obj.name} has an object transform: the fit is in its local space, and Export "
-                                     "refuses a creature with a transform (apply or clear it)")
+            self.report({"WARNING"}, f"{obj.name} has an object transform, which Export refuses. "
+                                     "Apply or clear it")
         if self.warp_rings and len(rings):
-            self.report({"WARNING"}, f"the {len(rings)} connection-ring control points moved with the warp, so combining "
-                                     "may scale them and warn; turn Warp Rings off to keep stock rings")
+            self.report({"WARNING"}, f"the {len(rings)} connection-ring points moved with the warp, so combining "
+                                     "may warn. Turn Warp Rings off to keep the stock rings")
         far = [c for c in r.limb_coverage if c.samples and c.fraction > 0.1]
         if far:
             self.report({"WARNING"}, "limbs still off the target: "

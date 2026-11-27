@@ -22,7 +22,7 @@ Messages in **red** in a panel, or that start with **Error**, stop something. Me
 | --- | --- |
 | `No game found. Set the Game folder above, or set the IC_INSTALL environment variable.` | In **Edit > Preferences > Add-ons > IC Blender**, set **Game folder** to the folder that holds `IC.exe`. Ignore the part about IC_INSTALL. |
 | `No game folder found: set the Game folder in the add-on's preferences (Edit > Preferences > Add-ons, IC Blender), or set the IC_INSTALL environment variable.` | The same. Until the game is found, the list **Start from** in the New Project window shows only **Default skeleton** (for a creature) or **Another .sgm file...** (for the other types). |
-| `Parts of the add-on that could not be loaded (a red box in the preferences)` | A part of the add-on did not start. The box says which part and why. Restart Blender. If it stays, install the zip again, and send the text of the box with your report. |
+| `Add-on parts that failed to load (a red box in the preferences)` | A part of the add-on did not start. The box says which part and why. Restart Blender. If it stays, install the zip again, and send the text of the box with your report. |
 | `This was made with an older version of IC Blender. Import the original file again.` | The `.blend` was saved with an add-on older than 0.9.2, which kept models flipped left to right. Open the model again with **File > Import**, or start the project again. |
 | `The model file <name> was changed on disk after it was opened here ... Import <name> again to carry on from the file as it is now.` | Another program, or an export from another Blender session, changed the project's file. Import it again with **File > Import**. In the creature panels the box **Problems** offers **Relink Source** for a file that moved. |
 
@@ -86,7 +86,7 @@ A warning is advice, not a stop sign. A creature made from a game animal shows a
 
 | What you see | What it means |
 | --- | --- |
-| `N warning(s): the Info editor lists them` | The check found advice, no problem. Read the lines in the Info editor. Only lines in red must be fixed. |
+| `N warning(s): see the Info editor` | The check found advice, no problem. Read the lines in the Info editor. Only lines in red must be fixed. |
 | `The clip '<clip>' is not played by any motion, so the game never plays it ...` | The animation is in the file, but no rule tells the game when to play it. Harmless for the game's own animals (they have such clips). For a clip of your own, see [Animations and motions](anim.md). |
 | `the creature creator picture is still the original <animal>'s (give an icon picture to change it)` | The creature creator still shows the original animal's picture. Choose an **Icon picture** when you export, or keep **Make the icon from the creature** ticked. |
 | `This REPLACES the game's own <name> ...` | This is the notice for a replacement. It is what you chose. See [Replace one of the game's animals](replace.md). |
@@ -106,8 +106,8 @@ A warning is advice, not a stop sign. A creature made from a game animal shows a
 | What you see | What to do |
 | --- | --- |
 | `Choose a target mesh (the shape the creature should take)` | The window opened with **Target Mesh** empty. Press the button again and choose your mesh in **Target Mesh** before you press OK. |
-| `... a creature is one closed skin. Merge by Distance or separate extra shells (Edit Mode: P > By Loose Parts) and retarget to the skin alone` | Your mesh has loose parts. Select it, press <kbd>Tab</kbd>, then **Mesh > Clean Up > Merge by Distance**. If it is several pieces on purpose, use **Fit Patches to Mesh** with **Fit Separate Pieces** ticked. |
-| `<mesh>'s object transform was ignored (the fit is in its local space): apply the transform first ...` | Select the mesh, press <kbd>Ctrl</kbd>+<kbd>A</kbd> and choose **All Transforms**, then fit again. |
+| `... a creature is one closed skin. Merge by Distance or split extra pieces off (Edit Mode: P > By Loose Parts)` | Your mesh has loose parts. Select it, press <kbd>Tab</kbd>, then **Mesh > Clean Up > Merge by Distance**. If it is several pieces on purpose, use **Fit Patches to Mesh** with **Fit Separate Pieces** ticked. |
+| `<mesh>'s object transform was ignored. Apply the transform first ...` | Select the mesh, press <kbd>Ctrl</kbd>+<kbd>A</kbd> and choose **All Transforms**, then fit again. |
 | `Patch budget 300 is over 263: it will load, but may not combine` | Lower **Patch Budget** (in the panel at the bottom left after the fit) if you want the creature to combine. |
 
 ## Animations and motions
@@ -116,7 +116,7 @@ A warning is advice, not a stop sign. A creature made from a game animal shows a
 | --- | --- |
 | `There is already a clip or an Action called '<name>'. Choose another name.` | Press the button again and type a name the rig does not have. |
 | `Give the clip a name of 1 to 32 characters.` | Type a name. |
-| `The rig has no clip to start from. Borrow Clips... brings clips from another model ...` | Press **Borrow Clips...** in the **Motions** panel. |
+| `The rig has no clip to start from. Use Borrow Clips... first.` | Press **Borrow Clips...** in the **Motions** panel. |
 | `Few bones share names with that model: its clips will move little.` | The other model's bones have other names than yours, so the borrowed animation hardly moves. Borrow from a model with the same skeleton. |
 | `Borrowing failed (...). Press Ctrl+Z to undo what it did ...` | Press <kbd>Ctrl</kbd>+<kbd>Z</kbd>, then try another model or file. |
 
@@ -124,12 +124,12 @@ A warning is advice, not a stop sign. A creature made from a game animal shows a
 
 | What you see | What to do |
 | --- | --- |
-| `Name the clip first (type it in the Clip box above the list) ...` | The model has no clip yet. Type a clip name in the **Clip** box of the Events box. |
+| `Name the clip first: type it in the Clip box above the list.` | The model has no clip yet. Type a clip name in the **Clip** box of the Events box. |
 | `Choose an event first.` | Click an event in the list in **Events**, then try again. |
 | `The clip '<clip>' has no event that starts an effect.` | Nothing to show for that clip. Choose an event of the clip, give it an **Effect**, and try again. |
 | `Copy the effect into your project first (Copy to my project).` | A game effect cannot be edited in place. Press **Copy to my project** in **Effect editor**. |
 | `There is an effect called '<name>' already ...: choose another name.` | Type another name. |
-| `This creature has no animation clips yet, so no event of another animal fits it. Import or make its clips first.` | Make or borrow clips first ([Animations and motions](anim.md)), then copy the events. |
+| `This creature has no clips yet. Import or make its clips first.` | Make or borrow clips first ([Animations and motions](anim.md)), then copy the events. |
 | `The blueprint the events were read from has changed since ... Press Load events ...` | Press **Load events** again. It reads the file as it is now and drops the event changes you had not exported. |
 | `The game cannot play ... sound ... Save the sound again as WAV with plain PCM, 16 bit.` | Open the sound in a sound program and save it again as a WAV file, 16 bit, plain PCM. |
 
@@ -140,7 +140,7 @@ These come from **Export Creature for the Game** and **Check the Creature**.
 | What you see | What to do |
 | --- | --- |
 | `... connection ring 'head' missing ... / Export for the Game refused: nothing was written` | The same problem as the next row, seen from the export button: the creature has no connection rings. See below. |
-| `This creature has no connection rings, so the creature creator cannot use it and Export for the Game refuses it. Use Retarget Creature to Mesh (IC Model tab, Tools) to get a creature with rings.` | The creature came from **Fit Patches to Mesh**, which makes the shape only. Start from a game animal and use **Retarget Creature to Mesh** ([A creature from your own mesh](mesh.md)). |
+| `This creature has no connection rings, so Export refuses it. Use Retarget Creature to Mesh (IC Model tab, Tools).` | The creature came from **Fit Patches to Mesh**, which makes the shape only. Start from a game animal and use **Retarget Creature to Mesh** ([A creature from your own mesh](mesh.md)). |
 | `the creature would not load: ... / Export for the Game refused: fix these first (Check the Creature lists them all)` | Press **Check the Creature** and read the red lines in the **Info** editor. Each says what to fix. If you deleted, merged or duplicated vertices, press <kbd>Ctrl</kbd>+<kbd>Z</kbd>. |
 | `N control points used by patches have no bone (points ...): the game needs every patch point skinned to a bone. Boner > Bones > Select Unassigned selects them (orange in the By Bone overlay); assign them to a bone or run Auto Skin` | In Edit Mode, press the small **Select** button next to the line “Unassigned: N” in the **Boner** panel (**Bones**). Then press **Assign Selected** or **Auto Skin** ([Skinning and re-skinning](skin.md)). The button appears only in Edit Mode. |
 | `The name '<name>': 3 to 24 characters of a-z, 0-9 and _ (lower case, no spaces)` | Change **Name** in the export window. A red line shows the problem as you type. |
@@ -170,7 +170,7 @@ These come from **Check** and **Export Entity Folder**.
 | `part '<name>' comes to N vertices once split at UV seams and flat faces; the game draws at most 12,288 per part. Reduce its detail (Decimate, fewer seams) or split it into two parts` | Do what it says. Apply a Decimate modifier to the part, or make it two parts. |
 | `N vertices of '<part>' are weighted only to deleted bone(s) ..., so they follow no bone in Blender. Undo the delete and use Armature > Delete Bones, Merge Weights (it hands the weights to the parent), or weight those vertices to another bone` | Do what it says. Delete bones with **Armature > Delete Bones, Merge Weights**, not with <kbd>X</kbd>. |
 | `bones '<a>' and '<b>' have the same name ignoring case ... / bone '<name>...' has a N-character name; the game reads at most ... / bone '<name>' (the first bone) cannot be deleted ...` | Rename the bone. Bone names are at most 79 characters. The first bone must stay. |
-| `The game needs power-of-two sides, at most 1024: export refuses this (a red line in the IC Material panel)` | Use **Replace Image** with **Scale to a size the game takes** ticked, or resize the picture. |
+| `Sides must be a power of two, at most 1024 (a red line in the IC Material panel)` | Use **Replace Image** with **Scale to a size the game takes** ticked, or resize the picture. |
 
 ## Sharing and installing a zip
 

@@ -20,6 +20,7 @@ from . import draw
 from . import ops
 from . import store
 from . import structure
+from . import enumitems
 
 
 # ------------------------------------------------------------------------------------------------ read-out
@@ -411,6 +412,7 @@ class BZ_OT_limb_flag(bpy.types.Operator):
 _STD_ITEMS: list = []
 
 
+@enumitems.stable
 def _standard_items(self, context):
     """Add Standard Limb's menu: the standard classes this creature has no limb of (kept referenced: Blender's dynamic
     enum strings must outlive the call)."""
@@ -497,6 +499,7 @@ class BZ_OT_add_standard_limb(bpy.types.Operator):
 _TARGET_ITEMS: list = []
 
 
+@enumitems.stable
 def _target_items(self, context):
     global _TARGET_ITEMS
     obj = context.active_object if context else None
@@ -836,6 +839,7 @@ class BZ_OT_limb_select_bones(bpy.types.Operator):
 _ROOT_ITEMS: list = []
 
 
+@enumitems.stable
 def _root_items(self, context):
     """Set Root Bone's list: every bone the export writes (``live_skeleton``: the source's by file name and the bones
     C8 added by their stamp name; the label shows the rig's name when it differs)."""
@@ -917,8 +921,8 @@ def _bone_arg(op, context, obj, sk=None):
         return None
     clash = stamp_clash(obj, name)
     if clash:
-        op.report({"ERROR"}, f"'{name}' and {', '.join(repr(c) for c in clash)} are copies of one imported bone (a "
-                             "duplicated bone) and skeleton changes are pending: delete the copy first")
+        op.report({"ERROR"}, f"'{name}' and {', '.join(repr(c) for c in clash)} are copies of one imported bone, "
+                             "and skeleton changes are pending. Delete the copy first")
         return None
     fn = file_bone_name(obj, name, sk)
     if fn is None:
@@ -998,9 +1002,8 @@ class BZ_OT_limb_remove_bone(bpy.types.Operator):
         if not _commit(self, obj, t, edit, "Remove Active Bone", sk):
             return {"CANCELLED"}
         if bone in sk.added:                            # an added bone always has a limb: its parent's
-            self.report({"WARNING"}, f"'{bone}' is a bone added on the rig, so Export puts it back in its parent's "
-                                     "limb (an added bone follows its parent unless a limb operator pins it): "
-                                     "re-parent it, or add it to the limb it belongs in")
+            self.report({"WARNING"}, f"'{bone}' was added on the rig and follows its parent's limb. "
+                                     "Re-parent it, or add it to the limb you want")
         _report_edit(self, obj, t, edit, edit.describe([r.name for r in t.rows]) + " (Validate lists bones in no limb)")
         return {"FINISHED"}
 

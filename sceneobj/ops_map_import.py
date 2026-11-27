@@ -20,6 +20,7 @@ from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
 from . import prefs
+from .. import enumitems
 
 ORDER = 60
 
@@ -105,6 +106,7 @@ def map_label(gm) -> str:
     return f"{gm.label}  ({group}, {where})" if group else f"{gm.label}  ({where})"
 
 
+@enumitems.stable
 def _map_items(self, context):
     game_dir = prefs.resolve_game_dir(context)[0]
     maps = game_maps(game_dir) if game_dir else []

@@ -13,6 +13,7 @@ from . import draw
 from . import rig
 from . import store
 from . import topology
+from . import enumitems
 
 FLAG_ITEMS = (("1", "Head", "stock bit 1"), ("2", "Spine", "stock bit 2"), ("4", "Arm", "stock bit 4"),
               ("8", "Leg", "stock bit 8"), ("16", "Tail", "stock bit 16"), ("64", "Ear", "stock bit 64"),
@@ -96,6 +97,7 @@ def _poll(cls, context) -> bool:
     return True
 
 
+@enumitems.stable
 def _bone_items(self, context):
     obj = context.active_object
     arm = store.rig(obj) if obj is not None else None
@@ -170,8 +172,8 @@ class BZ_OT_ik_add_chain(bpy.types.Operator):
             return {"CANCELLED"}
         path = chain_bones_between(arm, self.start, self.end)
         if path is None:
-            self.report({"ERROR"}, f"Add IK Chain refused: '{self.end}' does not hang from '{self.start}': a chain is a bone "
-                                   "and its descendants in one line (pick the top bone as From and a bone under it as To)")
+            self.report({"ERROR"}, f"Add IK Chain refused: '{self.end}' does not hang from '{self.start}'. "
+                                   "Pick the top bone as From and a bone below it as To")
             return {"CANCELLED"}
         _f2r, r2f = rig_names_of(obj, arm, src)
         unknown = [b for b in path if b not in r2f]
@@ -360,7 +362,7 @@ def draw_limits_box(layout, context, obj, bone_name):
     if b is None:
         return
     box = layout.box()
-    box.label(text=f"Joint limits of {bone_name} (radians: min x y z, max x y z)", icon="CON_ROTLIMIT")
+    box.label(text=f"Joint limits of {bone_name}, radians: min xyz, max xyz", icon="CON_ROTLIMIT")
     stock = source_limits(obj, arm, bone_name)
     if stock is not None:
         box.label(text="stock: " + " ".join(f"{v:.3f}" for v in stock[:6])
@@ -369,7 +371,7 @@ def draw_limits_box(layout, context, obj, bone_name):
         box.label(text="an added bone: zero limits unless edited")
     if b.get(rig.KEY_BONE_LIMITS) is None:
         if stock is not None:
-            box.label(text="(no editable copy: re-import the creature to edit limits)", icon="INFO")
+            box.label(text="Re-import the creature to edit limits", icon="INFO")
         return
     box.prop(b, f'["{rig.KEY_BONE_LIMITS}"]', text="")
     if stock is not None:

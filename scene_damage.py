@@ -440,9 +440,39 @@ def blueprint_of(src: str):
     if not cand or not os.path.isfile(cand):
         return None
     try:
-        return EP.read(cand)
+        st = os.stat(cand)
+        stamp = (st.st_mtime_ns, st.st_size)
+        hit = _BLUEPRINTS.get(cand)
+        if hit is not None and hit[0] == stamp:                # the health slider asks on every step; the file is read again when it changes
+            return hit[1]
+        bp = EP.read(cand)
+        if len(_BLUEPRINTS) > 8:
+            _BLUEPRINTS.clear()
+        _BLUEPRINTS[cand] = (stamp, bp)
+        return bp
     except Exception:                                          # noqa: BLE001 -- a broken blueprint: the generated rule
         return None
+
+
+_BLUEPRINTS: dict = {}
+_LOADED: dict = {}                                             # source -> (file stamp, the decoded scene) for the health slider
+
+
+def loaded_scene(src: str):
+    """``core.load_scene(src)``, kept while the source file is unchanged: every step of the health slider needs it, and decoding the textures
+    takes a while. Only the preview reads it (it is never edited)."""
+    try:
+        stamp = core._source_stamp(core.resolve_source(src))
+    except (OSError, ValueError):
+        return core.load_scene(src)
+    hit = _LOADED.get(src)
+    if hit is not None and hit[0] == stamp:
+        return hit[1]
+    data = core.load_scene(src)
+    if len(_LOADED) > 4:
+        _LOADED.clear()
+    _LOADED[src] = (stamp, data)
+    return data
 
 
 def clip_names(data) -> list:
@@ -524,7 +554,7 @@ def _health_changed(self, context):
         return
     from . import scene as bzscene
     try:
-        data = core.load_scene(obj.get("bz_source", ""))
+        data = loaded_scene(obj.get("bz_source", ""))
         playing = preview(bzscene.part_objects(obj), data, obj.get("bz_source", ""), self.bz_damage_health)
     except Exception as e:                                    # noqa: BLE001 -- a preview never raises into the UI
         print(f"IC Blender: damage preview: {e}")
@@ -658,10 +688,9 @@ class BZ_PT_damage_states(bpy.types.Panel):
         sk = obj.data.shape_keys
         n = len(sk.key_blocks) - 1 if sk is not None else 0
         col.label(text=f"{n} damage states (shape keys)" if n else "no damage states on this part", icon="SHAPEKEY_DATA")
-        col.label(text=f"{len(key_actions(obj))} clips weight them (Actions on the shape keys)", icon="ACTION")
+        col.label(text=f"{len(key_actions(obj))} clips use them", icon="ACTION")
         col.prop(context.window_manager, "bz_damage_health", slider=True)
         col.label(text=f"plays: {context.window_manager.get('bz_damage_playing', '-')}")
-        col.label(text="The game lights damage shapes with the base normals", icon="INFO")
         col.operator(BZ_OT_carry_over_damage.bl_idname, icon="MOD_DATA_TRANSFER")
         col.operator(BZ_OT_add_damage_level.bl_idname, icon="ADD")
 

@@ -20,7 +20,7 @@ You should know how to play Impossible Creatures and have used Blender a little:
 3. Open **Edit > Preferences > Add-ons** and check that **IC Blender** is ticked.
 4. Move the mouse over the 3D Viewport and press <kbd>N</kbd>. A panel opens at the right side. Along its edge you should see two tabs: **IC Model** and **IC Game**. A third tab, **IC Map**, appears only once you open or start a map.
 
-If you do not see the two tabs, the add-on did not load. In **Edit > Preferences > Add-ons > IC Blender** a red box called **Parts of the add-on that could not be loaded** says why. Send that text with your report.
+If you do not see the two tabs, the add-on did not load. In **Edit > Preferences > Add-ons > IC Blender** a red box called **Add-on parts that failed to load** says why. Send that text with your report.
 
 To upgrade, install the new zip the same way and restart Blender. Only if the add-on then fails to load, remove it, restart Blender and install the zip again.
 

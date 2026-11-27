@@ -11,6 +11,7 @@ import bpy
 from bpy.props import BoolProperty, StringProperty
 
 from . import startcheck, store
+from . import enumitems
 
 
 # ---- where work is kept ----------------------------------------------------------------------------------------------------------
@@ -121,6 +122,7 @@ class BZ_OT_relink_source(bpy.types.Operator):
 _SKIN_ITEMS: list = []
 
 
+@enumitems.stable
 def _skin_items(self, context):
     """The creature's skins as the list shows them: texture index and the image that holds its pixels."""
     obj = context.active_object
@@ -144,8 +146,7 @@ class BZ_OT_load_skin_image(bpy.types.Operator):
     filter_folder: BoolProperty(default=True, options={"HIDDEN", "SKIP_SAVE"})
     skin: bpy.props.EnumProperty(name="Skin", items=_skin_items, description="Which of the creature's textures the picture replaces")
     resize: BoolProperty(name="Resize To The Skin", default=True,
-                         description="Scale the picture to the skin's size when it is another size (the creature's UVs stay valid); "
-                                     "off refuses a picture of another size")
+                         description="Scale the picture to the skin's size when it differs. Off refuses a picture of another size")
 
     @classmethod
     def poll(cls, context):

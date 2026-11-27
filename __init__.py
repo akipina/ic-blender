@@ -21,7 +21,7 @@ import bpy
 bl_info = {
     "name": "IC Blender",
     "author": "pyIC",
-    "version": (0, 9, 2),
+    "version": (0, 9, 3),
     "blender": (5, 3, 0),
     "location": "View3D > Sidebar > IC; File > New, Import and Export",
     "description": "Make and edit Impossible Creatures models and maps: creatures, gatherers, characters, buildings, props and maps",

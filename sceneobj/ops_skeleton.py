@@ -9,7 +9,7 @@ from ..scene_skeleton import merge_weights_into_parent
 
 
 class BZ_OT_scene_delete_bones_merge(bpy.types.Operator):
-    """Delete the selected bones; their vertex weights go to each bone's parent (a root's to the first bone), as the exported model will have it"""
+    """Delete the selected bones and give their vertex weights to each bone's parent"""
     bl_idname = "bz.scene_delete_bones_merge"
     bl_label = "Delete Bones, Merge Weights"
     bl_options = {"REGISTER", "UNDO"}

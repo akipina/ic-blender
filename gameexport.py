@@ -34,6 +34,7 @@ from bpy.props import BoolProperty, EnumProperty, StringProperty
 from . import core
 from . import ops
 from . import store
+from . import enumitems
 
 KEY_NAME = "bz_game_name"          # on the creature: the last item name used
 KEY_TITLE = "bz_game_title"
@@ -112,6 +113,7 @@ def replace_target(obj):
 _MODE_ITEMS: list = []             # enum items must stay referenced while Blender shows them
 
 
+@enumitems.stable
 def _mode_items(self, context):
     """The two choices, a creature of its own first (so it is the default: nothing of the game is replaced unless you say so) and, when the
     project was started from one of the game's animals, replacing it, with its name."""
@@ -128,20 +130,28 @@ def _mode_items(self, context):
     return _MODE_ITEMS
 
 
+_ICON_READ_MAX = 256               # the icon ends up 64 x 64: a bigger picture is scaled down before its pixels are read
+
+
 def _read_image(path: str):
-    """``(w, h, rgba)`` of a picture file through Blender, or None."""
+    """``(w, h, rgba)`` of a picture file through Blender, or None. Raises when Blender cannot load the file."""
     if not path or not os.path.isfile(path):
         return None
+    import numpy as np
     img = bpy.data.images.load(path, check_existing=False)
     try:
         w, h = img.size
         if not w or not h:
             return None
-        px = list(img.pixels)
+        if max(w, h) > _ICON_READ_MAX:                      # scale the loaded copy, so no huge Python float list is built
+            k = _ICON_READ_MAX / max(w, h)
+            img.scale(max(1, int(round(w * k))), max(1, int(round(h * k))))
+            w, h = img.size
+        px = np.empty(w * h * 4, dtype=np.float32)
+        img.pixels.foreach_get(px)
     finally:
         bpy.data.images.remove(img)
-    import numpy as np
-    a = (np.asarray(px, dtype=np.float32).reshape(h, w, 4)[::-1] * 255.0 + 0.5).clip(0, 255).astype(np.uint8)   # Blender stores bottom-up
+    a = (px.reshape(h, w, 4)[::-1] * 255.0 + 0.5).clip(0, 255).astype(np.uint8)   # Blender stores bottom-up
     return w, h, a.tobytes()
 
 
@@ -171,11 +181,48 @@ def default_out_dir(obj) -> str:
     return os.path.join(here, "ic_items")
 
 
-def find_donor(obj):
+_DONORS: dict = {}                 # (source, stamps, files' mtimes) -> (when read, donor): a redraw must not list and read the project folder again
+_DONOR_SECONDS = 30.0              # a file replaced under a name the stamp does not look at (another letter case) shows within this long
+
+
+def _mtime(path):
+    try:
+        return os.stat(path).st_mtime_ns
+    except OSError:
+        return None
+
+
+def _donor_key(obj):
+    src = store.source_path(obj) or ""
+    ebp = obj.get("bz_ebp") or ""
+    key = [src, ebp, obj.get("bz_stock_donor") or "", obj.get("bz_stock_archive") or ""]
+    for p in (src, ebp):
+        if p:
+            base = os.path.splitext(p)[0]
+            key += [_mtime(os.path.dirname(base) or "."), _mtime(base + ".ebp"), _mtime(base + ".lua"), _mtime(base + ".lsc")]
+    return tuple(key)
+
+
+def find_donor(obj, fresh=False):
+    """The donor of ``obj`` (see ``ICParse.hub.package.find_donor``). Draw code asks for it every redraw, so the answer is kept while the files
+    beside the model are as they were; ``fresh`` reads the files again (what Export uses)."""
+    import time
+    from dataclasses import replace
     from ICParse.hub import package as PK
     src = store.source_path(obj)
-    don = PK.find_donor(src or None, obj.get("bz_stock_donor") or None, obj.get("bz_stock_archive") or None, ebp_path=obj.get("bz_ebp") or None)
-    return don
+
+    def look():
+        return PK.find_donor(src or None, obj.get("bz_stock_donor") or None, obj.get("bz_stock_archive") or None, ebp_path=obj.get("bz_ebp") or None)
+    if fresh:
+        return look()
+    key = _donor_key(obj)
+    hit = _DONORS.get(key)
+    now = time.monotonic()
+    if hit is None or now - hit[0] > _DONOR_SECONDS:
+        if len(_DONORS) > 64:
+            _DONORS.clear()
+        hit = _DONORS[key] = (now, look())
+    return replace(hit[1]) if hit[1] is not None else None             # a copy: a caller that edits it must not change what is kept
 
 
 def build(obj, context, name, title="", description="", icon_file="", stats_from="", out_dir="", dry=False, replace=False, auto_icon=True):
@@ -198,7 +245,8 @@ def check_lines(obj, context):
     except (TypeError, AttributeError):
         pass
     try:
-        res, lines = build(obj, context, default_name(obj), dry=True, replace=obj.get(KEY_MODE) == MODE_REPLACE and replace_target(obj) is not None)
+        from . import statspanel
+        res, lines = build(obj, context, default_name(obj), stats_from=statspanel.stats_from_of(obj), dry=True, replace=obj.get(KEY_MODE) == MODE_REPLACE and replace_target(obj) is not None)
     except Exception as e:                                  # noqa: BLE001 -- the check itself must never break Check
         return [], [f"The export check could not run: {type(e).__name__}: {e}"]
     errors = [t for lvl, t in lines if lvl == "ERROR" and not t.startswith("Export for the Game refused")]
@@ -255,7 +303,7 @@ def _build(obj, context, name, title="", description="", icon_file="", stats_fro
             lines.append(("ERROR", f"... and {len(blocking) - MAX_LINES} more (Check the Creature lists them all)"))
         lines.append(("ERROR", "Export for the Game refused: fix these first"))
         return None, lines
-    donor = find_donor(obj)
+    donor = find_donor(obj, fresh=True)
     replace_of = None
     if replace:
         replace_of = replace_target(obj)
@@ -284,7 +332,11 @@ def _build(obj, context, name, title="", description="", icon_file="", stats_fro
     icon = None
     pic = icon_file or obj.get(KEY_ICON) or ""
     if pic:
-        icon = _read_image(bpy.path.abspath(pic))
+        try:
+            icon = _read_image(bpy.path.abspath(pic))
+        except Exception:                                   # noqa: BLE001 -- Blender could not load the file as a picture
+            return None, lines + [("ERROR", f"The icon picture {os.path.basename(pic)} could not be opened. Choose another picture."),
+                                  ("ERROR", "Export for the Game refused: nothing was written")]
         if icon is None:
             lines.append(("WARNING", f"the icon picture {pic} could not be read: the icon is not changed"))
     kw = {}
@@ -345,15 +397,12 @@ def _build(obj, context, name, title="", description="", icon_file="", stats_fro
         return res, lines
     who = f"built on {res.donor}" if res.donor else "built from nothing"
     if res.replaces:
-        lines.append(("INFO", f"Wrote {len(res.files)} files to {res.item_dir}: they replace the game's own {res.replaces}. Press Install into "
-                              f"Test Game in the Game panel (Remove puts the original back). Mod sharing does not take it: it only takes "
-                              f"creatures with new names."))
+        lines.append(("INFO", f"Wrote {len(res.files)} files to {res.item_dir}; they replace the game's own {res.replaces}. Press Install into "
+                              f"Test Game in the Game panel; Remove puts the original back."))
     else:
-        lines.append(("INFO", f"Wrote {len(res.files)} files to {res.item_dir} ({who}; the add-on's checks pass it as a "
-                              f"{res.report.label}). Next: press Install into Test Game in the Game panel"))
-        lines.append(("INFO", "Install into Test Game also adds your creature to the creature creator's list of every mod in the test game. If you "
-                              "copy the files by hand instead, the creature does not show in the creature creator: use Pack for Sharing, which "
-                              "adds the lists."))
+        lines.append(("INFO", f"Wrote {len(res.files)} files to {res.item_dir} ({who}). Next: press Install into Test Game in the Game panel"))
+        lines.append(("INFO", "Install into Test Game adds the creature to the creature creator. Copying the files by hand does not: "
+                              "use Pack for Sharing."))
     lines += [("INFO", n) for n in res.notes]
     # r2stats: say what was changed and what the game makes of it
     lines += [("WARNING", n) for n in sx.notes]
@@ -362,7 +411,7 @@ def _build(obj, context, name, title="", description="", icon_file="", stats_fro
 
 
 class BZ_OT_export_creature_game(bpy.types.Operator):
-    """Write the creature as the game reads it: blueprint with the model inside, stats, limb scales, torso picture, manifest"""
+    """Write the creature as an item folder the game can load"""
     bl_idname = "bz.export_creature_game"
     bl_label = "Export Creature for the Game"
     bl_options = {"REGISTER"}
@@ -370,25 +419,20 @@ class BZ_OT_export_creature_game(bpy.types.Operator):
     # SKIP_SAVE on every field: Blender would otherwise open the dialog of the NEXT creature with the last creature's name, and OK would write
     # the second creature over the first one's item folder
     mode: EnumProperty(name="Export as", items=_mode_items, options={"SKIP_SAVE"},
-                       description="A creature of your own under a new name, or the game's own animal this one was started from, replaced")
-    name: StringProperty(name="Name", description="The creature's file name in the game: 3 to 24 of a-z, 0-9 and _ (also its "
-                         "place in the creature creator's list)", default="", options={"SKIP_SAVE"})
-    title: StringProperty(name="Display name", description="The name the creature creator shows (as typed: not a locale code)",
+                       description="A new creature of your own, or the game's own animal this one started from, replaced")
+    name: StringProperty(name="Name", description="The creature's file name: 3 to 24 letters a-z, digits and _", default="", options={"SKIP_SAVE"})
+    title: StringProperty(name="Display name", description="The name the creature creator shows",
                           default="", options={"SKIP_SAVE"})
-    description: StringProperty(name="Description", description="The creature's description text (shown with its stats)", default="",
+    description: StringProperty(name="Description", description="The text shown with the creature's stats", default="",
                                 options={"SKIP_SAVE"})
     icon_file: StringProperty(name="Icon picture", subtype="FILE_PATH", default="", options={"SKIP_SAVE"},
-                              description="A picture for the combiner icon (resized to the icon's 64 x 64). Empty: the picture "
-                                          "Icon from this view saved, else one drawn from the creature (Make the icon from the creature)")
+                              description="A picture for the creature's icon. Empty: the picture from Icon from this View, if any")
     stats_from: StringProperty(name="Start stats from", default="cheetah", options={"SKIP_SAVE"},
-                               description="Only for a creature built from nothing: the stock animal whose stats, limb scales and "
-                                           "events are the starting point")
+                               description="The game's own animal whose numbers a creature built from nothing starts from")
     out_dir: StringProperty(name="Folder", subtype="DIR_PATH", default="", options={"SKIP_SAVE"},
-                            description="Where the item folder is made (it gets a folder named after the creature). Empty: "
-                                        "ic_items beside the source model")
+                            description="The folder the item folder goes in. Empty: ic_items beside the source model")
     auto_icon: BoolProperty(name="Make the icon from the creature", default=True, options={"SKIP_SAVE"},
-                            description="With no icon picture chosen, draw the creature from the front and the side for the creature creator's "
-                                        "icon (needs Blender's renderer). Off: the original's icon stays")
+                            description="With no icon picture, draw the icon from the creature. Off: the original's icon stays")
 
     @classmethod
     def poll(cls, context):
@@ -458,10 +502,11 @@ class BZ_OT_export_creature_game(bpy.types.Operator):
         else:
             obj[KEY_MODE] = MODE_NEW
             obj[KEY_NAME], obj[KEY_TITLE], obj[KEY_DESC] = name, self.title, self.description
-            if find_donor(obj) is None and self.stats_from:
+            if find_donor(obj, fresh=True) is None and self.stats_from:
                 from . import statspanel
                 statspanel.set_stats_from(obj, self.stats_from)       # the Creature Stats panel starts from the same animal
         context.scene[KEY_LAST_ITEM] = res.item_dir
+        enumitems.forget()                                        # the Game panel shows this export at once
         obj[KEY_LAST_ITEM] = res.item_dir                         # this creature's own last export (the Game panel shows it, not another creature's)
         try:
             context.scene.bz_item_dir = ""                        # a folder picked in the Game panel no longer wins over this export
@@ -485,10 +530,10 @@ class BZ_OT_game_icon_from_view(bpy.types.Operator):
         try:
             png = capture_view(context, path=icon_picture_path(obj))
         except Exception as e:                              # noqa: BLE001
-            self.report({"ERROR"}, f"Could not take the picture from the view: {type(e).__name__}: {e}. Use an icon picture file instead")
+            self.report({"ERROR"}, f"Could not take the picture from the view ({e}). Use an icon picture file instead.")
             return {"CANCELLED"}
         obj[KEY_ICON] = png
-        self.report({"INFO"}, f"The combiner icon will be this view ({os.path.basename(png)}); Export Creature for the Game uses it")
+        self.report({"INFO"}, f"The icon will be this view ({os.path.basename(png)}).")
         return {"FINISHED"}
 
 
@@ -496,6 +541,12 @@ def icon_picture_path(obj) -> str:
     """Where the picture of Icon from this view is kept: in the project's own ic_items folder (beside the source model, else beside the saved
     .blend), so it is still there after a restart and the next export of the project writes the same icon."""
     folder = default_out_dir(obj)
+    from .sceneobj import panels_blueprint as PB
+    try:
+        PB.check_target(folder)                             # a model read from the game's own folder must not get files written beside it
+    except PB.Refused:
+        from . import startops
+        folder = os.path.join(startops.project_dir(), "ic_items")
     os.makedirs(folder, exist_ok=True)
     return os.path.join(folder, f"{default_name(obj)}_icon.png")
 
@@ -551,22 +602,18 @@ def draw_game_export(layout, context):
     except Exception:                                       # noqa: BLE001 -- no game folder / unreadable files: the export says why
         pass
     if donor is not None:
-        box.label(text=f"Built on {donor.label}'s blueprint, stats and limb scales", icon="LINKED")
+        box.label(text=f"Built on {donor.label}'s blueprint and stats", icon="LINKED")
     else:
-        box.label(text="Built from nothing: a generated blueprint, stats from a stock animal", icon="INFO")
+        box.label(text="Built from nothing: a generated blueprint", icon="INFO")
     try:
         target = replace_target(obj)
     except Exception:                                       # noqa: BLE001 -- a draw never fails for this
         target = None
     if target:                                              # the same two choices as the export dialog and New Project (and the scene objects' export)
         if obj.get(KEY_MODE) == MODE_REPLACE:
-            lines = [f"Export as: Replace the original {target}", f"Your version takes the place of the game's own {target} for every army and "
-                     f"skirmish. Choose A new creature of my own in the export dialog to keep the original."]
+            box.label(text=f"Export as: Replace the original {target}", icon="ERROR")
         else:
-            lines = ["Export as: A new creature of my own", f"The export dialog also offers Replace the original {target}, to change the game's own animal."]
-        wrapped = [w for ln in lines for w in textwrap.wrap(ln, 62)]
-        for i, text in enumerate(wrapped):
-            box.label(text=text, icon=("ERROR" if lines[0].endswith(target) else "INFO") if i == 0 else "BLANK1")
+            box.label(text="Export as: A new creature of my own", icon="INFO")
     row = box.row(align=True)
     row.operator(BZ_OT_export_creature_game.bl_idname, icon="EXPORT")
     row.operator(BZ_OT_game_icon_from_view.bl_idname, text="Icon from this View", icon="RESTRICT_RENDER_OFF")

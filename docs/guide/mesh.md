@@ -71,7 +71,7 @@ The bones stay where the template had them. Press **Move Skeleton to the Body** 
 
 ### 4. What you can do with it
 
-Check it with **Check the Creature** (**IC Game** tab, **Game** panel; the same check is the button **Validate (will it load?)** in the Tools box of the **IC Model** tab), shape it further, and save the model with **Export Model**. **Export Creature for the Game** refuses it. The check says so in advance: “This creature has no connection rings, so the creature creator cannot use it and Export for the Game refuses it. Use Retarget Creature to Mesh (IC Model tab, Tools) to get a creature with rings.” If you press the export button anyway, you see lines such as “connection ring 'head' missing” and then “Export for the Game refused: nothing was written”. They mean the same. For a creature that plays in the game, go back to the Retarget route.
+Check it with **Check the Creature** (**IC Game** tab, **Game** panel; the same check is the button **Validate (will it load?)** in the Tools box of the **IC Model** tab), shape it further, and save the model with **Export Model**. **Export Creature for the Game** refuses it. The check says so in advance: “This creature has no connection rings, so Export refuses it. Use Retarget Creature to Mesh (IC Model tab, Tools).” If you press the export button anyway, you see lines such as “connection ring 'head' missing” and then “Export for the Game refused: nothing was written”. They mean the same. For a creature that plays in the game, go back to the Retarget route.
 
 The chapter [Fitting a mesh](fit.md) has the numbers: how many patches a creature may have, and what happens above the limit.
 

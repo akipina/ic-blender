@@ -43,13 +43,10 @@ class BZ_AP_prefs(bpy.types.AddonPreferences):
         description="The game folder (with IC.exe); empty uses IC_INSTALL or the usual Steam folders")
     test_game_dir: StringProperty(
         name="Test game folder", subtype="DIR_PATH", default=DEFAULTS["test_game_dir"],
-        description="A COPY of the game where finished items are installed for testing (it must hold Engine.sga). Install into Test Game "
-                    "writes here and Remove takes it out again; the original game is never written")
+        description="A copy of the game that Install into Test Game writes to. It must contain Engine.sga")
     allow_steam_install: BoolProperty(
         name="Allow the Steam game folder", default=DEFAULTS["allow_steam_install"],
-        description="Let Install into Test Game write to a game folder inside a Steam library, or to the Game folder set above (the "
-                    "original game). Steam rewrites its folder (verifying files, updates, the Workshop) and would wipe the item. "
-                    "Leave this off and use a copy")
+        description="Allow Install into Test Game to write into a Steam game folder. Steam can wipe the item, so use a copy instead")
     target_mod: EnumProperty(
         name="Game build", items=TARGET_MOD_ITEMS, default=DEFAULTS["target_mod"],
         description="The game build you work for; it sets which kind (class) numbers are known")
@@ -70,7 +67,7 @@ class BZ_AP_prefs(bpy.types.AddonPreferences):
             col.label(text=f"Using {folder} ({SOURCE_WORDS[source]})", icon="CHECKMARK")
 
         box = layout.box()
-        box.label(text="Test game (where Install into Test Game writes)", icon="PLAY")
+        box.label(text="Test game", icon="PLAY")
         col = box.column()
         col.prop(self, "test_game_dir")
         col.prop(self, "allow_steam_install")
@@ -93,7 +90,7 @@ class BZ_AP_prefs(bpy.types.AddonPreferences):
         problems = list(getattr(sys.modules.get(__package__), "ERRORS", ()))
         if problems:
             box = layout.box()
-            box.label(text="Parts of the add-on that could not be loaded", icon="ERROR")
+            box.label(text="Add-on parts that failed to load", icon="ERROR")
             for name, reason in problems:
                 ui_kit.alert(box, f"{name}: {reason}")
 

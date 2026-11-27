@@ -1139,6 +1139,7 @@ from bpy.props import BoolProperty, EnumProperty, FloatVectorProperty, IntProper
 from bpy.types import PropertyGroup
 
 from . import map_hooks as H
+from .. import enumitems
 
 
 def _le():
@@ -1152,6 +1153,7 @@ _SKY_ITEMS: list = []            # what the enum shows: kept alive here (Blender
 SAVE_TOLERANCE = 1e-4
 
 
+@enumitems.stable
 def _sky_items(self, context):
     names = {n.lower(): n for n in _SKY_NAMES}
     cur = self.sky_current

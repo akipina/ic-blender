@@ -141,8 +141,7 @@ class BZ_OT_blueprint_footprint_calc(bpy.types.Operator):
             return {"CANCELLED"}
         with BP.quiet():
             bp.footprint_x, bp.footprint_z = (min(max(int(v), 0), BP.FOOTPRINT_MAX) for v in fp)
-        self.report({"INFO"}, f"Footprint set to {fp[0]} x {fp[1]} cells: half the model's box ({half[0]:.1f} x {half[2]:.1f} units) rounded to whole "
-                              f"cells, which is what the game measures for 0 x 0. Stock buildings' own numbers differ from this by a cell or so.")
+        self.report({"INFO"}, f"Footprint set to {fp[0]} x {fp[1]} cells: half the model's box ({half[0]:.1f} x {half[2]:.1f} units), rounded to whole cells.")
         return {"FINISHED"}
 
 

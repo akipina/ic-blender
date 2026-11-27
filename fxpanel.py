@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import textwrap
+import time
 
 import bpy
 from .sceneobj import ui_kit
@@ -29,6 +30,7 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProp
 
 from . import fxcore
 from ICParse.fx import fxlua, fxschema
+from . import enumitems
 
 BLEND_ITEMS = (("0", "None", "Opaque"), ("1", "Alpha", "Alpha blended"), ("2", "Additive", "Added to what is behind"),
                ("3", "Multiply", "Multiplied with what is behind"))
@@ -38,6 +40,26 @@ DYNAMICS_ITEMS = (("0", "Forward", ""), ("1", "Gravity (die)", ""), ("2", "Gravi
 _ENUM_PROP = {"Blending": "blend", "Emitter_Direction": "direction", "Particle_Dynamics": "dynamics"}
 KNOWN = ("anim", "animtime", "marker", "fx", "sound")           # the event fields with a row of their own
 _BUSY = [False]                                                  # set while rows are being filled from a file (their update callbacks do nothing)
+_DRAWN: dict = {}                                                # what a redraw reads from disk, kept for a moment: tag -> (key, when, value)
+
+
+def _drawn(tag, key, look, seconds: float = 2.0):
+    """``look()`` again only when ``key`` changed or ``seconds`` passed: a redraw of the panel (or a keystroke in a search) costs a lookup, an
+    edit made here shows at once (the key holds ``fxcore.GENERATION``), a file changed by another program within ``seconds``."""
+    now = time.monotonic()
+    hit = _DRAWN.get(tag)
+    if hit is not None and hit[0] == key and now - hit[1] < seconds:
+        return hit[2]
+    value = look()
+    _DRAWN[tag] = (key, now, value)
+    return value
+
+
+def _files_key(src: str, gd: str) -> tuple:
+    """What the project's files and the game's files being the same means: the project, the game folder, this add-on's writes, the game's archives."""
+    return (src, gd, fxcore.GENERATION[0], fxcore._GAME.get(gd, (None,))[0])
+
+
 _KEEP: list = []                                                 # enum items must stay referenced while Blender shows them
 
 
@@ -218,7 +240,7 @@ class BZ_PG_fx(bpy.types.PropertyGroup):
     fx_times: StringProperty(description="The key frame times of the edited effect (JSON)")
     message: StringProperty()
     origin: StringProperty(description="Where the event list came from (shown above the list)")
-    prefix: StringProperty(name="Name prefix", default="my_", description="Put in front of every copied effect's name, so the copy is yours and the game's own stays as it is; empty keeps the game's names (the copies then REPLACE the game's effects)")
+    prefix: StringProperty(name="Name prefix", default="my_", description="Put in front of each copied effect's name. Empty keeps the game's names and replaces its effects")
 
 
 # ---------------------------------------------------------------------------------------------------------- events: state <-> items
@@ -399,6 +421,35 @@ def _row_value(row):
     return str(row.s)
 
 
+_REFILL_DUE: set = set()                  # names of the objects whose rows are to be shown again by the timer
+
+
+def _refill_soon(ob) -> None:
+    """:func:`refill_rows` for a row's own update callback: clearing the rows there would free the row being edited, so a window waits for
+    Blender's timer (a session without a window has no timers, and refills at once)."""
+    if bpy.app.background:
+        refill_rows(ob)
+        return
+    name = ob.name
+    if name in _REFILL_DUE:
+        return
+    _REFILL_DUE.add(name)
+
+    def later():
+        _REFILL_DUE.discard(name)
+        target = bpy.data.objects.get(name)
+        if target is not None and getattr(target, "bz_fx", None) is not None:
+            try:
+                refill_rows(target)
+            except Exception:                                             # noqa: BLE001 -- the rows show the file again on the next edit
+                pass
+            for win in getattr(bpy.context.window_manager, "windows", []):
+                for area in win.screen.areas:
+                    area.tag_redraw()
+        return None
+    bpy.app.timers.register(later, first_interval=0.0)
+
+
 def apply_row_edit(ob, state, row) -> None:
     """A row was edited: write it into the effect's file in the project (a game effect is copied in first by the Copy button, never here). A value the
     game would ignore is refused and the rows show what the file holds."""
@@ -409,7 +460,7 @@ def apply_row_edit(ob, state, row) -> None:
     fx, where = fxcore.load_effect(state.fx_name, src, _game_dir())
     if fx is None or where != "project":
         state.message = "Copy the effect into your project first (Copy to my project), then edit it."
-        refill_rows(ob)
+        _refill_soon(ob)
         return
     try:
         key = min(max(int(state.fx_key), 0), len(fx.frame_times or [0, 1]) - 1)
@@ -422,7 +473,7 @@ def apply_row_edit(ob, state, row) -> None:
         state.message = ""
     except fxlua.FxError as e:
         state.message = str(e)
-    refill_rows(ob)
+    _refill_soon(ob)
 
 
 def _same(a, b) -> bool:
@@ -451,9 +502,17 @@ def edit_effect(ob, name: str, mutate) -> str:
 
 
 # ---------------------------------------------------------------------------------------------------------- the search popup
+@enumitems.stable
 def _search_items(self, context):
     ent = _entity(context)
     kind = self.kind
+    if kind in ("fx", "row_fx", "edit_fx", "copy_fx", "sound") and ent is not None:
+        # hundreds of effects or thousands of sounds, labelled and sorted: once per state of the files, not once per keystroke
+        return _drawn(("search", kind), _files_key(_source(ent), _game_dir()), lambda: _search_list(ent, kind))
+    return _search_list(ent, kind)
+
+
+def _search_list(ent, kind):
     names = []
     labels = {}
     if kind == "marker":
@@ -579,6 +638,7 @@ class BZ_OT_fx_events_load(bpy.types.Operator):
 _ANIMALS: list = []
 
 
+@enumitems.stable
 def _animal_items(self, context):
     try:
         from . import gameexport
@@ -594,7 +654,7 @@ def _creature_poll(context) -> bool:
 
 
 class BZ_OT_fx_events_from_animal(bpy.types.Operator):
-    """Take the events of another animal for this creature: the ones for clips this creature has. Replaces the events in the list"""
+    """Copy another animal's events for the clips this creature has, replacing the list"""
     bl_idname = "bz.fx_events_from_animal"
     bl_label = "Copy events from another animal"
     bl_options = {"REGISTER", "UNDO"}
@@ -625,7 +685,7 @@ class BZ_OT_fx_events_from_animal(bpy.types.Operator):
             return {"CANCELLED"}
         clips, bones = creature_clips_and_bones(ent)
         if not clips:
-            self.report({"ERROR"}, "This creature has no animation clips yet, so no event of another animal fits it. Import or make its clips first.")
+            self.report({"ERROR"}, "This creature has no clips yet. Import or make its clips first.")
             return {"CANCELLED"}
         if not state.loaded:
             load_events(ent, state)
@@ -664,8 +724,7 @@ class BZ_OT_fx_event_add(bpy.types.Operator):
             clip = names[0] if names else ""
         if not clip.strip():
             # an event with no clip is filed under the clip name "" and so never runs (AnimEvent.cpp:616-640, FindGroup :546-558)
-            self.report({"ERROR"}, "Name the clip first (type it in the Clip box above the list): an event runs only while the clip of that name "
-                                   "plays, and this model has no clip to take it from.")
+            self.report({"ERROR"}, "Name the clip first: type it in the Clip box above the list.")
             return {"CANCELLED"}
         first, last = clip_range(ent, clip, context.scene)
         t = fxcore.event_time(context.scene.frame_current, first, last)
@@ -836,7 +895,7 @@ def _use_sound(state, value: str) -> bool:
 
 
 class BZ_OT_fx_sound_new(bpy.types.Operator):
-    """Make a new sound for events from a WAV file. It is kept in your project and goes into the item with the effects"""
+    """Make a sound for events from a WAV file, kept in your project"""
     bl_idname = "bz.fx_sound_new"
     bl_label = "New Sound From WAV"
     bl_options = {"REGISTER", "UNDO"}
@@ -846,7 +905,7 @@ class BZ_OT_fx_sound_new(bpy.types.Operator):
     sound_name: StringProperty(name="Sound name", default="", description="Lower case letters, digits and _ (up to 32). Empty: the file's name")
     volume: FloatProperty(name="Volume", default=1.0, min=0.0, max=10.0, description="1 plays the wave as it is")
     positional: BoolProperty(name="Has a place in the world", default=True,
-                             description="The sound comes from where the thing is: it gets quieter with distance and is not heard beyond the far distance. Turn it off for a sound everyone hears the same")
+                             description="The sound fades with distance. Off: it plays the same everywhere")
     min_distance: FloatProperty(name="Full volume up to", default=6.0, min=0.0, description="Up to this far from the listener the sound plays at full volume")
     max_distance: FloatProperty(name="Not heard beyond", default=80.0, min=0.1, description="Beyond this far from the listener the sound is not played")
     use_in_event: BoolProperty(name="Use it in the chosen event", default=True)
@@ -898,11 +957,10 @@ class BZ_OT_fx_sound_new(bpy.types.Operator):
             self.report({"WARNING"}, ui_kit.plain(w))
         chosen = state.events[state.event_index] if 0 <= state.event_index < len(state.events) else None
         used = self.use_in_event and _use_sound(state, ns.event_value)
-        info = ns.wave
-        who = "" if chosen is None else f"The event '{chosen.name}'" + (" (one of the original's: its old sound is replaced)" if chosen.src >= 0 else " (the one you added)")
-        self.report({"INFO"}, f"Made the sound '{name}' ({info.seconds:.1f} s, {info.rate} Hz, {'mono' if info.mono else 'stereo'}) in {fxcore.project_data_root(_source(ent))}. "
-                              + (f"{who} plays it now. " if used and who else "The chosen event plays it now. " if used else "Pick it as an event's Sound (the magnifier next to Sound). ")
-                              + "Give that event a time (0 up to just below 1) so the sound plays once; with no time the game loops it.")
+        who = "" if chosen is None else f"The event '{chosen.name}'"
+        self.report({"INFO"}, f"Made the sound '{name}' in {fxcore.project_data_root(_source(ent))}. "
+                              + (f"{who} plays it now. " if used and who else "The chosen event plays it now. " if used else "Pick it as an event's Sound. ")
+                              + "Give that event a time from 0 to under 1, or the sound loops.")
         return {"FINISHED"}
 
 
@@ -927,8 +985,7 @@ class BZ_OT_fx_sound_use(bpy.types.Operator):
 
 
 class BZ_OT_fx_sound_delete(bpy.types.Operator):
-    """Delete a sound of your project (its patch, sample and wave files; a file another sound of the project still uses stays). Events that name it then
-    play nothing. This cannot be undone"""
+    """Delete a sound of your project. Events that use it play nothing. This cannot be undone"""
     bl_idname = "bz.fx_sound_delete"
     bl_label = "Delete sound"
     bl_options = {"REGISTER"}                    # files on disk: Blender's Undo cannot bring them back, so the button is not an undo step
@@ -1005,7 +1062,7 @@ class BZ_OT_fx_new(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     style: EnumProperty(name="Type", items=tuple((s, s[6:].title(), "") for s in fxschema.STYLE_NAMES), default="STYLE_SPRAY")
-    new_name: StringProperty(name="Name", default="my_effect", description="Lower case letters, digits and _; a folder is written with /. A space becomes _ (an item cannot hold a file name with a space)")
+    new_name: StringProperty(name="Name", default="my_effect", description="Lower case letters, digits and _. Use / for a folder. Spaces become _")
     template: StringProperty(name="Start from", default="", description="The name of a game effect of the same type to start from; empty starts from the game's defaults for the type")
 
     @classmethod
@@ -1151,7 +1208,7 @@ class BZ_OT_fx_reset(bpy.types.Operator):
 
 
 class BZ_OT_fx_pick_file(bpy.types.Operator):
-    """Use a picture or a mesh file from disk: it is copied into the project's effect folder and the property names it"""
+    """Use a picture or mesh file from disk, copied into the project's effect folder"""
     bl_idname = "bz.fx_pick_file"
     bl_label = "Choose a file"
     bl_options = {"REGISTER", "UNDO"}
@@ -1437,12 +1494,13 @@ def export_effect_model(context, obj, directory, *, name=None, folder=None, lega
         refuse_errors=not export_anyway)
     notes = list(notes) + [hub.EFFECT_HUB_NOTE]
     item_dir = os.path.join(root, PB.item_folder_name(ent, PB.MODE_NEW, item, item_folder))
-    earlier = PB.earlier_export_files(item_dir, item)                     # refuses a folder that is not an earlier export of this item
+    earlier = PB.earlier_export_files(item_dir, item, rel)                   # refuses a folder that is not an earlier export of this item
     sgm_path = os.path.join(item_dir, *f"{hub.ROOT}/{rel}".split("/"))
     readme = os.path.join(item_dir, "README.txt")
     written = []
     try:
-        for p, blob in sorted(files.items()):
+        man = f"{hub.ROOT}/hub/{item}.item"                               # the manifest goes first: a stopped export is still this item's folder
+        for p, blob in sorted(files.items(), key=lambda kv: (kv[0] != man, kv[0])):
             PB.write_file(os.path.join(item_dir, *p.split("/")), blob)
             written.append(p)
         PB.write_file(readme, (
@@ -1463,6 +1521,7 @@ def export_effect_model(context, obj, directory, *, name=None, folder=None, lega
                                f"({', '.join(gone[:3])}{' ...' if len(gone) > 3 else ''})"]
     try:
         context.scene["bz_last_item_dir"] = item_dir                      # Game > Install and the hub check start from this folder
+        enumitems.forget()                                                # the Game panel shows this export at once
         ent.holder["bz_last_item_dir"] = item_dir                         # and the Game panel shows THIS project's own last export
         context.scene.bz_item_dir = ""                                    # a folder picked in the Game panel no longer wins over this export
     except (AttributeError, TypeError):
@@ -1652,7 +1711,8 @@ def draw_sounds(layout, context) -> None:
         return
     _hint(layout, "Make your own sound from a WAV file and play it from an event. The game plays 16 bit WAV best; a sound that has a place in the world "
                   "should be mono. It cannot be played here: listen to it in the game.")
-    mine = fxcore.project_sounds(_source(ent))
+    src, gd = _source(ent), _game_dir()
+    mine, problems = _drawn(("sounds",), _files_key(src, gd), lambda: (fxcore.project_sounds(src), fxcore.sound_problems(src, gd)))   # walks and parses the files
     if not mine:
         _hint(layout, "You have made no sound yet.")
     for name, value in mine:
@@ -1661,7 +1721,7 @@ def draw_sounds(layout, context) -> None:
         row.operator("bz.fx_sound_use", text="Use", icon="CHECKMARK").value = value
         row.operator("bz.fx_sound_delete", text="", icon="TRASH").value = value
     layout.operator("bz.fx_sound_new", icon="ADD")
-    for note in fxcore.sound_problems(_source(ent), _game_dir())[:3]:
+    for note in problems[:3]:
         _hint(layout, note, "ERROR")
 
 
@@ -1675,7 +1735,8 @@ def draw_used(layout, context) -> None:
     chain = fxcore.chain_cached(src, gd, names)
     if not chain:
         _hint(layout, "No effect is named by an event yet. Give an event an Effect, or copy one from the game below.")
-    unused = fxcore.unused_project_effects(src, gd, names) if state.loaded else []
+    unused = (_drawn(("unused",), _files_key(src, gd) + (tuple(names),), lambda: fxcore.unused_project_effects(src, gd, names))
+              if state.loaded else [])
     if unused:
         _hint(layout, "In your project but named by no event, so the game never plays " + ("it" if len(unused) == 1 else "them") + ": "
               + ", ".join(unused[:4]) + (f" and {len(unused) - 4} more" if len(unused) > 4 else "")
@@ -1731,7 +1792,7 @@ def draw_editor(layout, context) -> None:
         row = box.row(align=True)
         row.prop(state, "fx_key", text=f"Key frame (of {len(times)})")
         k = min(state.fx_key, len(times) - 1)
-        box.label(text=f"at time {times[k]:g} of the effect's life  (all key times: {state.fx_times})")
+        box.label(text=f"at time {times[k]:g}  (all: {state.fx_times})")
         row = box.row(align=True)
         op = row.operator("bz.fx_key", text="Add", icon="ADD")
         op.mode = "ADD"

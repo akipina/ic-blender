@@ -1719,15 +1719,17 @@ if bpy is not None:
                BZ_OT_extrude_region, BZ_OT_extrude_drag, BZ_OT_add_quad_drag)
 
     def register_macros() -> None:
-        """The drag macros' steps (after the classes are registered): the tool, then Blender's translate."""
-        if not getattr(BZ_OT_extrude_drag, "_defined", False):
-            BZ_OT_extrude_drag.define("BZ_OT_extrude_region")
-            BZ_OT_extrude_drag.define("TRANSFORM_OT_translate")
-            BZ_OT_extrude_drag._defined = True
-        if not getattr(BZ_OT_add_quad_drag, "_defined", False):
-            BZ_OT_add_quad_drag.define("BZ_OT_extrude_sides")
-            BZ_OT_add_quad_drag.define("TRANSFORM_OT_translate")
-            BZ_OT_add_quad_drag._defined = True
+        """The drag macros' steps (after the classes are registered): the tool, then Blender's translate. A macro's steps live in the
+        registration, so each call registers the macro afresh and defines them again (disabling and enabling the add-on gives it no steps
+        otherwise, and a second call adds none twice)."""
+        for cls, tool in ((BZ_OT_extrude_drag, "BZ_OT_extrude_region"), (BZ_OT_add_quad_drag, "BZ_OT_extrude_sides")):
+            try:
+                bpy.utils.unregister_class(cls)
+            except RuntimeError:                                          # not registered yet
+                pass
+            bpy.utils.register_class(cls)
+            cls.define(tool)
+            cls.define("TRANSFORM_OT_translate")
 else:
     CLASSES = ()
 

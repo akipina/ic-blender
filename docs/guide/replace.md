@@ -44,11 +44,11 @@ You should see a bump on the wolf's back. The surface follows the points. The ch
 1. Open the **IC Game** tab and the **Game** panel.
 2. In the box **1. Check**, press **Check the Creature**.
 
-For the wolf you should see “2 warning(s): the Info editor lists them”. That is expected. Read them in the **Info** editor ([Start here](start.md) says how to open it). One says the clip “Crouch” is never played; the game's own wolf has the same clip. The other is the notice that this replaces the game's wolf. Both are harmless. A warning is advice, not a stop sign. A problem in red must be fixed first: the game would not load the creature, and the export refuses it. See [Troubleshooting](trouble.md).
+For the wolf you should see “2 warning(s): see the Info editor”. That is expected. Read them in the **Info** editor ([Start here](start.md) says how to open it). One says the clip “Crouch” is never played; the game's own wolf has the same clip. The other is the notice that this replaces the game's wolf. Both are harmless. A warning is advice, not a stop sign. A problem in red must be fixed first: the game would not load the creature, and the export refuses it. See [Troubleshooting](trouble.md).
 
 ## 4. Export it for the game
 
-1. In the box **2. Export for the Game**, read the lines under the title. They say what the creature is built on, then “Export as: Replace the original wolf” and what that means.
+1. In the box **2. Export for the Game**, read the lines under the title. They say what the creature is built on, then “Export as: Replace the original wolf”.
 2. Press **Export Creature for the Game**. A window opens. At the top, **Replace the original wolf** is chosen. Under it is the warning from the box at the top of this chapter.
 3. You can leave the rest as it is. **Icon picture** lets you choose a picture for the creature creator. **Make the icon from the creature** (ticked) draws one from your wolf. **Folder** is where the export folder goes. Empty means a folder called `ic_items` beside your wolf files.
 4. Press **OK**.

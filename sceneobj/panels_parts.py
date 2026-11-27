@@ -8,6 +8,7 @@ from . import ui_kit
 from bpy.props import EnumProperty
 
 from .. import scene as _scene
+from .. import enumitems
 
 _NONE = "__none__"
 _ITEMS = {}          # Blender keeps no reference to a dynamic enum's strings: they live here
@@ -45,6 +46,7 @@ def _model_part(context):
     return None
 
 
+@enumitems.stable
 def _bone_items(self, context):
     part = _model_part(context)
     arm = _scene.model_root(part) if part is not None else None
@@ -55,6 +57,7 @@ def _bone_items(self, context):
     return items
 
 
+@enumitems.stable
 def _like_items(self, context):
     part = _model_part(context)
     items = [(_NONE, "(visible in every clip)", "The new part shows in every clip")]
@@ -75,11 +78,9 @@ class BZ_OT_scene_add_part(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     bone: EnumProperty(name="Follows bone", items=_bone_items,
-                       description="A rigid part follows this bone (the whole mesh at full weight); none keeps its own "
-                                   "vertex groups: one group at full weight follows that bone, several make it skinned")
+                       description="The bone the new part follows. None keeps the mesh's own vertex groups")
     like: EnumProperty(name="Shows like", items=_like_items,
-                       description="Show and hide the new part with this part in every clip (for a build stage or a "
-                                   "damage piece), or keep it visible in every clip")
+                       description="Show and hide the new part together with this part, or keep it always visible")
 
     @classmethod
     def poll(cls, context):
@@ -174,8 +175,7 @@ def draw_parts(layout, context) -> None:
     gone = n_file - len(parts) - len(marked)
     if gone > 0:
         col = layout.column(align=True)
-        col.label(text=f"{gone} part(s) deleted here: they stay in the model", icon="INFO")
-        col.label(text="unless the export removes them (its option).")
+        col.label(text=f"{gone} part(s) deleted here, still in the model", icon="INFO")
     row = layout.row(align=True)
     row.operator(BZ_OT_scene_add_part.bl_idname, icon="ADD")
     row.operator(BZ_OT_scene_remove_new_part.bl_idname, text="Leave Out", icon="REMOVE")

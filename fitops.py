@@ -1028,7 +1028,7 @@ def _paint_heat(me, residual, diag: float) -> None:
 
 
 class BZ_OT_fit_mesh(_Operator):
-    """Fit a new patch creature to the active mesh, borrowing a template's skeleton. The result is shape only (no connection rings, so the game cannot combine it); use Retarget for a creature that combines"""
+    """Make a new creature in the shape of the active mesh. It has no connection rings: use Retarget for one the game can combine"""
     bl_idname = "bz.fit_mesh"
     bl_label = "Fit Patches to Mesh"
     bl_options = {"REGISTER", "UNDO"}
@@ -1046,16 +1046,15 @@ class BZ_OT_fit_mesh(_Operator):
                                       description="Creature whose skeleton and materials the result borrows. Empty: the "
                                                   "game's wolf")
         output_path: StringProperty(name="Output .sgm", subtype="FILE_PATH", default="",
-                                    description="Where to write the fitted creature; empty = next to the .blend, else Blender's user data folder (pyic/projects)")
+                                    description="Where to save the fitted creature. Empty: next to the .blend file, or in Blender's user data folder")
         heat_map: BoolProperty(name="Error Heat Map", default=True,
                                description="Paint the fit error on the mesh as the 'fit_error' colour attribute")
         split_limbs: BoolProperty(name="Split into Limbs", default=True,
                                   description="Copy the template's limbs and skinning; off puts all on the Torso and root "
                                               "bone")
         separate_pieces: BoolProperty(name="Fit Separate Pieces", default=True,
-                                      description="A mesh of several shells (a body with eyes or teeth) is fitted piece by "
-                                                  "piece: the biggest shell is the body, the others are fitted on their own "
-                                                  "and joined to it. Off: refuse a mesh with more than one shell")
+                                      description="Fit each piece of a multi-piece mesh (body, eyes, teeth) on its own and join them. "
+                                                  "Off refuses such a mesh")
 
     @classmethod
     def poll(cls, context):
@@ -1099,13 +1098,11 @@ class BZ_OT_fit_mesh(_Operator):
         if topo.parts != 1:
             if not self.separate_pieces:
                 self.report({"ERROR"}, f"{parts_reason(obj.name, topo)}: a creature is one closed skin. Tick Fit Separate "
-                                       "Pieces to fit each shell on its own (eyes, teeth) and join them, or separate the "
-                                       "extra shells (Edit Mode: P > By Loose Parts) and fit the skin alone")
+                                       "Pieces, or split the extra pieces off (Edit Mode: P > By Loose Parts)")
                 return {"CANCELLED"}
             if topo.parts > MAX_SHELLS:
-                self.report({"ERROR"}, f"{parts_reason(obj.name, topo)}: more than {MAX_SHELLS} separate pieces is too many "
-                                       "to fit one by one. Join the small ones (Ctrl+J) or delete what the game will not "
-                                       "show")
+                self.report({"ERROR"}, f"{parts_reason(obj.name, topo)}: more than {MAX_SHELLS} separate pieces is too many. "
+                                       "Join the small ones (Ctrl+J) or delete them")
                 return {"CANCELLED"}
             try:
                 pieces = _split_shells(me_eval, diag)
@@ -1214,34 +1211,32 @@ class BZ_OT_fit_mesh(_Operator):
             self.report({"WARNING"}, f"Move Skeleton to the Body will not be offered for this creature "
                                      f"({type(e).__name__}: {e})")
         if pieces:
-            self.report({"INFO"}, f"{obj.name} has {len(pieces)} separate pieces: the biggest is the body, "
-                                  f"{len(piece_notes)} others were fitted on their own and joined to it "
-                                  "(each keeps its own seams: Weld joins them for good)")
+            self.report({"INFO"}, f"{obj.name} has {len(pieces)} separate pieces. The biggest is the body; "
+                                  f"{len(piece_notes)} others were fitted and joined to it. Weld joins them for good")
         for why in skipped:
             self.report({"WARNING"}, why)
         self.report({"INFO"}, FIT_RESULT_NOTE)
         if result.unmirrored:
             self.report({"WARNING"}, f"No clean mirrored layout for {obj.name}: fitted without symmetry")
         if topo.seam_split:
-            self.report({"INFO"}, f"{obj.name} is modelled as {topo.parts_raw} parts, but {topo.welded} vertices are seam "
-                                  "duplicates (UV islands): the layout used a welded copy (your mesh is untouched)")
+            self.report({"INFO"}, f"{obj.name} is modelled as {topo.parts_raw} parts, but {topo.welded} vertices are only "
+                                  "UV seam copies. The layout used a welded copy; your mesh is unchanged")
         if (open_edges or topo.nonmanifold) and self.layout == "OWN_QUADS":
-            self.report({"WARNING"}, f"{obj.name} is not one closed skin ({open_edges} open edges after welding, "
-                                     f"{topo.nonmanifold} true non-manifold edges): a creature must be one closed skin "
-                                     "(see Validate)")
+            self.report({"WARNING"}, f"{obj.name} is not one closed skin ({open_edges} open edges, "
+                                     f"{topo.nonmanifold} non-manifold edges). A creature must be one closed skin: see Validate")
         elif open_edges:
             self.report({"INFO"}, f"{obj.name} is not closed ({open_edges} open edges after welding); the QuadriFlow "
                                   "layout is")
         if not ops._is_identity(obj.matrix_world):
-            self.report({"WARNING"}, f"{obj.name}'s object transform was ignored (the fit is in its local space): "
-                                     "apply the transform first to fit the mesh at that size and place")
+            self.report({"WARNING"}, f"{obj.name}'s object transform was ignored. "
+                                     "Apply the transform first to fit its real size and place")
         if result.points_per_patch < FEW_SAMPLES:
             self.report({"WARNING"}, f"only {len(pts)} target vertices for {n_patches} patches "
-                                     f"({result.points_per_patch:.1f} per patch), so the surface between them is a guess: "
-                                     "subdivide the mesh or lower the budget")
+                                     f"({result.points_per_patch:.1f} per patch), so the fit between them is a guess. "
+                                     "Subdivide the mesh or lower the budget")
         if result.coverage.max_pct > 2.0:
             self.report({"WARNING"}, f"parts of the fitted surface are up to {result.coverage.max_pct:.1f} % of the "
-                                     "size away from any target vertex (the mesh has no vertices there)")
+                                     "size from any target vertex. The mesh has no vertices there")
         self.report({"INFO"}, line + f"; {n_points} control points; written to {out}")
         return {"FINISHED"}
 

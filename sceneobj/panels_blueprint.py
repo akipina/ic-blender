@@ -15,6 +15,7 @@ import math
 import os
 import re
 import struct
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -22,6 +23,7 @@ import bpy
 from . import ui_kit
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty,
                        StringProperty)
+from .. import enumitems
 
 ORDER = 80                        # a sceneobj module's place in the slice order ("controller_meta"); ignored while this file sits in the add-on's folder
 
@@ -39,19 +41,19 @@ FIELDS = ("name", "class", "footprint", "offset", "sounds")
 FIELD_WORDS = {"name": "name", "class": "kind (class)", "footprint": "footprint", "offset": "offset", "sounds": "sounds", "icon": "icon"}
 
 HINT = {
-    "name": "Name shown in the game (or a language code like $41545), up to 255 letters.",
-    "class": "What the game makes of it; changing this changes multiplayer.",
-    "footprint": "Blocked path cells; 0 and 0 lets the game measure the model. Changing this changes multiplayer.",
-    "footprint_unused": "Only buildings use a footprint; it is kept here but is not used.",
-    "offset": "Moves the model over its footprint (Y raises it); changes multiplayer.",
-    "sounds": "Sounds loaded before play starts; missing files are skipped.",
+    "name": "Name shown in the game: up to 255 letters, or a language code like $41545.",
+    "class": "What the game makes of it. Changing it changes multiplayer.",
+    "footprint": "Path cells it blocks; 0 and 0 lets the game measure it. Changing it changes multiplayer.",
+    "footprint_unused": "Only buildings use a footprint.",
+    "offset": "Moves the model over its footprint; Y raises it. Changes multiplayer.",
+    "sounds": "Sounds loaded before play starts.",
     "folder": "The game looks in Data/art/ebps/<folder>/; keep the original thing's folder.",
 }
 FOLDER_SOURCE_WORDS = {              # how the folder was found, as a sentence that follows HINT["folder"]
-    "STAMP": "This is the folder of the thing the project was started from.",
-    "IDENTITY": "This project is a copy of one of the game's own things, and this is its folder.",
-    "PATH": "This is where the files lie.",
-    "GUESS": "This is only a guess from the kind of thing: please check it.",
+    "STAMP": "From the thing the project started from.",
+    "IDENTITY": "The folder of this game thing.",
+    "PATH": "Where the files lie.",
+    "GUESS": "A guess from the kind: please check it.",
 }
 FAMILY_WORDS = {
     "unit": "a unit that walks, fights or gathers",
@@ -145,7 +147,7 @@ def game_dir_words() -> str:
         line = p.game_dir_line() if p is not None else (f"Game folder: {folder}" if folder else "No game folder found.")
     except Exception:                                                     # noqa: BLE001
         line = f"Game folder: {folder}" if folder else "No game folder found."
-    if folder and not glob.glob(os.path.join(glob.escape(folder), "*.sga")):
+    if folder and not enumitems.recent(("sga present", folder), lambda: bool(glob.glob(os.path.join(glob.escape(folder), "*.sga")))):
         line += " It holds none of the game's archives (.sga files): is it the right folder?"
     return line
 
@@ -339,6 +341,7 @@ def subtype_of(bp) -> str:
 _CLASS_ITEMS: list = []           # enum items must stay referenced while Blender shows them
 
 
+@enumitems.stable
 def _class_items(self, context):
     items = []
     try:
@@ -379,16 +382,47 @@ def quiet():
         _QUIET[0] -= 1
 
 
+_REFRESH_AT: dict = {}                    # object name -> when its class / folder was last edited (a drag edits it many times a second)
+_REFRESH_WAIT = 0.35
+
+
+def _refresh_now(bp, owner) -> None:
+    try:
+        ent = entity_of(owner)
+        if ent is not None and bp.loaded:
+            refresh_stats(bp, ent)
+    except Exception as e:                                                # noqa: BLE001 -- an update callback must never break the property edit
+        bp.stats_note = f"The gameplay numbers could not be listed: {e}"
+
+
+def _refresh_when_settled(name: str):
+    """Timer: list the numbers once the edit has stopped for :data:`_REFRESH_WAIT`; else ask to be called again when it will have."""
+    left = _REFRESH_AT.get(name, 0.0) + _REFRESH_WAIT - time.monotonic()
+    if left > 0.01:
+        return left
+    _REFRESH_AT.pop(name, None)
+    obj = bpy.data.objects.get(name)
+    ent = entity_of(obj) if obj is not None else None
+    bp = getattr(ent.holder, "bz_blueprint", None) if ent is not None else None
+    if bp is not None and not _QUIET[0]:
+        _refresh_now(bp, obj)
+    return None
+
+
 def _refresh_after_edit(self, context):
-    """The gameplay numbers depend on the class and on the folder (a stats file of the thing's own name); list them again when either is edited."""
+    """The gameplay numbers depend on the class and on the folder (a stats file of the thing's own name); list them again when either is edited.
+    A drag edits the value on every step and listing mounts the game's archives, so in a window it waits until the edit has settled
+    (a session without a window has no timers: it lists at once)."""
     if _QUIET[0]:
         return
-    try:
-        ent = entity_of(self.id_data)
-        if ent is not None and self.loaded:
-            refresh_stats(self, ent)
-    except Exception as e:                                                # noqa: BLE001 -- an update callback must never break the property edit
-        self.stats_note = f"The gameplay numbers could not be listed: {e}"
+    owner = self.id_data
+    if bpy.app.background or not isinstance(owner, bpy.types.Object):
+        _refresh_now(self, owner)
+        return
+    pending = owner.name in _REFRESH_AT
+    _REFRESH_AT[owner.name] = time.monotonic()
+    if not pending:
+        bpy.app.timers.register(lambda n=owner.name: _refresh_when_settled(n), first_interval=_REFRESH_WAIT)
 
 
 class BZ_PG_blueprint_sound(bpy.types.PropertyGroup):
@@ -438,9 +472,7 @@ class BZ_PG_blueprint(bpy.types.PropertyGroup):
     stats_own: BoolProperty(default=False, description="The numbers come from a stats file of this thing's own name (not from the default of its kind)")
     stats_filter: StringProperty(default="", name="Search", options={"TEXTEDIT_UPDATE"}, description="Part of a number's name")
     stats_base: BoolProperty(default=False, name="Use the original's numbers", update=_refresh_after_edit,
-                             description="List and change the numbers of the thing this project was started from. A new name then starts from them too (its stats "
-                                         "file is written even when you change nothing); unticked, a new name starts from the default numbers of its kind. "
-                                         "Replace the original always starts from the original's numbers")
+                             description="Start from the gameplay numbers of the model this project was made from, not the defaults for its kind")
     icon_image: StringProperty(default="", description="The Blender image holding the new 64 x 64 icon made with Icon from this view ('' = keep the blueprint's own)")
 
 
@@ -549,11 +581,14 @@ def find_donor(src: str, kinds=_KIND_OF_PROJECT):
     if key in _DONOR_CACHE:
         return _DONOR_CACHE[key]
     found = None
+    searched = False                                                      # a miss is kept only when the game's list was really searched
     try:
         np = _addon("newproject")
         digest = None
         for kind in kinds:
-            for archive, member in np.scene_donors(kind):
+            donors = np.scene_donors(kind)
+            searched = searched or bool(donors)
+            for archive, member in donors:
                 arc = np._archive(archive)
                 entry = arc.entry(member)
                 if entry is None or entry.uncomp_len != st.st_size:
@@ -567,7 +602,9 @@ def find_donor(src: str, kinds=_KIND_OF_PROJECT):
             if found:
                 break
     except Exception:                                                     # noqa: BLE001 -- no game install, no donor list: the folder is guessed
-        found = None
+        return None                                                       # not kept: the Game folder may be set a moment later
+    if found is None and not searched:
+        return None
     if len(_DONOR_CACHE) > 64:
         _DONOR_CACHE.clear()
     _DONOR_CACHE[key] = found
@@ -810,26 +847,32 @@ def check_target(directory) -> str:
     return path
 
 
-def earlier_export_files(item_dir: str, item: str):
+def earlier_export_files(item_dir: str, item: str, model: str = ""):
     """The files the earlier export of ``item`` listed (``data/...``, '/'-separated), read from the manifest it left. Raises :class:`Refused`
     when ``item_dir`` exists and is not an earlier export of this item (no manifest of its own in it): nothing is written into a folder that
-    holds somebody's other files. None when there is no folder yet."""
+    holds somebody's other files. None when there is no folder yet. ``model``: the model path about to be written; an earlier export whose
+    models are all of other names is another project's (item ids are cut to 24 characters, so two names can share one) and is refused."""
     if not os.path.lexists(item_dir):
         return None
     mine = os.path.join(item_dir, "data", "hub", f"{item}.item")
     if not os.path.isdir(item_dir):
         raise Refused(f"'{item_dir}' is a file, not a folder.")
     if not os.path.isfile(mine):
-        if not os.listdir(item_dir):
+        if not any(files for _d, _s, files in os.walk(item_dir)):         # nothing, or only the empty folders of an export that stopped at once
             return []
         raise Refused(f"The folder {item_dir} exists and is not an earlier export of {item} (it has no data/hub/{item}.item), so nothing was "
                       "written and nothing of yours is lost. Choose another folder or another name.")
     try:
         man = importlib.import_module("ICParse.hub.manifest")
         with open(mine, "rb") as f:
-            return [p for p, _h, _n in man.parse(f.read()).files] + [f"data/hub/{item}.item"]
+            listed = [p for p, _h, _n in man.parse(f.read()).files] + [f"data/hub/{item}.item"]
     except Exception:                                                     # noqa: BLE001 -- a manifest that cannot be read: nothing is removed
         return []
+    stems = {os.path.splitext(p.rsplit("/", 1)[-1])[0].lower() for p in listed if p.lower().endswith(".sgm")}
+    if model and stems and os.path.splitext(model.rsplit("/", 1)[-1])[0].lower() not in stems:
+        raise Refused(f"The folder {item_dir} holds the export of a model with another name ({', '.join(sorted(stems)[:2])}), and both share the item "
+                      f"name {item}, so nothing was written and nothing of yours is lost. Choose another item name or another folder.")
+    return listed
 
 
 def remove_stale(item_dir: str, earlier, written, keep=()) -> list:
@@ -1297,7 +1340,7 @@ def export_entity(context, obj, directory, *, name=None, folder=None, mode: str 
     SS = _addon("scenesafety")
     ent = b.ent
     item_dir = os.path.join(root, item_folder_name(ent, b.mode, b.item, item_folder))
-    earlier = earlier_export_files(item_dir, b.item)                      # refuses a folder that is not an earlier export of this item
+    earlier = earlier_export_files(item_dir, b.item, b.sgm_rel)           # refuses a folder that is not an earlier export of this item
     sgm_path = os.path.join(item_dir, *b.sgm_rel.split("/"))
     ebp_path = os.path.join(item_dir, *b.ebp_rel.split("/"))
     in_place = False
@@ -1312,7 +1355,8 @@ def export_entity(context, obj, directory, *, name=None, folder=None, mode: str 
         raise Refused(str(e)) from None
     written = {}
     try:
-        for rel, blob in sorted(b.files.items()):
+        man = f"data/hub/{b.item}.item"                                   # the manifest goes first: a stopped export is still this item's folder
+        for rel, blob in sorted(b.files.items(), key=lambda kv: (kv[0] != man, kv[0])):
             path = os.path.join(item_dir, *rel.split("/"))
             write_file(path, blob)
             written[rel] = path
@@ -1329,6 +1373,7 @@ def export_entity(context, obj, directory, *, name=None, folder=None, mode: str 
             pass
     try:
         context.scene["bz_last_item_dir"] = item_dir                      # Game > Install and the hub check start from this folder
+        enumitems.forget()                                                # the Game panel shows this export at once
         ent.holder["bz_last_item_dir"] = item_dir                         # and the Game panel shows THIS project's own last export
         ent.holder["bz_last_item_mode"] = b.mode                          # ... and whether it replaced the game's own thing or has a new name
         context.scene.bz_item_dir = ""                                    # a folder picked in the Game panel no longer wins over this export
@@ -1399,7 +1444,7 @@ class BZ_OT_blueprint_load(bpy.types.Operator):
         ent = entity_of(context.active_object)
         bp = ent.holder.bz_blueprint
         if bp.loaded and bp.state in EDITABLE and changed_fields(Values.from_json(bp.baseline), values_from_pg(bp)):
-            self.report({"ERROR"}, "The panel holds changes that are not exported yet. Use Reset if you want to throw them away and read the file again.")
+            self.report({"ERROR"}, "The panel holds changes not exported yet. Press Reset to discard them and read the file again.")
             return {"CANCELLED"}
         try:
             msg = load_blueprint(ent, create_default=self.create_default)
@@ -1474,6 +1519,7 @@ class BZ_OT_blueprint_sound_remove(bpy.types.Operator):
 _MODE_ITEMS: list = []             # enum items must stay referenced while Blender shows them
 
 
+@enumitems.stable
 def _mode_items(self, context):
     """The two choices: a name of your own (the first, so it is the default: nothing of the game is replaced unless you say so) and, when the
     project has a thing of the game to replace, replacing it, with its name."""
@@ -1498,28 +1544,26 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
     bl_options = {"REGISTER"}
 
     directory: StringProperty(name="Folder", subtype="DIR_PATH",
-                              description="The folder the item folder is made in (not the game's own folder): <folder>/<name>/data/art/ebps/...")
+                              description="The folder the item folder is made in. Not the game's own folder")
     filter_folder: BoolProperty(default=True, options={"HIDDEN"})
     mode: EnumProperty(name="Export as", items=_mode_items, options={"SKIP_SAVE"},
                        description="Replace the game's own thing, or make a thing under a name of your own")
     entity_name: StringProperty(name="File name", default="", options={"SKIP_SAVE"},
-                                description="File name without extension; empty = the project's name")
+                                description="File name without extension. Empty: the project's name")
     folder: StringProperty(name="Folder in the game", default="", options={"SKIP_SAVE"}, description=HINT["folder"])
     item_folder: StringProperty(name="Item folder name", default="", options={"SKIP_SAVE"},
-                                description="The name of the folder made inside the export folder. Empty: the thing's name, or, when replacing "
-                                            "the original, this project's name. Two exports with the same name replace each other")
+                                description="The name of the item folder. Empty: the thing's name. The same name replaces an earlier export")
     drop_damage_states: BoolProperty(
         name="Leave damage states out of edited parts",
-        description="Write edited parts without their damage states (shape keys) instead of with them",
+        description="Write edited parts without their damage states",
         default=False)
     remove_deleted_parts: BoolProperty(
         name="Remove parts deleted in Blender",
-        description="A part whose object was deleted is removed from the model, with its clip channels, instead of keeping "
-                    "the source's geometry",
+        description="Remove a part you deleted from the model instead of keeping the original",
         default=False)
     export_anyway: BoolProperty(
         name="Export anyway",
-        description="Write the files even if the checks find errors (the game may refuse them). Press Check in the IC Game tab to see what they found",
+        description="Write the files even if Check finds errors. The game may refuse them",
         default=False, options={"SKIP_SAVE"})
 
     @classmethod
@@ -1553,35 +1597,32 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
         if replacing and target is not None:
             name, folder = target.name, target.folder
             col.label(text=f"Replaces art/ebps/{folder + '/' if folder else ''}{name}")
+            _hint(col, "Every player needs the same files.")
         else:
             col.prop(self, "entity_name")
             col.prop(self, "folder")
-            _hint(col, HINT["folder"])
             name, folder = clean_name(self.entity_name or "name"), clean_folder(self.folder)
         try:
             hard = bool(controllers().is_hard_bound(folder, name))
         except Exception:                                                 # noqa: BLE001
             hard = False
-        if not is_fx:
-            _hint(col, mode_words(MODE_REPLACE if replacing else MODE_NEW, name, folder, hard))
+        if hard and not replacing and not is_fx:
+            _hint(col, "Would replace the game's own thing.")
         try:
             item = importlib.import_module("ICParse.hub.scenery").item_id(name)
             shown_folder = item_folder_name(ent, MODE_REPLACE if replacing else MODE_NEW, item, self.item_folder)
         except Exception:                                                 # noqa: BLE001
             item = shown_folder = name
         col.prop(self, "item_folder")
-        _hint(col, "Two exports into the same folder with the same item folder name replace each other: give each project its own. "
-                   "Empty: " + ("the project's name." if replacing else "the thing's name."))
         if is_fx:
             col.label(text=f"Item folder: {shown_folder}/data/art/fx/{folder + '/' if folder else ''}{name}.sgm")
         else:
-            col.label(text=f"Item folder: {shown_folder}/data/art/ebps/{folder + '/' if folder else ''}{name}.sgm / .ebp")
+            col.label(text=f"Item folder: {shown_folder}/data/art/ebps/{folder + '/' if folder else ''}{name}.sgm")
         col.separator()
         col.prop(self, "drop_damage_states")
         col.prop(self, "remove_deleted_parts")
         col.separator()
         col.prop(self, "export_anyway")
-        _hint(col, "The files are checked first; an error stops the export unless this is ticked.")
 
     def execute(self, context):
         try:
@@ -1608,13 +1649,13 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
             self.report({"INFO"}, f"... and {len(res.notes) - 8} more notes (the README in the item folder lists them)")
         if not res.ebp:                                                   # a1fx: an effect model: a model and effect files, no blueprint
             self.report({"INFO"}, f"Wrote the item {res.item} ({len(res.files or [])} files) under {res.root}: the effect model "
-                                  f"{os.path.basename(res.sgm)} in data/art/fx (an effect model has no blueprint). {os.path.basename(res.readme)} says how to use it.")
+                                  f"{os.path.basename(res.sgm)} in data/art/fx. {os.path.basename(res.readme)} says how to use it.")
             return {"FINISHED"}
         if res.in_place:
             self.report({"INFO"}, "The model's own source file was overwritten; this session now matches it")
         self.report({"INFO"}, f"Wrote the item {res.item} ({len(res.files or [])} files) under {res.root}: "
-                              f"{'replaces the original ' if res.mode == MODE_REPLACE else ''}{res.folder + '/' if res.folder else ''}{res.name}; "
-                              f"blueprint {res.blueprint_note}; model: {len(res.rebuilt)} part(s) rebuilt, {len(res.kept)} unchanged. "
+                              f"{'replaces the original ' if res.mode == MODE_REPLACE else ''}{res.folder + '/' if res.folder else ''}{res.name}. "
+                              f"Blueprint {res.blueprint_note}; {len(res.rebuilt)} part(s) rebuilt, {len(res.kept)} unchanged. "
                               f"{os.path.basename(res.readme)} says how to use it.")
         return {"FINISHED"}
 
@@ -1657,7 +1698,7 @@ def draw_blueprint(layout, obj) -> None:
     """The Blueprint panel's body for ``obj`` (a part, rig or group empty of a scene object). It never changes anything; every button is an operator."""
     ent = entity_of(obj)
     if ent is None:
-        layout.label(text="Select a gatherer, character, structure or prop.")
+        layout.label(text="Select a model to see its blueprint.")
         return
     bp = getattr(ent.holder, "bz_blueprint", None)
     if bp is None:
@@ -1672,17 +1713,13 @@ def draw_blueprint(layout, obj) -> None:
             name = obj.name
             _addon("autoload").once(("blueprint", obj.session_uid), lambda: _load_by_name(name))
             box.label(text=f"Blueprint file: {os.path.basename(path)}", icon="FILE")
-            _hint(box, "The blueprint is read when this panel opens, to show the kind, name, footprint and sounds. If nothing shows, press "
-                       "Load Blueprint to try again.")
             box.operator("bz.blueprint_load", text="Load Blueprint", icon="FILE_REFRESH")
         else:
             box.label(text="No blueprint file beside the model.", icon="INFO")
             if OFFER_NEW_BLUEPRINT:
-                _hint(box, "Every model needs a blueprint: press Start a New Blueprint, and it is written when you export.")
                 box.operator("bz.blueprint_load", text="Start a New Blueprint", icon="ADD").create_default = True
             else:                                                         # a blueprint made from nothing has no motions or events: not offered
-                _hint(box, "Every model needs a blueprint. Import the model from the game's own files, or start a project from one of the "
-                           "game's things (File > New > Impossible Creatures Project): that brings its blueprint, with its animations.")
+                _hint(box, "Start a project from a game model.")
         return
     _draw_status(layout, ent, bp, path)
     if bp.state in ("PROBLEM", "NO_LIBRARY"):
@@ -1695,7 +1732,6 @@ def draw_blueprint(layout, obj) -> None:
     col.prop(bp, "display_name", text="")
     if len(bp.display_name) > NAME_LIMIT:
         _alert(box, f"The name is {len(bp.display_name)} letters long; the game reads at most {NAME_LIMIT}.")
-    _hint(box, HINT["name"])
 
     info = class_info(bp.class_id)
     box = layout.box()
@@ -1706,9 +1742,8 @@ def draw_blueprint(layout, obj) -> None:
     col.prop(bp, "class_id", text="Class number")
     if not info.registered:
         _alert(box, "The game gives this number no behaviour: the thing would be a plain prop that only plays animations."
-               if not info.expansion_only else "Only the expansion builds of the game know this number (Game build in the add-on's "
-                                               "preferences says which build your work is made for).", icon="INFO")
-    _hint(box, HINT["class"])
+               if not info.expansion_only else "Only the expansion builds of the game know this number. Game build in the add-on's "
+                                               "preferences sets your build.", icon="INFO")
 
     box = layout.box()
     box.label(text="Footprint and offset", icon="MESH_GRID")
@@ -1716,15 +1751,14 @@ def draw_blueprint(layout, obj) -> None:
     row.enabled = editable and info.buildable
     row.prop(bp, "footprint_x", text="X")
     row.prop(bp, "footprint_z", text="Z")
-    _hint(box, HINT["footprint"] if info.buildable else HINT["footprint_unused"])
+    if not info.buildable:
+        _hint(box, HINT["footprint_unused"])
     row = box.row()
     row.enabled = editable and info.buildable
     row.operator("bz.blueprint_footprint_calc", text="Calc from model", icon="DRIVER_DISTANCE")
-    _hint(box, "Measures the model the way the game does when the footprint is 0 and 0.")
     col = box.column()
     col.enabled = editable
     col.prop(bp, "offset", text="Offset")
-    _hint(box, HINT["offset"])
 
     box = layout.box()
     box.label(text=f"Sounds ({len(bp.sounds)})", icon="SOUND")
@@ -1735,7 +1769,6 @@ def draw_blueprint(layout, obj) -> None:
         row.prop(s, "path", text="")
         row.operator("bz.blueprint_sound_remove", text="", icon="X").index = i
     col.operator("bz.blueprint_sound_add", text="Add Sound", icon="ADD")
-    _hint(box, HINT["sounds"])
 
     _draw_icon(layout, bp, editable)
 
@@ -1744,19 +1777,17 @@ def draw_blueprint(layout, obj) -> None:
     col = box.column()
     col.enabled = editable
     col.prop(bp, "folder", text="Folder")
-    _hint(box, HINT["folder"] + " " + FOLDER_SOURCE_WORDS.get(bp.folder_source, ""))
+    _hint(box, FOLDER_SOURCE_WORDS.get(bp.folder_source, ""))
     out_name = default_name(ent)
     try:
         if controllers().is_hard_bound(clean_folder(bp.folder), out_name):
-            _hint(box, "The game looks this one up by name: keep this folder and name to replace the original.")
+            _hint(box, "Keep this folder and name to replace it.")
     except Exception:                                                     # noqa: BLE001
         pass
 
     box = layout.box()
     box.label(text="Export", icon="EXPORT")
     box.operator("bz.export_entity_folder", text="Export Entity Folder...", icon="EXPORT")
-    _hint(box, "Makes an item folder with the model and blueprint (and a README), ready to copy into your game: either a new name of your own, "
-               "or in place of the game's original. Press Check (below) first to test it.")
 
 
 def _draw_icon(layout, bp, editable: bool) -> None:
@@ -1766,18 +1797,16 @@ def _draw_icon(layout, bp, editable: bool) -> None:
     img = bpy.data.images.get(bp.icon_image) if bp.icon_image else None
     prev = getattr(img, "preview", None) if img is not None else None
     if img is not None and prev is not None:
-        box.label(text="New icon (written when you export)", icon_value=prev.icon_id)
+        box.label(text="New icon: written when you export", icon_value=prev.icon_id)
     elif img is not None:
-        box.label(text="New icon (written when you export)", icon="IMAGE_DATA")
+        box.label(text="New icon: written when you export", icon="IMAGE_DATA")
     else:
-        _hint(box, "Not changed: the blueprint keeps the picture it has.")
+        _hint(box, "Keeps the current icon.")
     row = box.row(align=True)
     row.enabled = editable
     row.operator("bz.blueprint_icon_from_view", text="Icon from this view", icon="RESTRICT_RENDER_OFF")
     if img is not None:
         row.operator("bz.blueprint_icon_clear", text="", icon="X")
-    _hint(box, "Frame the model in the 3D view, then press the button: the middle of the view becomes the 64 x 64 picture the blueprint "
-               "holds (the game's lists and info boxes draw it).")
 
 
 def _draw_status(layout, ent, bp, path) -> None:
@@ -1790,7 +1819,7 @@ def _draw_status(layout, ent, bp, path) -> None:
     if bp.state in ("LEGACY", "EMBEDDED", "PROBLEM", "NO_LIBRARY"):
         _alert(box, bp.note or "This blueprint cannot be edited.", icon="LOCKED" if bp.state in ("LEGACY", "EMBEDDED") else "ERROR")
     elif bp.state == "NEW":
-        _hint(box, "New blueprint: it is written when you export. It cannot play the model's animations.")
+        _hint(box, "New blueprint: it is written when you export.")
     else:
         edited = changed_fields(Values.from_json(bp.baseline), values_from_pg(bp))
         if edited:
@@ -1842,10 +1871,9 @@ def draw_stats(layout, obj) -> None:
     bp = getattr(ent.holder, "bz_blueprint", None) if ent is not None else None
     if bp is None or not bp.loaded:
         return
-    _hint(layout, "The numbers the game gives this thing: hit points, speed, cost and so on. Changing them changes the game for every player.")
     if bp.stats_game and bp.stats_game != game_dir_words():      # the Blueprint panel above says which game folder is in use now
         then = bp.stats_game if bp.stats_game.endswith((".", "?", "!")) else bp.stats_game + "."
-        _hint(layout, f"Read from another game folder. {then} Change the kind, or press Reset (this throws away unexported edits), to read them again.")
+        _hint(layout, f"Read from another game folder. {then}")
     if bp.stats_source:
         _hint(layout, bp.stats_source)
     if bp.stats_note:

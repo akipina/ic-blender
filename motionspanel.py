@@ -24,6 +24,7 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProp
 
 from . import motionscore as MC
 from ICParse.ebp import motions as MO
+from . import enumitems
 
 _BUSY = [False]                      # set while rows are being filled (their update callbacks do nothing)
 _KEEP: list = []                     # enum items must stay referenced while Blender shows them
@@ -83,16 +84,16 @@ def _context_target(context):
 
 
 # ---------------------------------------------------------------------------------------------------------- the clips
-def clip_info(t: Target):
+def clip_info(t: Target, cached: bool = False):
     """``(clips, new, actions)``: the clip names the export writes (the rig's Actions), the names that are new (made or borrowed in Blender, so
-    the blueprint cannot know them), and {clip name: Action}."""
+    the blueprint cannot know them), and {clip name: Action}. ``cached``: for drawing (the plan of a moment ago while nothing changed)."""
     from . import actions as bz
     from . import scenesafety
     clips, new, acts = [], set(), {}
     if t.rig is None:
         return clips, new, acts
     try:
-        plan = bz.plan_export(t.rig, renames=(t.kind == "creature"))
+        plan = (bz.plan_export_cached if cached else bz.plan_export)(t.rig, renames=(t.kind == "creature"))
         renamed = set(scenesafety.clip_renames(plan)[0].values())       # a clip renamed in Blender is the blueprint's own clip under a new name
         for c in plan.kept:
             clips.append(str(c))
@@ -116,7 +117,7 @@ def clip_info(t: Target):
     return list(dict.fromkeys(clips)), new, acts
 
 
-def clip_renames(t: Target) -> dict:
+def clip_renames(t: Target, cached: bool = False) -> dict:
     """``{clip name in the blueprint: new name}`` for the clips renamed in Blender: the export makes the blueprint's motions (and events) name the new
     name (``scenesafety.follow_clips_in_blueprint``; a creature's donor: ``ICParse.ebp.package.follow_renames``)."""
     from . import actions as bz
@@ -124,14 +125,14 @@ def clip_renames(t: Target) -> dict:
     if t.rig is None:
         return {}
     try:
-        return dict(scenesafety.clip_renames(bz.plan_export(t.rig, renames=(t.kind == "creature")))[0])
+        return dict(scenesafety.clip_renames((bz.plan_export_cached if cached else bz.plan_export)(t.rig, renames=(t.kind == "creature")))[0])
     except Exception:                                                     # noqa: BLE001 -- two Actions on one clip name etc.: the export says so
         return {}
 
 
-def table_as_exported(t: Target, table: MO.MotionTable) -> MO.MotionTable:
+def table_as_exported(t: Target, table: MO.MotionTable, cached: bool = False) -> MO.MotionTable:
     """The table with the clip renames made since the model was read, as the export will write them (what the checks compare with the rig's clips)."""
-    ren = clip_renames(t)
+    ren = clip_renames(t, cached)
     return MO.rename_clips(table, ren) if ren else table
 
 
@@ -178,11 +179,9 @@ class BZ_PG_motion(bpy.types.PropertyGroup):
                                       description="How much of the clips below this one shows through")
     fade_in: FloatProperty(name="Fade in", default=0.5, precision=2, soft_min=0.0, description="Seconds to blend this clip in")
     fade_out: FloatProperty(name="Fade out", default=0.0, precision=2, soft_min=0.0, description="Seconds to blend this clip out")
-    speed_var: StringProperty(name="Speed follows", description="The variable that sets how fast the clip plays (Velocity is the unit's speed). "
-                              "Empty: always at the play speed")
+    speed_var: StringProperty(name="Speed follows", description="The variable that sets the clip's speed, such as Velocity. Empty: always normal speed")
     speed_ref: FloatProperty(name="Made for", default=0.0, precision=3, soft_min=0.0, soft_max=1e6,
-                             description="The speed the clip was made for: the clip plays at its own pace when the variable has this value, "
-                                         "twice as fast at twice this. 0 does not use the variable")
+                             description="The value of that variable the clip was made for. 0: ignore the variable")
     cond_var: StringProperty(name="Plays while", description="The variable this motion's range is about (Velocity is the unit's speed). Empty: always plays")
     cond_min: FloatProperty(name="Above", default=-1.0, precision=3, soft_min=-1.0, soft_max=1e6,
                             description="Plays only when the variable is above this (-1: no lower limit)")
@@ -440,9 +439,10 @@ def _poll_row(context) -> bool:
     return t is not None and t.state is not None and t.state.loaded and active_node(t.state) >= 0
 
 
+@enumitems.stable
 def _clip_items(self, context):
     t = _context_target(context)
-    names = clip_info(t)[0] if t is not None else []
+    names = clip_info(t, True)[0] if t is not None else []
     items = [("SAME", "(the same clip as the original)", "")] if getattr(self, "bl_idname", "") == "bz.motions_add_copy" else []
     items += [(n, n, "") for n in names]
     if not items:
@@ -472,7 +472,7 @@ class BZ_OT_motions_load(bpy.types.Operator):
 
 
 class BZ_OT_motions_start(bpy.types.Operator):
-    """Make the motion list from the clips: the standard motions for Idle, Walk, Run, the attacks and so on, to change and add to"""
+    """Make the motion list from the clips: Idle, Walk, Run, the attacks and so on"""
     bl_idname = "bz.motions_start"
     bl_label = "Make the Motion List"
     bl_options = {"REGISTER", "UNDO"}
@@ -516,8 +516,7 @@ class BZ_OT_motions_pick_clip(bpy.types.Operator):
 
 
 class BZ_OT_motions_add_copy(bpy.types.Operator):
-    """Add a motion that starts as a copy of the chosen one: the same speed rule, condition and place in the list. Give it the clip you made, then change its
-    range: where both motions start, the one listed first covers the other"""
+    """Add a motion that starts as a copy of the chosen one, then give it your clip"""
     bl_idname = "bz.motions_add_copy"
     bl_label = "Add Copy"
     bl_options = {"REGISTER", "UNDO"}
@@ -525,12 +524,9 @@ class BZ_OT_motions_add_copy(bpy.types.Operator):
     name: StringProperty(name="Name", description="The new motion's name. Empty: the original's name with a number")
     clip: EnumProperty(name="Clip", items=_clip_items, description="The clip the new motion plays")
     same_parents: BoolProperty(name="Start it wherever the original starts", default=True,
-                               description="Also list it as a child of every motion that lists the original, so it is started there. Off: only "
-                                           "a motion that lists it, or the game's rules starting it by name, start it")
+                               description="Let every motion that starts the original start the copy too")
     on_top: BoolProperty(name="List it before the original", default=False,
-                         description="The motion listed first is on top and covers the other wherever both start. Off: the copy goes after the "
-                                     "original and is seen only where the original does not play (give it another range). On: the copy covers "
-                                     "the original wherever both start")
+                         description="Put the copy above the original, so it plays wherever both could start")
 
     @classmethod
     def poll(cls, context):
@@ -660,7 +656,7 @@ class BZ_OT_motions_play(bpy.types.Operator):
 
 
 class BZ_OT_motions_measure(bpy.types.Operator):
-    """Measure the speed each walking or running clip (a motion whose speed follows Velocity) moves the model at, to set the value it was made for"""
+    """Measure how fast each walk and run clip moves the model, to fill in Made for"""
     bl_idname = "bz.motions_measure"
     bl_label = "Measure Walk and Run Speeds"
     bl_options = {"REGISTER"}
@@ -775,7 +771,7 @@ def draw_motions(layout, context) -> None:
     if t is None or t.state is None:
         return
     state = t.state
-    clips, new, _acts = clip_info(t)
+    clips, new, _acts = clip_info(t, True)
     if not state.loaded:
         from . import autoload
         name = t.holder.name
@@ -793,8 +789,8 @@ def draw_motions(layout, context) -> None:
             _hint(layout, "This blueprint has a motion list with no motions in it, so there is nothing to change here.", "INFO")
         layout.operator("bz.motions_load", text="Load Again", icon="FILE_REFRESH")
         return
-    ren_low = {k.lower(): v for k, v in clip_renames(t).items()}
-    tab = table_as_exported(t, table_of(state))
+    ren_low = {k.lower(): v for k, v in clip_renames(t, True).items()}
+    tab = table_as_exported(t, table_of(state), True)
     layout.template_list("BZ_UL_motions", "", state, "outline", state, "index", rows=6)
     row = layout.row(align=True)
     row.operator("bz.motions_add_copy", text="Add Copy", icon="DUPLICATE")
@@ -859,7 +855,7 @@ def draw_motions(layout, context) -> None:
         how = "the unit travels" if m["how"] == "root" else "the feet on the ground"
         row.label(text=f"{m['clip']}: {m['speed']:.2f} (now {m['now']:.2f}, from {how})")
         row.operator("bz.motions_use_speed", text="Use").node = int(m["node"])
-    known = set(MO.motion_check(table_as_exported(t, baseline_of(state)), clips if t.rig is not None else None))      # what the blueprint had before
+    known = set(MO.motion_check(table_as_exported(t, baseline_of(state), True), clips if t.rig is not None else None))      # what the blueprint had before
     problems = [x for x in MO.motion_check(tab, clips if t.rig is not None else None) if x not in known]
     if problems:
         pb = layout.box()
@@ -871,7 +867,7 @@ def draw_motions(layout, context) -> None:
     unplayed = MO.clips_without_motion(tab, [c for c in clips if c in new])
     for c in unplayed:
         _hint(layout, MC.unplayed_note(c), "ERROR")
-    for ptxt in MC.unstarted_notes(tab, table_as_exported(t, baseline_of(state))):
+    for ptxt in MC.unstarted_notes(tab, table_as_exported(t, baseline_of(state), True)):
         _hint(layout, ptxt, "ERROR")
     if state.message:
         _hint(layout, state.message)
@@ -883,12 +879,13 @@ def idle_clip_of(clips) -> str:
     return low.get("idle1") or low.get("idle") or ""
 
 
+@enumitems.stable
 def _copy_items(self, context):
     """The clips of the model that can be copied (each has an Action on the rig), the idle clip first. With no idle clip the first row asks for a choice."""
     t = _context_target(context)
     names, acts = [], {}
     if t is not None:
-        names, _new, acts = clip_info(t)
+        names, _new, acts = clip_info(t, True)
     have = [c for c in names if c in acts]
     idle = idle_clip_of(have)
     ordered = ([idle] if idle else []) + [c for c in have if c != idle]
@@ -899,6 +896,7 @@ def _copy_items(self, context):
     return _KEEP
 
 
+@enumitems.stable
 def _instead_items(self, context):
     """The motions of the blueprint that play a clip, for 'Play it instead of ...'."""
     t = _context_target(context)
@@ -977,14 +975,13 @@ def give_motion(t: Target, scene, clip: str, how: str, instead: int = -1) -> str
 
 
 class BZ_OT_clip_new(bpy.types.Operator):
-    """Make a new clip (animation) on the rig: a copy of a clip you choose, under a new name, to change and key in the Action Editor. It can also give the clip a motion so the game plays it"""
+    """Copy a clip under a new name, to edit in the Action Editor"""
     bl_idname = "bz.clip_new"
     bl_label = "New Clip"
     bl_options = {"REGISTER", "UNDO"}
 
     name: StringProperty(name="Clip name", default="", options={"SKIP_SAVE"},
-                         description="The name the game knows the clip by. Keep one of the game's names (Idle, Walk, Run, Melee1 ...) to replace that "
-                                     "animation; any other name needs a motion in the Motions box to be played")
+                         description="The clip's name in the game. A game name such as Idle or Walk replaces that animation; any other name needs a motion")
     copy_from: EnumProperty(name="Start from", items=_copy_items, description="The clip the new one starts as a copy of (the idle clip is the usual "
                             "start)")
     then: EnumProperty(name="Who plays it", items=[
@@ -1036,8 +1033,7 @@ class BZ_OT_clip_new(bpy.types.Operator):
             self.report({"ERROR"}, f"There is already a clip or an Action called '{name}'. Choose another name.")
             return {"CANCELLED"}
         if not any(acts.values()) and not list(bz.actions_of(rig)):
-            self.report({"ERROR"}, "The rig has no clip to start from. Borrow Clips... brings clips from another model; "
-                                   "then New Clip copies one of them.")
+            self.report({"ERROR"}, "The rig has no clip to start from. Use Borrow Clips... first.")
             return {"CANCELLED"}
         if not self.copy_from or self.copy_from not in acts:
             self.report({"ERROR"}, "Choose which clip the new one starts from (the idle clip is the usual start).")
@@ -1091,7 +1087,7 @@ class BZ_PT_motions(bpy.types.Panel):
     def draw(self, context):
         t = _context_target(context)
         lay = self.layout
-        n = len(clip_info(t)[0]) if t is not None else 0
+        n = len(clip_info(t, True)[0]) if t is not None else 0
         row = lay.row(align=True)
         row.label(text=f"{n} clips on the rig" if t.rig is not None else "No skeleton, so no clips", icon="ACTION")
         if t.rig is not None:

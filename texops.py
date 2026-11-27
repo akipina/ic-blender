@@ -300,11 +300,14 @@ def cycles_bake(context, src_tmp, tgt, extrusion, ray) -> float:
     settings.apply(extrusion, ray)
     # (Cycles' own clear paints every texel OUTSIDE a UV face opaque black, which would read as a hit: the atlas is
     # pre-filled with alpha 0 instead, a missed ray writes alpha 0, so alpha > 0.5 == a texel that found the source)
-    for o in context.view_layer.objects:
+    layer = context.view_layer
+    was_active = layer.objects.active.name if layer.objects.active is not None else ""
+    was_selected = [o.name for o in layer.objects if o.select_get()]
+    for o in layer.objects:
         o.select_set(False)
     src_tmp.select_set(True)
     tgt.select_set(True)
-    context.view_layer.objects.active = tgt
+    layer.objects.active = tgt
     t = time.perf_counter()
     try:
         over = {"active_object": tgt, "selected_objects": [src_tmp, tgt], "selected_editable_objects": [src_tmp, tgt],
@@ -316,6 +319,14 @@ def cycles_bake(context, src_tmp, tgt, extrusion, ray) -> float:
             raise TransferError(f"the Cycles bake did not finish ({res})")
     finally:
         settings.restore()
+        # the temporary objects go away after this: without this the creature is neither active nor selected and every panel disappears
+        for o in layer.objects:
+            o.select_set(False)
+        for n in was_selected:
+            o = bpy.data.objects.get(n)
+            if o is not None and o.name in layer.objects:
+                o.select_set(True)
+        layer.objects.active = bpy.data.objects.get(was_active) if was_active else None
     return time.perf_counter() - t
 
 
@@ -452,13 +463,12 @@ if bpy is not None:
                 return {"CANCELLED"}
             sculpts = sculptops.sculpts_of(obj)
             if sculpts:
-                self.report({"ERROR"}, f"{obj.name} has a sculpt in progress ({sculpts[0].name}): Refit Patches or "
-                                       "discard it first, the bake must be made on the final surface")
+                self.report({"ERROR"}, f"{obj.name} has a sculpt in progress ({sculpts[0].name}). Refit Patches or "
+                                       "discard it first.")
                 return {"CANCELLED"}
             name = self.source or recorded_source(obj)
             if not name:
-                self.report({"ERROR"}, "Choose a source mesh (the textured mesh to bake from); the creature records "
-                                       "none it was fitted or retargeted from")
+                self.report({"ERROR"}, "Choose a source mesh to bake from. None is recorded for this creature.")
                 return {"CANCELLED"}
             src = bpy.data.objects.get(name)
             if src is None:
@@ -524,13 +534,12 @@ if bpy is not None:
                                              "filled": int(r["filled"]), "scale": float(r["scale"]), "size": size,
                                              "image": r["image"].name, "texture": tex_name}
             if r["coverage"] < 0.5:
-                self.report({"WARNING"}, f"only {100 * r['coverage']:.0f} % of the creature's texels found the source "
-                                         f"within {self.ray:.1f} % of its size: check alignment (Scale to Creature) or "
-                                         "raise the ray distance")
+                self.report({"WARNING"}, f"Only {100 * r['coverage']:.0f} % of the creature's texels found the source "
+                                         f"within {self.ray:.1f} % of its size. Check alignment (Scale to Creature) or "
+                                         "raise Ray Distance.")
             elif r["coverage"] < 0.9:
                 self.report({"WARNING"}, f"{100 * (1 - r['coverage']):.0f} % of the creature's texels found no source "
-                                         f"within {self.ray:.1f} % of its size and were filled from neighbours ({r['low']} "
-                                         f"patch{'es' if r['low'] != 1 else ''} under half covered): raise Ray Distance")
+                                         f"within {self.ray:.1f} % of its size and were filled in from neighbours. Raise Ray Distance.")
             if r["scale"] != 1.0:
                 self.report({"INFO"}, f"{src.name} scaled x{r['scale']:.4f} into the creature's frame for the bake")
             self.report({"INFO"}, line + f"; the creature's texture is now '{r['image'].name}' ({tex_name}); Export "

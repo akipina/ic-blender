@@ -208,8 +208,8 @@ class BZ_OT_create_test_game(bpy.types.Operator):
     directory: StringProperty(name="Put the copy in", subtype="DIR_PATH", default="",
                               description="A new or empty folder outside Steam. Empty uses 'IC Test Game' in your home folder")
     everything: BoolProperty(name="Copy everything (no links)", default=False,
-                             description="Copy the big archives too instead of linking to the original. Slower and about 5 GB larger, "
-                                         "but the copy then does not depend on the original game")
+                             description="Copy the big archives instead of linking to them. Slower and about 5 GB larger, "
+                                         "but independent of the original game")
     wait: BoolProperty(name="Wait", default=False, options={"SKIP_SAVE", "HIDDEN"},
                        description="Do all the work inside this call (for scripts)")
 
@@ -225,7 +225,7 @@ class BZ_OT_create_test_game(bpy.types.Operator):
 
     def draw(self, context):
         lay = self.layout
-        lay.label(text="A private copy of the game to test in. The original is never changed.")
+        lay.label(text="A private copy of the game to test in.")
         lay.prop(self, "directory")
         lay.prop(self, "everything")
         if not available():

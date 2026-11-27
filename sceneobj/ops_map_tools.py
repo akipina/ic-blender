@@ -23,6 +23,7 @@ from . import map_tools as T
 from . import ops_map_export as X
 from . import ops_map_import as M
 from . import panels_blueprint as PB
+from .. import enumitems
 
 ORDER = 64
 
@@ -51,6 +52,7 @@ class BZ_PG_map_bp(bpy.types.PropertyGroup):
     trigger_refs: IntProperty()
 
 
+@enumitems.stable
 def _owner_items(self, context):
     items = [("all", "All entities", "Every placed object"), ("selected", "Selected in the 3D view", "Only the objects selected in the 3D view"),
              ("nature", "Nature", "Trees, rocks, resources and the other nature entities"), ("world", "No player", "Objects that belong to no player")]

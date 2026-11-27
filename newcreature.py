@@ -60,13 +60,24 @@ class BZ_OT_new_creature(bpy.types.Operator, ExportHelper):
         if not path.lower().endswith(".sgm"):
             path += ".sgm"
         try:
-            with open(path, "wb") as f:
+            with open(path, "xb") as f:      # "x": never overwrite an existing creature's source
                 f.write(data)
+        except FileExistsError:
+            self.report({"ERROR"}, f"{os.path.basename(path)} is already there. Pick another name or folder.")
+            return {"CANCELLED"}
         except OSError as e:
             self.report({"ERROR"}, f"Cannot write {path}: {e}")
             return {"CANCELLED"}
-        res = bpy.ops.bz.import_sgm(filepath=path, clips_as_actions=self.clips_as_actions)
+        try:
+            res = bpy.ops.bz.import_sgm(filepath=path, clips_as_actions=self.clips_as_actions)
+        except Exception as e:
+            res = set()
+            self.report({"ERROR"}, f"The new creature could not be opened: {e}")
         if "FINISHED" not in res:
+            try:                              # a file left behind would make a retry say "already there"
+                os.remove(path)
+            except OSError:
+                pass
             return {"CANCELLED"}
         problems = ICval.check_creature_rulebook(model)
         errs = [p for p in problems if p.startswith("ERROR")]

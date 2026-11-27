@@ -14,6 +14,7 @@ refuses on any ERROR unless "Export anyway" is ticked (``panels_blueprint.export
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional
 
@@ -75,20 +76,42 @@ def blueprint_problems(ebp: bytes, sgm: Optional[bytes], *, name_path: str, role
 
 
 # ------------------------------------------------------------------------------------------------------------------ the item folder
-_STOCK_CACHE: dict = {}
+_STOCK_CACHE: dict = {}            # folder -> StockIndex (only a good one is kept for good)
+_STOCK_FAILED: dict = {}           # folder -> stamp of the folder when the index could not be built
+
+
+def _folder_stamp(game_dir: str):
+    """What changes when the game folder is fixed: the dates and sizes of its folder and archives."""
+    try:
+        names = sorted(n for n in os.listdir(game_dir) if n.lower().endswith(".sga"))
+        return (os.path.getmtime(game_dir),) + tuple((n, os.path.getmtime(os.path.join(game_dir, n)), os.path.getsize(os.path.join(game_dir, n)))
+                                                     for n in names)
+    except OSError:
+        return None
 
 
 def stock_index(game_dir: Optional[str]):
-    """The hub's index of the game's archives (cached by folder), or None when there is no game folder or it cannot be read."""
+    """The hub's index of the game's archives (cached by folder), or None when there is no game folder or it cannot be read. A failure is
+    remembered only until the folder changes, so putting the game right is noticed without restarting Blender."""
     if not game_dir:
         return None
-    if game_dir not in _STOCK_CACHE:
-        try:
-            from ICParse.hub import StockIndex
-            _STOCK_CACHE[game_dir] = StockIndex(game_dir)
-        except Exception:                                                 # noqa: BLE001 -- no index: the checks that need the stock tables are skipped
-            _STOCK_CACHE[game_dir] = None
-    return _STOCK_CACHE[game_dir]
+    if game_dir in _STOCK_CACHE:
+        return _STOCK_CACHE[game_dir]
+    stamp = _folder_stamp(game_dir)
+    if game_dir in _STOCK_FAILED and _STOCK_FAILED[game_dir] == stamp:
+        return None
+    try:
+        from ICParse.hub import StockIndex
+        _STOCK_CACHE[game_dir] = StockIndex(game_dir)
+        _STOCK_FAILED.pop(game_dir, None)
+        return _STOCK_CACHE[game_dir]
+    except Exception:                                                     # noqa: BLE001 -- no index: item_problems says the checks were skipped
+        _STOCK_FAILED[game_dir] = stamp
+        return None
+
+
+NO_STOCK_WORDS = ("The game folder could not be read, so the checks that compare this with the game's own files were skipped. "
+                  "Set the Game folder in the add-on's preferences and check again.")
 
 
 def item_problems(files: Dict[str, bytes], label: str, stock=None) -> List[Problem]:
@@ -99,6 +122,8 @@ def item_problems(files: Dict[str, bytes], label: str, stock=None) -> List[Probl
     from ICParse.hub.check import ItemFile
     rep = check_files([ItemFile(p, len(d), (lambda d=d: d)) for p, d in sorted(files.items())], label, stock)
     out = []
+    if stock is None:                                                     # never report "No problems" for a check that skipped part of its work
+        out.append(Problem(WARN, "item", "the game folder", NO_STOCK_WORDS, id="stock.unreadable"))
 
     def add(where, rule, why):
         if rule == "format.scene" or any(p.where == where and p.id == rule for p in out):

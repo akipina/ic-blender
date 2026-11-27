@@ -21,6 +21,7 @@ from . import patchsel
 from . import guards
 from . import store
 from . import combocore
+from . import enumitems
 from . import combopreview
 from . import startops
 from .sceneobj import ui_kit
@@ -140,10 +141,9 @@ class BZ_PT_panel(bpy.types.Panel):
             active = arm.animation_data.action.name if (arm and arm.animation_data and arm.animation_data.action) else None
             rigbox.label(text=f"active: {active}" if active else "active: none (rest pose)", icon="PLAY")
         else:
-            rigbox.label(text="(no animations)")
+            rigbox.label(text="No animations")
         row = rigbox.row(align=True)
         row.operator(ops.BZ_OT_select_rig.bl_idname, icon="RESTRICT_SELECT_OFF")
-        rigbox.label(text="keys show in the Action Editor / Dope Sheet with the rig selected")
         return rigbox
 
     @staticmethod
@@ -224,13 +224,8 @@ class BZ_PT_panel(bpy.types.Panel):
 
             if obj.get("bz_rig"):
                 rigbox = self._rig_box(layout, obj)
-                rigbox.label(text="Actions are the clips: Export writes them", icon="KEYFRAME_HLT")
-                rigbox.label(text="skinning: Boner > Bones (below)", icon="BONE_DATA")
 
             info.prop(obj.data, "use_mirror_x", text="X-Mirror Editing")
-
-            if store.limb_names(obj) or obj.get("bz_rig"):
-                layout.label(text="Limbs, connections and skinning: Boner (below)", icon="GROUP_BONE")
 
             if obj.mode == "EDIT":
                 mb = layout.box()
@@ -262,7 +257,6 @@ class BZ_PT_panel(bpy.types.Panel):
                 r = sel.row(align=True)
                 r.operator(ops.BZ_OT_select_kind.bl_idname, text="Corners").kind = "CORNER"
                 r.operator(ops.BZ_OT_select_kind.bl_idname, text="Handles").kind = "HANDLE"
-                sel.label(text="Face select = patch select (click / box / lasso a patch)", icon="FACESEL")
                 r = sel.row(align=True)
                 r.operator(patchsel.BZ_OT_hide_patches.bl_idname, text="Hide Patches", icon="HIDE_ON")
                 r.operator(patchsel.BZ_OT_unhide_patches.bl_idname, text="Unhide", icon="HIDE_OFF")
@@ -311,7 +305,6 @@ class BZ_PT_panel(bpy.types.Panel):
             sb = layout.box()
             sb.label(text=f"Sculpt of {obj.get(sculptops.KEY_OF)}", icon="SCULPTMODE_HLT")
             sb.label(text=f"density {obj.get(sculptops.KEY_DENSITY)}, {len(obj.data.vertices)} vertices")
-            sb.label(text="Sculpt Mode brushes; Refit writes only the touched patches back", icon="INFO")
             r = sb.row(align=True)
             r.operator(sculptops.BZ_OT_refit_patches.bl_idname, icon="CHECKMARK")
             r.operator(sculptops.BZ_OT_discard_sculpt.bl_idname, text="", icon="X")
@@ -357,7 +350,7 @@ class BZ_PT_boner(bpy.types.Panel):
         s = scene.bz_boner
         arm = store.rig(obj)
         if arm is None or not store.bone_names(obj):
-            layout.label(text="(no rig: skinning needs the creature's armature)", icon="INFO")
+            layout.label(text="No rig, so no skinning", icon="INFO")
             return
         from . import boneops
         row = layout.row(align=True)
@@ -400,7 +393,7 @@ class BZ_PT_boner(bpy.types.Panel):
             r.operator(ops.BZ_OT_skin_select_points.bl_idname, text="Select Points")
             col.operator(ops.BZ_OT_skin_remove.bl_idname, text="Remove from Bone")
         else:
-            col.label(text="(Edit Mode: assign, select and remove points)")
+            col.label(text="Enter Edit Mode to assign points")
         r = layout.row(align=True)
         r.alert = stats.unassigned_used > 0
         r.label(text=f"Unassigned: {stats.unassigned}"
@@ -473,7 +466,7 @@ class BZ_PT_boner(bpy.types.Panel):
             pb.operator_menu_enum(ops.BZ_OT_select_limb.bl_idname, "limb", text="Select Limb")
             pb.operator_menu_enum(ops.BZ_OT_assign_limb.bl_idname, "limb", text="Assign Selected to Limb")
         else:
-            pb.label(text="(Edit Mode: select and assign patches)")
+            pb.label(text="Enter Edit Mode to assign patches")
 
     @staticmethod
     def limb_bones_box(layout, context, obj, t, active):
@@ -492,7 +485,7 @@ class BZ_PT_boner(bpy.types.Panel):
             _alert(col, "none: a limb with no bones means the creature cannot be combined")
         arm = store.rig(obj)
         if arm is None:
-            bb.label(text="(no rig: bone lists name the rig's bones)", icon="INFO")
+            bb.label(text="No rig", icon="INFO")
             return
         row = bb.row(align=True)
         row.operator(limbops.BZ_OT_limb_select_bones.bl_idname, text="Select Bones", icon="RESTRICT_SELECT_OFF")
@@ -554,7 +547,7 @@ class BZ_PT_boner(bpy.types.Panel):
             row.operator_menu_enum(connops.BZ_OT_add_stub_socket.bl_idname, "slot", text="Add Stub Socket",
                                    icon="BONE_DATA")
         else:
-            row.label(text="Add Stub Socket: Edit Mode, select one torso patch's 4 corners", icon="INFO")
+            row.label(text="Add Stub Socket needs Edit Mode", icon="INFO")
         missing = boner.limbs_without_connection([x.limb_id for x in t.limbs.rows], [r.flags2 for r in t.rows])
         if missing:
             _alert(lb, f"no connection: {', '.join(t.limbs.rows[j].name for j in missing[:3])}"
@@ -581,7 +574,6 @@ class BZ_PT_boner(bpy.types.Panel):
                 if f.group == group:
                     op = gr.operator(connops.BZ_OT_conn_flag.bl_idname, text=f.label, depress=bool(word & f.bit))
                     op.index, op.target, op.bit = active, s.conn_target, f.bit
-        cb.label(text="Non-Swappable: a limb box (Boner > Limbs); the connection's copy is ignored on load", icon="INFO")
         hb = layout.box()
         hb.label(text=f"Host bone: {r.bone or '(none)'}", icon="BONE_DATA")
         arm = store.rig(obj)
@@ -605,7 +597,7 @@ class BZ_PT_boner(bpy.types.Panel):
             row.operator(ops.BZ_OT_pick_ring.bl_idname, text="Pick Ring", icon="EYEDROPPER").conn = str(active)
             row.operator(ops.BZ_OT_set_connection_ring.bl_idname, text="From Selection").conn = str(active)
         else:
-            rb.label(text="(Edit Mode: Pick Ring)")
+            rb.label(text="Pick Ring needs Edit Mode")
         row = rb.row(align=True)
         op = row.operator(connops.BZ_OT_optimise_ring_start.bl_idname, text="Optimise Start", icon="FORCE_VORTEX")
         op.index, op.scope = active, "ACTIVE"
@@ -644,7 +636,9 @@ class BZ_PT_combine(bpy.types.Panel):
         obj = context.active_object
         s = scene.bz_combine
         paths = getattr(importlib.import_module(__package__), "PATHS_STATUS", {})
-        st = combocore.status(bpy.path.abspath(s.stock_dir), [d for d in (combopreview.user_stock_dir(),) if d], paths)
+        stock_setting, extra = bpy.path.abspath(s.stock_dir), [d for d in (combopreview.user_stock_dir(),) if d]
+        st = enumitems.recent(("combine status", stock_setting, tuple(extra), id(paths)),            # lists the stock folders: not on every redraw
+                              lambda: combocore.status(stock_setting, extra, paths))
         if st["problems"]:
             box = layout.box()
             for line in st["problems"]:
@@ -666,7 +660,7 @@ class BZ_PT_combine(bpy.types.Panel):
                 if combopreview.indexing(s):
                     col.label(text=f"indexing {st['stock_count']} stock creatures...", icon="TIME")
             else:
-                col.label(text="No stock creatures yet: press Extract Stock Creatures at the top of this panel", icon="INFO")
+                col.label(text="No stock creatures: Extract above", icon="INFO")
             col.prop(s, "stock_dir", text="")
         elif s.other_kind == "OBJECT":
             col.prop(s, "other_object", text="")
@@ -719,7 +713,7 @@ class BZ_PT_combine(bpy.types.Panel):
         if pr is None:
             return
         box = layout.box()
-        if combopreview.is_stale(scene, obj, s):
+        if combopreview.is_stale_drawn(scene, obj, s):
             box.label(text="stale: press Refresh", icon="ERROR")
         box.label(text=pr.header(), icon="MOD_ARRAY" if pr.ok else "ERROR")
         if not pr.ok:

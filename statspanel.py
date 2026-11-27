@@ -27,6 +27,7 @@ from . import combocore
 from . import statscore as SC
 from . import store
 from .sceneobj import ui_kit
+from . import enumitems
 
 KEY_STATS_FROM = "bz_game_stats_from"
 SEARCH_ROWS = 30
@@ -42,6 +43,7 @@ def _sheet_lib():
 _RULE_ITEMS: list = []
 
 
+@enumitems.stable
 def _rules_enum_items(self, context):
     return _rules_items()
 
@@ -78,8 +80,7 @@ class BZ_PG_stats(bpy.types.PropertyGroup):
     search: StringProperty(name="Search", default="", options={"TEXTEDIT_UPDATE"},
                            description="Part of a number's name, such as armour, melee or torso")
     rules: EnumProperty(name="Game build", items=_rules_enum_items, description=(
-        "Which game build's price script works out the rank, cost and build time shown here: the original game, Insect Invasion or Tellurian "
-        "each price a creature their own way. The numbers are written the same whatever you choose; only what this page shows changes"))
+        "Which game build's prices to show for rank, cost and build time. Export is not affected"))
 
 
 def _rules_items():
@@ -110,7 +111,7 @@ def base_numbers(obj):
     """``(lua bytes, plain line)``: the file the creature's numbers start from, the way Export Creature for the Game finds it."""
     from . import gameexport
     from ICParse.hub import package as PK
-    donor = gameexport.find_donor(obj)
+    donor = gameexport.find_donor(obj, fresh=True)
     if donor is not None:
         if donor.lua is None:
             raise Unavailable(f"The original animal {donor.label} has no numbers file, so there is nothing to start from.")
@@ -575,8 +576,7 @@ def register():
     bpy.types.Object.bz_stats = PointerProperty(type=BZ_PG_stats)
     bpy.types.Object.bz_game_stats_from = StringProperty(
         name="Start from animal", default="",
-        description="A creature built from nothing starts its stats, limb scales and events from this stock animal (empty: the cheetah). "
-                    "Choosing another animal reads its numbers and events again (numbers you changed are dropped)",
+        description="The stock animal a new creature takes its stats and events from (empty: cheetah). Changing it resets edited numbers",
         update=_stats_from_changed)
 
 

@@ -21,6 +21,7 @@ from . import map_overlays as OV
 from . import map_paint as P
 from . import ops_map_import as M
 from . import prefs
+from .. import enumitems
 
 ORDER = 63
 
@@ -274,6 +275,7 @@ class BZ_OT_map_paint_visible(bpy.types.Operator):
 
 
 # ---------------------------------------------------------------------------------------------------- overlays
+@enumitems.stable
 def _overlay_items(self, context):
     from ICParse.sgb import overlays
     return [(k, t, d) for k, t, d in overlays.KINDS]
@@ -542,6 +544,7 @@ def decal_pictures(game_dir: str, archive: str = "") -> list:
 _DECAL_ITEMS: list = []
 
 
+@enumitems.stable
 def _decal_items(self, context):
     top = P._x().active_map(context)
     game_dir = prefs.resolve_game_dir(context)[0]
@@ -814,6 +817,7 @@ def blend_tiles_for(top, names) -> list:
     return out
 
 
+@enumitems.stable
 def _tile_items(self, context):
     X = P._x()
     top = X.active_map(context)
