@@ -19,8 +19,7 @@ ones by ``bz_scene_part`` and ``bz_new_part`` (``scene.part_objects``); markers 
 clip is told from a renamed or new one by the Action's stamped source clip (``actions.plan_export``); a material by its stamped
 shader record (``scene_materials``). None of those stamps is rewritten by an export.
 
-Game rule behind the "source changed" check: the engine reads a loose file in ``Data\\`` before the archive's copy
-(``App_SetupFilePathAliases`` IC.exe 0x004034cc, SigmaApp.cpp:2764, "Raw HD Data" priority 500 against ICData.sga 400), so a file written over the
+Game rule behind the "source changed" check: the engine reads a loose file in ``Data\\`` before the archive's copy, so a file written over the
 source is what the game loads next time -- a wrong rebuild is not just a bad export, it is the game's model.
 """
 from __future__ import annotations
@@ -235,10 +234,8 @@ def follow_clips_in_blueprint(ebp_bytes: bytes, plan):
     """``(the blueprint bytes, notes)``: every motion state and event that names a renamed clip points at its new name (ICParse
     ``ebp.clip_refs``); those naming a deleted clip are listed (they play nothing now). The same bytes when no clip was renamed or deleted.
 
-    Game rule: the controller finds a clip by name ignoring case (``AnimList::FindAnim`` AnimList.cpp:113-122) and a motion node whose name
-    finds none plays nothing (``MotionTree::SetAnimList`` MotionTree.cpp:283-288); an event belongs to the clip its ``anim`` names
-    (``AnimEventList::AddEvent`` AnimEvent.cpp:621-640). A clip with a conventional name needs no state of its own (``MotionTree::Build``
-    MotionTree.cpp:350-790 makes one), so renaming or deleting such a clip is reported although no blueprint field names it."""
+    Game rule: the controller finds a clip by name ignoring case and a motion node whose name
+    finds none plays nothing; an event belongs to the clip its ``anim`` names. A clip with a conventional name needs no state of its own (the game makes one), so renaming or deleting such a clip is reported although no blueprint field names it."""
     if plan is None or not ebp_bytes:
         return ebp_bytes, []
     ren, gone = clip_renames(plan)

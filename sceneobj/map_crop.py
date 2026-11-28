@@ -7,7 +7,7 @@ dialogue and NISlet animations that name them); "Crop" then builds the cropped m
 nothing is lost, and the cropped map is saved like any other map. A crop that would break something is refused until "Crop anyway" is on.
 
 The square is centred on the 3D cursor (or on a point you type) and moved to the nearest whole 8 x 8 cell ground-texture block, kept inside
-the map: the editor's crop box does the same with its centre (decompiled: MissionEditor.exe 0x0042fbef, 0x004a0148).
+the map: the editor's crop box does the same with its centre.
 """
 from __future__ import annotations
 

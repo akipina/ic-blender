@@ -1,24 +1,26 @@
-"""The Game panel: export for the game, the test copy, install into it, take items out again, and share.
+"""The Game panel: export for the game, install into the game, take items out again, and share.
 
 The item folder is what the "for the game" exports write (``<out>/<item_id>/data/...``; the export stores it on the scene as
 ``scene["bz_last_item_dir"]``). The work is ICParse's :mod:`ICParse.hub.install`, which copies the item over the game folder the way
-retail installs a Workshop item -- loose files in ``Data\\`` beat the archives (``App/SigmaApp.cpp:2764``, see that module's text for
-every rule and its decompiled source line) -- keeps what it overwrites so **Remove** puts every byte back, writes retail's uninstall
-list, puts aside the game's cached mesh of every model the item carries (Remove puts it back), and adds a new creature's name to the creature
-creator list of every mod (each mod's own list, written in that mod's folder: ``ICParse.hub.install``).
+the game's Workshop installer does -- loose files in ``Data\\`` beat the archives (see that module's text for every rule) -- keeps what
+it overwrites so **Remove** puts every byte back, writes the game's uninstall list, puts aside the game's cached mesh of every model the
+item carries (Remove puts it back), and adds a new creature's name to the creature creator list of every mod (each mod's own list,
+written in that mod's folder: ``ICParse.hub.install``).
+
+The target is the add-on's *Game folder* (``prefs.resolve_game_dir``), or the optional *Install folder* when that is set: another
+copy of the game.  The two "for the game" exports install right after they write when "Install into the game after export" is ticked
+(:func:`install_after_export`).
 
 This module is the buttons and the panel:
 
-* ``bz.install_item`` -- "Install into Test Game": the picked item folder (else the last export) into the *Test game folder* of the
-  add-on's preferences.  **It checks the item first** (:mod:`ICParse.hub.preinstall`: the hub's own validator in plain words, and a basic
+* ``bz.install_item`` -- "Install into Game": the picked item folder (else the last export) into the target folder.
+  **It checks the item first** (:mod:`ICParse.hub.preinstall`: the hub's own validator in plain words, and a basic
   check of its own for effect items, which the hub has no kind for) and refuses an item the game would refuse, with the reasons;
   ``anyway=True`` ("Install Anyway" in the panel) installs it as it is;
 * ``bz.remove_item`` -- "Remove" beside an installed item;
-* ``BZ_PT_game`` -- the "Game" panel in the IC Game tab: which game copy, what is installed, the last export and the NEXT STEP when something
-  is missing (:func:`next_step`), the export buttons (``gameexport.draw_game_export``), the test copy (``gamecopyops``), sharing
-  (``gameshare``) and the items installed.
-
-The target is never the Steam game folder unless the preference "Allow the Steam game folder" is ticked: Steam rewrites that folder.
+* ``BZ_PT_game`` -- the "Game" panel in the IC Game tab: which game folder, what is installed, the last export and the NEXT STEP when
+  something is missing (:func:`next_step`), the export buttons (``gameexport.draw_game_export``), the progress of a game copy
+  (``gamecopyops``), sharing (``gameshare``) and the items installed.
 """
 from __future__ import annotations
 
@@ -32,10 +34,10 @@ from bpy.props import BoolProperty, StringProperty
 
 from .sceneobj import prefs, ui_kit
 from . import enumitems
-from . import gamecopyops, gameshare           # Create Test Game Copy, Pack for Sharing / Install From Zip (their own modules; their classes are registered with ours)
+from . import gamecopyops, gameshare           # Make a Separate Game Copy, Pack for Sharing / Install From Zip (their own modules; their classes are registered with ours)
 
 KEY_LAST_ITEM = "bz_last_item_dir"          # scene["bz_last_item_dir"]: the item folder of the last "for the game" export (the contract)
-_STATE_CACHE: dict = {}                      # test game folder -> (stamp, [InstalledItem]) so a redraw does not read the folder each time
+_STATE_CACHE: dict = {}                      # target folder -> (stamp, [InstalledItem]) so a redraw does not read the folder each time
 _LAST_CHECK: dict = {"folder": "", "check": None}      # the pre-install check that refused the item picked now (the panel shows it, with Install Anyway)
 
 
@@ -52,35 +54,23 @@ def installer_available() -> bool:
 
 
 # ---- what the buttons act on -------------------------------------------------------------------------------------------------------
-def test_game_folder(context=None):
-    """The Test game folder preference as an existing folder, else None."""
-    return prefs.resolve_test_game_dir(context)
-
-
-def allow_steam(context=None) -> bool:
-    return bool(getattr(prefs.get(context), "allow_steam_install", False))
-
-
-def protected_folders(context=None) -> list:
-    """The folders that are the original game (the add-on's Game folder setting): never an install target without the explicit box."""
-    try:
-        folder = prefs.resolve_game_dir(context)[0]
-    except Exception:                                  # a preferences page that cannot answer must not stop the install guard
-        folder = None
-    return [folder] if folder else []
+def target_folder(context=None):
+    """The folder items are installed into, as an existing folder, else None: the Install folder preference when it is set (another copy
+    of the game), else the Game folder."""
+    return prefs.resolve_install_dir(context)[0]
 
 
 def target_problem(context=None):
     """Why nothing can be installed now (plain words), else None."""
     if not installer_available():
         return "Part of this add-on is out of date, so it cannot install. Install the newest version of the add-on."
-    folder = test_game_folder(context)
+    folder = target_folder(context)
     raw = (getattr(prefs.get(context), "test_game_dir", "") or "").strip()
     if folder is None:
         if raw:
-            return f"The Test game folder {raw} does not exist. Fix it in the add-on's preferences."
-        return "No Test game folder is set. Make a copy of the game and set it in the add-on's preferences (Test game folder)."
-    return _install().game_folder_problem(folder, allow_steam(context), protected_folders(context))
+            return f"The install folder {raw} does not exist. Fix it in the add-on's preferences."
+        return "No game folder found. Set the Game folder in the add-on's preferences."
+    return _install().game_folder_problem(folder)
 
 
 def project_holder(obj):
@@ -160,14 +150,14 @@ class Outcome:
 
 
 def install_folder(context, folder: str, anyway: bool = False) -> Outcome:
-    """Check ``folder`` and install it into the Test game folder.  A refused item is not installed unless ``anyway``; the check is
+    """Check ``folder`` and install it into the target folder.  A refused item is not installed unless ``anyway``; the check is
     kept for the panel (:func:`last_check`)."""
     problem = target_problem(context)
     if problem:
         return Outcome(False, problem)
     if not folder or not os.path.isdir(folder):
         return Outcome(False, "No item folder yet: export the project for the game first, or pick an item folder in the Game panel.")
-    game = test_game_folder(context)
+    game = target_folder(context)
     mod = _install()
     chk = check_folder(folder, game)
     _LAST_CHECK.update(folder=folder, check=chk)
@@ -176,7 +166,7 @@ def install_folder(context, folder: str, anyway: bool = False) -> Outcome:
         return Outcome(False, "The game would not take this item as it is, so nothing was installed. " + " ".join(shown) +
                        " Fix this and export again, or press Install Anyway in the Game panel to install it as it is.", check=chk)
     try:
-        res = mod.install_item(folder, game, allow_steam=allow_steam(context), protect=protected_folders(context))
+        res = mod.install_item(folder, game)
     except mod.InstallError as e:
         return Outcome(False, str(e), check=chk)
     except OSError as e:                              # a full disk, a file in use: the install undid itself where it could
@@ -203,6 +193,22 @@ def install_folder(context, folder: str, anyway: bool = False) -> Outcome:
     return Outcome(True, text, extra, chk, res, chk.notes[:2] if chk is not None else ())
 
 
+def install_after_export(context, item_dir: str) -> list:
+    """What the two "for the game" exports do when "Install into the game after export" is ticked: the same check and install as
+    ``bz.install_item``.  Returns ``(level, text)`` lines to report.  The export has succeeded either way: when the install cannot happen
+    (no game folder, the check refuses) the one line says why nothing was installed."""
+    try:
+        out = install_folder(context, item_dir)
+    except Exception as e:                            # noqa: BLE001 -- the export is done; a failing install is a line, never a traceback
+        return [("WARNING", f"Not installed: {type(e).__name__}: {e}")]
+    if out.ok:
+        return ([("INFO", out.text)] + [("WARNING", ui_kit.plain(n)) for n in out.warnings] +
+                [("INFO", ui_kit.plain(n)) for n in out.infos])
+    if out.check is not None and not out.check.ok:
+        return [("WARNING", "Not installed: the check found problems. The Game panel lists them.")]
+    return [("WARNING", "Not installed: " + out.text)]
+
+
 def last_check(folder: str):
     """The refused check of ``folder`` that the panel shows, else None."""
     c = _LAST_CHECK.get("check")
@@ -211,9 +217,9 @@ def last_check(folder: str):
 
 # ---- operators -----------------------------------------------------------------------------------------------------------------------
 class BZ_OT_install_item(bpy.types.Operator):
-    """Check the exported item, then copy it into the Test game folder"""
+    """Check the exported item, then copy it into the game folder"""
     bl_idname = "bz.install_item"
-    bl_label = "Install into Test Game"
+    bl_label = "Install into Game"
     bl_options = {"REGISTER"}
 
     item_dir: StringProperty(name="Item folder", subtype="DIR_PATH", default="",
@@ -236,7 +242,7 @@ class BZ_OT_install_item(bpy.types.Operator):
 
 
 class BZ_OT_remove_item(bpy.types.Operator):
-    """Take an installed item out of the Test game folder and put back what it replaced"""
+    """Take an installed item out of the game folder and put back what it replaced"""
     bl_idname = "bz.remove_item"
     bl_label = "Remove"
     bl_options = {"REGISTER"}
@@ -244,7 +250,7 @@ class BZ_OT_remove_item(bpy.types.Operator):
     item_id: StringProperty(name="Item", default="", description="The installed item to remove")
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_confirm(self, event, title=f"Remove '{self.item_id}' from the Test game?",
+        return context.window_manager.invoke_confirm(self, event, title=f"Remove '{self.item_id}' from the game?",
                                                      message="Its files are deleted and every file it replaced is put back.")
 
     def execute(self, context):
@@ -252,10 +258,10 @@ class BZ_OT_remove_item(bpy.types.Operator):
         if problem:
             self.report({"ERROR"}, problem)
             return {"CANCELLED"}
-        game = test_game_folder(context)
+        game = target_folder(context)
         mod = _install()
         try:
-            res = mod.remove_item(game, self.item_id, allow_steam=allow_steam(context), protect=protected_folders(context))
+            res = mod.remove_item(game, self.item_id)
         except mod.InstallError as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}
@@ -271,9 +277,9 @@ class BZ_OT_remove_item(bpy.types.Operator):
 
 
 class BZ_OT_open_preferences(bpy.types.Operator):
-    """Open this add-on's preferences (Test game folder)"""
+    """Open this add-on's preferences (Game folder)"""
     bl_idname = "bz.open_game_preferences"
-    bl_label = "Set Test Game Folder"
+    bl_label = "Set Game Folder"
 
     def execute(self, context):
         try:
@@ -310,7 +316,7 @@ def _when(path: str) -> str:
 
 
 def copy_info(folder):
-    """What the add-on knows about a test copy it made (``ICParse.hub.gamecopy.test_copy_info``), else None."""
+    """What the add-on knows about a separate game copy it made (``ICParse.hub.gamecopy.test_copy_info``), else None."""
     try:
         return importlib.import_module("ICParse.hub.gamecopy").test_copy_info(folder) if folder else None
     except ImportError:
@@ -318,21 +324,19 @@ def copy_info(folder):
 
 
 def next_step(context) -> str:
-    """The one next thing to do, in a plain sentence, from the first thing that is missing: a game folder, a test copy, an export, an
-    install, then starting the game.  '' when nothing is missing and the item is installed."""
-    folder = test_game_folder(context)
-    if folder is None:
-        if gamecopyops.source_folder(context) is None:
-            return "Next: set the Game folder (the one with IC.exe) in Edit > Preferences > Add-ons > IC Blender."
-        return "Next: press Create Test Game Copy."
-    if target_problem(context):
-        return "Next: fix the Test game folder above, or press Create Test Game Copy."
+    """The one next thing to do, in a plain sentence, from the first thing that is missing: a game folder, an export, an install, then
+    starting the game.  '' when nothing is missing and the item is installed."""
+    folder = target_folder(context)
+    if folder is None or target_problem(context):
+        if (getattr(prefs.get(context), "test_game_dir", "") or "").strip():
+            return "Next: fix the Install folder in Edit > Preferences > Add-ons > IC Blender."
+        return "Next: set the Game folder (the one with IC.exe) in Edit > Preferences > Add-ons > IC Blender."
     item = item_folder(context)
     if not item or not os.path.isdir(item):
         return f"Next: export your project ({_export_button(context)}, step 2 above)."
     name = os.path.basename(os.path.normpath(item))
     if name not in {i.item_id for i in installed(folder) if not i.foreign}:
-        return f"Next: press Install into Test Game to install '{name}'."
+        return f"Next: press Install into Game to install '{name}'."
     start = f"Next: run IC.exe in {folder}. Close the game first if it is running."
     hidden = _new_name_words(context, item)
     return f"{start} {hidden}" if hidden else start
@@ -403,7 +407,7 @@ def draw_check_step(layout, context) -> None:
 
 
 def draw_game(layout, context) -> None:
-    """The contents of the Game panel, in the order a modder works: 1. Check, 2. Export for the Game, 3. Install into Test Game, 4. Share
+    """The contents of the Game panel, in the order a modder works: 1. Check, 2. Export for the Game, 3. Install into Game, 4. Share
     (a function so a test can draw it into a fake layout)."""
     draw_check_step(layout, context)
     gameexport = _optional("gameexport")
@@ -425,30 +429,27 @@ def draw_game(layout, context) -> None:
         ui_kit.alert(ebox, "Select something to export.", icon="INFO", width=62)
 
     box = layout.box()
-    box.label(text="3. Install into Test Game", icon="PLAY")
+    box.label(text="3. Install into Game", icon="PLAY")
     problem = target_problem(context)
-    folder = test_game_folder(context)
+    folder = target_folder(context)
     gamecopyops.draw_copy(box, context)
     item = item_folder(context)
     have_item = bool(item) and os.path.isdir(item)
 
-    # which game copy
+    # which game folder
     if folder is None:
         ui_kit.alert(box, problem)
-        box.operator(gamecopyops.BZ_OT_create_test_game.bl_idname, icon="DUPLICATE")
         box.operator(BZ_OT_open_preferences.bl_idname, icon="PREFERENCES")
     else:
         box.label(text=folder, icon="FILE_FOLDER")
         info = copy_info(folder)
         if info is not None and not info.get("complete", True):
-            ui_kit.alert(box, "This copy was not finished. Delete the folder and press Create Test Game Copy again.")
+            ui_kit.alert(box, "This copy was not finished. Delete the folder and make the copy again in the preferences.")
         elif info is not None:
             box.label(text=f"A copy of the game made here on {str(info.get('made', ''))[:10]}")
-        elif not problem:
-            box.label(text="A folder you set yourself.")
         if problem:
             ui_kit.alert(box, problem)
-            box.operator(gamecopyops.BZ_OT_create_test_game.bl_idname, icon="DUPLICATE")
+            box.operator(BZ_OT_open_preferences.bl_idname, icon="PREFERENCES")
 
     # the last export, and what Install would take
     box.prop(context.scene, "bz_item_dir", text="Item folder")
@@ -505,7 +506,7 @@ def _optional(name: str):
 
 
 class BZ_PT_game(bpy.types.Panel):
-    """Export for the game, install into the Test game folder, and see what is installed"""
+    """Export for the game, install into the game folder, and see what is installed"""
     bl_label = "Game"
     bl_idname = "BZ_PT_game"
     bl_space_type = "VIEW_3D"

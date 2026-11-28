@@ -43,14 +43,13 @@ GONE = "\x00gone"
 
 def live_skeleton(obj) -> SourceSkeleton:
     """The skeleton EXPORT WRITES, which is what a limb bone list names: the source's bones under their current rig
-    names, without the ones deleted on the rig, re-parented as the rig has them, plus the bones added on the rig (C8).
+    names, without the ones deleted on the rig, re-parented as the rig has them, plus the bones added on the rig.
 
     Slot ``i < n_src`` stays source bone ``i`` under its FILE name (a deleted one becomes :data:`GONE`, parented to
     nothing) -- that is what a stored row names it by, and the export applies the renames -- and an added bone sits at
     its owner key under the name its Add Bone stamp holds (``AddedBone.listed_as``, what the stored rows use), so an
     owner key still indexes the list. Falls back to the source's skeleton with a ``note`` when the rig cannot be read --
-    never silently. Before fit-to-rig (2026-09-16) the limb operators read :func:`source_skeleton`, so a bone C8 had
-    added was "not a bone of this creature's skeleton" to all of them."""
+    never silently."""
     base = source_skeleton(obj)
     arm = store.rig(obj)
     if arm is None:
@@ -465,12 +464,12 @@ class BZ_OT_add_standard_limb(bpy.types.Operator):
         t = _table_for_edit(self, obj)
         if t is None:
             return {"CANCELLED"}
-        sk = live_skeleton(obj)                          # a bone C8 added can root a limb (fit-to-rig)
+        sk = live_skeleton(obj)                          # a bone added on the rig can root a limb
         if sk.note:
             self.report({"WARNING"}, sk.note)
         root = next((b for b in sk.names if b != GONE and b.lower() == std.root.lower()), None)
         at = next((i for i, bl in enumerate(t.bones) if root and root.lower() in {b.lower() for b in bl}), None)
-        # A bone C8 added sits in its parent's limb by the rule, not by anyone's choice, so the new limb simply takes
+        # A bone added on the rig sits in its parent's limb by the rule, not by anyone's choice, so the new limb simply takes
         # it (a source bone stays the user's to move first: its limb IS a choice). The donor may not go boneless.
         take = at is not None and root in sk.added and len(t.bones[at]) > 1
         why = boner.standard_root_refusal(std, root, None if take else (t.rows[at].name if at is not None else None))
@@ -631,7 +630,7 @@ def not_a_bone_message(obj, name) -> str:
         bone = next((b for b in arm.data.bones if b.name.lower() == str(name).lower()), None)
         sk = rig.rig_skeleton(arm) if bone is not None and bone.get(rig.KEY_BONE_UID) is None else None
         if bone is not None and (bone.get(rig.KEY_BONE_UID) is not None or (sk is not None and bone.name in sk.added_names)):
-            # An added bone IS addressable now (fit-to-rig): it is only refused while the creature has not adopted it,
+            # An added bone IS addressable: it is only refused while the creature has not adopted it,
             # so the export has no owner key for it and no limb list can name it.
             return (f"'{bone.name}' is a bone Blender added that the creature has not adopted yet, so the export has no "
                     "name for it: Boner > Bones > Adopt Added Bones first (Add Bone stamps its own bones)")
@@ -842,7 +841,7 @@ _ROOT_ITEMS: list = []
 @enumitems.stable
 def _root_items(self, context):
     """Set Root Bone's list: every bone the export writes (``live_skeleton``: the source's by file name and the bones
-    C8 added by their stamp name; the label shows the rig's name when it differs)."""
+    added on the rig by their stamp name; the label shows the rig's name when it differs)."""
     global _ROOT_ITEMS
     obj = context.active_object if context else None
     items = []

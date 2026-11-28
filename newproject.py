@@ -78,9 +78,9 @@ def game_dir_line(context=None) -> str:
         return f"Game folder: {folder}" if folder else "No game folder found: set the IC_INSTALL environment variable."
 
 
-# The game's own archives (the Steam release: base game, Insect Invasion, Tellurian, Dino Dawn). Every other .sga in the game folder
-# belongs to a mod (a SonicMod_tails.sga, ...): its models are not the game's and are not offered as starting points.
-STOCK_ARCHIVES = ("engine.sga", "icdata.sga", "insectdata.sga", "telluriandata.sga", "dinodawndata.sga")
+# The game's own archives (base game, Insect Invasion, Tellurian). Every other .sga in the game folder belongs to a mod: its
+# models are not the game's and are not offered as starting points.
+STOCK_ARCHIVES = ("engine.sga", "icdata.sga", "insectdata.sga", "telluriandata.sga")
 
 
 def game_archives(context=None, stock_only: bool = True) -> list:

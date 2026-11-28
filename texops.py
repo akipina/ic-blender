@@ -19,8 +19,8 @@ except ImportError:                                    # the venv tests import t
 
 from . import core, material, store
 
-MAX_SIZE = 2048            # the most this tool writes (the pillbug's 2048 atlas loaded in the Object Editor)
-BASE_GAME_MAX = 256        # the largest texture on the 61 base-game creatures (444 measured)
+MAX_SIZE = 2048            # the most this tool writes
+BASE_GAME_MAX = 256        # the largest texture on the 61 base-game creatures
 STOCK_MAX = 1024           # the largest in the wider stock folder (3 hand-made creatures; 512 x 512 otherwise)
 MIN_SIZE = 64
 SIZES = [("256", "256 (base-game max)", ""), ("512", "512", ""), ("1024", "1024", ""), ("2048", "2048", "")]

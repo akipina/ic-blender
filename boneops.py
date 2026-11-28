@@ -234,7 +234,7 @@ class BZ_OT_rename_bone(bpy.types.Operator):
 CLASSES = (BZ_OT_rename_bone,)
 
 
-# ------------------------------------------------------------------------------------------------ Add Bone (B7)
+# ------------------------------------------------------------------------------------------------ Add Bone
 # A bone added to the rig exports as a new BONE record (``structure.insert_added_bones``: before the stub bones, bind-local
 # from its rest, flags and colour from its parent). Identity: the bone's ``rig.KEY_BONE_UID`` stamp, listed in the
 # creature's journaled new-bone table (``store.KEY_BONE_NEW``); control points skinned to it hold owner key n_src + j.
@@ -588,7 +588,7 @@ class BZ_OT_adopt_bones(bpy.types.Operator):
                                         chains=True, src_stubs=stubs)
         todo = [ra.name for ra, _k, _p, d in _rows if d]
         if not todo:
-            # C8.3: leaves and chains Blender adds are taken at export by themselves; what is left is ambiguous, and
+            # leaves and chains Blender adds are taken at export by themselves; what is left is ambiguous, and
             # each bone is named with why (copies of a source bone, copies of an added bone, bones under a stub bone)
             self.report({"ERROR"} if bad else {"WARNING"},
                         "no added bone to adopt: every bone Blender added is taken by Export as it is" + (
@@ -617,7 +617,7 @@ class BZ_OT_adopt_bones(bpy.types.Operator):
 CLASSES = CLASSES + (BZ_OT_add_bone, BZ_OT_adopt_bones)
 
 
-# ------------------------------------------------------------------------------------------------ C8: delete / re-parent
+# ------------------------------------------------------------------------------------------------ delete / re-parent
 # A source bone deleted or re-parented in the rig's Edit Mode (X / Ctrl+P / the Outliner) exports (``topology``): the
 # BONE record dropped or its parent index rewritten, the bind world kept, points of a deleted bone on its parent, limb
 # lists, connection hosts, IK chains and kept clips' tracks following. The rules (``topology.topology_refusals``) run in

@@ -1,8 +1,7 @@
 """Pure helpers of the start lane (no bpy, so the tests and the validator can use them): where a project lives, what its
 blueprint wires, whether a relinked source file is the one the object was built on.
 
-* clip wiring: ``ICParse.sgm.creature.clips`` says which clip names the game plays (MotionTree::Build, decomp
-  ``Shared/Cross/RenderAnim/MotionTree.cpp:350``); :func:`clip_lines` applies it to a creature and the ``.ebp`` beside its
+* clip wiring: ``ICParse.sgm.creature.clips`` says which clip names the game plays; :func:`clip_lines` applies it to a creature and the ``.ebp`` beside its
   ``.sgm`` (the donor blueprint a project started from a stock animal carries).
 * project folder: work is never written into the temp folder. :func:`project_dir` is the folder of the saved ``.blend``, else
   a folder of Blender's user data; :func:`unique_path` never reuses a name.
@@ -67,7 +66,7 @@ def blueprint_refs(source_path: str) -> Optional[List[str]]:
 def clip_lines(model, source_path: str = "") -> List[str]:
     """``WARN`` lines about clips the game will not play (``clips.clip_warnings``: the gates of MotionTree::Build, the blueprint's
     own nodes, a trailing ``.max`` ignored as the loader does), and about nodes of the blueprint beside the source whose clip the
-    creature no longer has (the node then plays nothing: MotionTree::SetAnimList, MotionTree.cpp:283)."""
+    creature no longer has (the node then plays nothing)."""
     from ICParse.sgm.creature import clips
     names = [a.name for a in model.animations]
     wiring = blueprint_wiring(source_path) if source_path else None

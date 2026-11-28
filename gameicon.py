@@ -1,16 +1,15 @@
 """The combiner icon of a creature, made from the creature itself (Export Creature for the Game, when no icon was chosen).
 
-Every creature exported for the game used to show its donor's picture in the creature creator, and "Icon from this view" needs an open 3D
+A creature exported for the game would otherwise show its donor's picture in the creature creator, and "Icon from this view" needs an open 3D
 view. This renders the creature from a standard three-quarter view instead, with no view open: the creature's surface is baked as Bake
 Textured Mesh does it (the game's own surface, skin and shading), put in a scene of its own and drawn by Blender's Workbench renderer on a
 transparent background, then laid on the dark-to-olive gradient the stock icons have and averaged down to the icon's 64 x 64.
 
-What the game reads (decompiled, ``decomp/ic/src``): a creature's icon is the paletted image in its blueprint (``BlueprintHeader::Load``
-``EntityBlueprint.cpp:860-889``, ``Image_Palette::Load`` ``Shared/Cross/RenderAnim/Image.cpp:1152``: width, height, the rows as they come,
+What the game reads: a creature's icon is the paletted image in its blueprint (``BlueprintHeader::Load``, ``Image_Palette::Load``: width, height, the rows as they come,
 256 palette entries); the creature creator draws it as it is, and for a creature the player combines it takes a 64 x 64 picture of the screen
-(``CombinerCL::TakePicture`` ``ArmyBuilder/CombinerCL.cpp:709-765``: opaque RGB, each icon pixel the average of 2 x 2 screen pixels). So the
+(``CombinerCL::TakePicture``: opaque RGB, each icon pixel the average of 2 x 2 screen pixels). So the
 icon is an OPAQUE 64 x 64 picture; ``ICParse.ebp.Ebp.set_icon_from_image`` stores it the way the stock icons are stored (rows bottom-up,
-palette alpha 255; the stock animals' 61 icons, measured).
+palette alpha 255).
 
 Needs Blender's renderer (a GPU or a software GL): when it cannot render, :func:`render_icon` returns ``None`` and a plain reason, and the
 export keeps the donor's picture and says so.
@@ -26,7 +25,7 @@ import numpy as np
 SIZE = 64                  # the icon's size (every stock icon, BlueprintHeader icon)
 RENDER = 256               # rendered at 4 x the icon and averaged down
 TOP = (34, 15, 2)          # the stock icons' background: dark brown at the top of the picture ...
-BOTTOM = (79, 71, 30)      # ... to olive at the bottom (measured on the 61 stock icons)
+BOTTOM = (79, 71, 30)      # ... to olive at the bottom
 AZIMUTH, ELEVATION = 35.0, 18.0     # degrees: a three-quarter view from the front and the creature's left, a little above
 
 

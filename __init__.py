@@ -21,7 +21,7 @@ import bpy
 bl_info = {
     "name": "IC Blender",
     "author": "pyIC",
-    "version": (0, 9, 3),
+    "version": (0, 9, 5),
     "blender": (5, 3, 0),
     "location": "View3D > Sidebar > IC; File > New, Import and Export",
     "description": "Make and edit Impossible Creatures models and maps: creatures, gatherers, characters, buildings, props and maps",
@@ -219,7 +219,7 @@ from . import (core, boner, fastsurf, material, texdraw, rig, actions, limbs, st
                ikops, newcreature, newproject, edittools, sculptops, fitops, retargetops, landmarkops, texops, topoops,
                trimops, gnsurface, guards, combopreview, startcheck, startops, gameexport, gamecopyops, gameshare, gameinstall, fxcore, fxbake, fxpanel, fxpreview, motionscore, motionspanel, clipborrow, sceneobj, ui)
 
-from . import hardedges  # noqa: E402  (round 2, r2shape: Mark Sharp edges and material slots -> smoothing groups and materials)
+from . import hardedges  # noqa: E402  (Mark Sharp edges and material slots -> smoothing groups and materials)
 
 # reload order = dependency order (every add-on module must be listed, or an in-place reinstall runs stale code).
 # External packages (ICParse, combotest) are not reloaded: restart Blender after editing them.
@@ -228,7 +228,7 @@ _MODULES = (structure, topology, core, boner, fastsurf, material, texdraw, rig, 
             patchrules, patchsel, patchfeel, build, scene, scene_damage, scenesafety, scenecheck, draw, gnsurface, props, ops, limbops, connops, boneops,
             ikops, newcreature, newproject, edittools, sculptops, fitops, retargetops, landmarkops, texops, topoops, trimops,
             guards, combopreview, startcheck, startops, gameexport, gamecopyops, gameshare, gameinstall, fxcore, fxbake, fxpanel, fxpreview, motionscore, motionspanel, clipborrow, sceneobj, ui)
-_MODULES = (*_MODULES[:-2], hardedges, *_MODULES[-2:])      # r2shape: after the modules it builds on, before the scene objects and ui
+_MODULES = (*_MODULES[:-2], hardedges, *_MODULES[-2:])      # after the modules it builds on, before the scene objects and ui
 
 
 def _reload():
@@ -250,12 +250,12 @@ _CLASSES = (*ops.CLASSES, *limbops.CLASSES, *connops.CLASSES, *boneops.CLASSES, 
             *texops.CLASSES, *patchfeel.CLASSES, *patchsel.CLASSES, *topoops.CLASSES, *trimops.CLASSES,
             *gnsurface.CLASSES, *combopreview.CLASSES, *startops.CLASSES, *gameexport.CLASSES, *ui.CLASSES, *gameinstall.CLASSES, *scene_damage.CLASSES, *fxpanel.CLASSES, *fxpreview.CLASSES, *motionspanel.CLASSES, *clipborrow.CLASSES)
 
-# --- r2stats: the Creature Stats panel (statspanel.py) -- its module, classes and Object.bz_stats
+# --- the Creature Stats panel (statspanel.py) -- its module, classes and Object.bz_stats
 from . import statscore, statspanel  # noqa: E402
 _MODULES = _MODULES[:-2] + (statscore, statspanel) + _MODULES[-2:]
 _CLASSES = _CLASSES + tuple(statspanel.CLASSES)
-# --- end r2stats
-_CLASSES = (*_CLASSES, *hardedges.CLASSES)                # r2shape
+# --- end of the Creature Stats panel
+_CLASSES = (*_CLASSES, *hardedges.CLASSES)
 
 
 def register():
@@ -266,20 +266,20 @@ def register():
     for cls in _CLASSES:
         bpy.utils.register_class(cls)
     fxpanel.register()                    # Object.bz_fx: the Effects panel's events and effect rows
-    statspanel.register()                 # Object.bz_stats: the Creature Stats panel's rows (r2stats)
+    statspanel.register()                 # Object.bz_stats: the Creature Stats panel's rows
     motionspanel.register()               # Object.bz_motions: the Motions box's rows
     bpy.types.TOPBAR_MT_file_import.append(ops.menu_import)
     bpy.types.TOPBAR_MT_file_export.append(ops.menu_export)
-    # (the Add menu entry newcreature.menu_add is not offered since the round 2 tidy: the IC Model tab has the same button)
+    # (the Add menu entry newcreature.menu_add is not offered: the IC Model tab has the same button)
     bpy.types.TOPBAR_MT_file_new.append(newproject.menu_new)
     draw.register()
     ops.register_handlers()
-    guards.register_handlers()            # D10: the export refusals checked at action time (depsgraph_update_post)
+    guards.register_handlers()            # the export refusals checked at action time (depsgraph_update_post)
     combopreview.register_handlers()
     topoops.register_macros()             # the drag macros' steps (the tool, then Blender's translate)
     patchsel.register_keymap()            # X / Delete, H, Shift+H, Alt+H on a creature in Edit Mode
-    patchsel.register_handlers()          # corner quads for creatures saved before B6
-    gnsurface.register_handlers()         # D9: keep the evaluated surface's face tables with the topology
+    patchsel.register_handlers()          # corner quads for creatures saved without them
+    gnsurface.register_handlers()         # keep the evaluated surface's face tables with the topology
     sceneobj.register()                   # last: its classes, then every module's own register() hook (sceneobj/__init__.py)
 
 
@@ -303,7 +303,7 @@ def _unregister_creature():
     bpy.types.TOPBAR_MT_file_import.remove(ops.menu_import)
     motionspanel.unregister()
     fxpanel.unregister()
-    statspanel.unregister()               # r2stats
+    statspanel.unregister()
     for cls in reversed(_CLASSES):
         bpy.utils.unregister_class(cls)
     gameinstall.unregister()

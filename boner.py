@@ -213,8 +213,8 @@ def stub_bones(model) -> np.ndarray:
 
 def end_site_bones(names) -> np.ndarray:
     """(B,) True for end-site bones: a name token (split at ``_``, space, ``.``, ``-``) starting with ``end`` -- Relic's
-    names for the end of a chain (endjaw, endtail, endear_l, front_endleg_r, rear_endfoot_l, endwing_r). Measured: the
-    611 such bones of the 61 base-game creatures own no control points, so Auto Skin never gives them any. (Tellurian
+    names for the end of a chain (endjaw, endtail, endear_l, front_endleg_r, rear_endfoot_l, endwing_r). On the
+    base-game creatures such bones own no control points, so Auto Skin never gives them any. (Tellurian
     add-on creatures do skin to them and load: it is Relic's convention, not an engine rule.)"""
     return np.array([any(t.startswith("end") for t in _TOKENS.split(str(n).lower())) for n in names], dtype=bool)
 
@@ -249,9 +249,9 @@ def skin_stats(owners, n_bones, patches=None, blended=0) -> SkinStats:
 
 
 # --------------------------------------------------------------------------------------------- Limbs sub-mode
-# Boner's Limb Options checkboxes (Boner.dlm table 0x10032138: {control id, bits to set, bits to clear}). Ticking a box
+# Boner's Limb Options checkboxes (Boner.dlm's table: {control id, bits to set, bits to clear}). Ticking a box
 # sets its bit and clears the other boxes of its group, so each group holds at most one bit; Non-Swappable stands alone.
-# The Connection Options dialog has the same boxes (B3).
+# The Connection Options dialog has the same boxes.
 NOSWAP = 0x800000
 CLASS_MASK = 0xFF7FFFFF                 # the class the OE and the combiner match: the id without Non-Swappable
 
@@ -326,7 +326,7 @@ def class_label(limb_id) -> str:
 class StandardLimb:
     suffix: str
     limb_id: int                # the id Add Standard Limb gives (stock mid legs also carry Non-Swappable)
-    root: str                   # the typical root bone (RULES.md 2.1)
+    root: str                   # the typical root bone
     need: str                   # "patches" (OE: required with patches), "stub" (required, may be a stub), "optional"
 
 
@@ -355,8 +355,8 @@ def missing_standard(limb_ids):
 def standard_root_refusal(std, root, owner) -> Optional[str]:
     """Why Add Standard Limb can't add ``std`` (a :class:`StandardLimb`), or None. ``root``: the skeleton's bone matching
     ``std.root`` ignoring case (None when absent); ``owner``: the limb already listing it (None when free). A limb needs a
-    bone: with none the engine's model loader reports 'limbs are boneless!' and ComboTest.exe does not take the creature
-    (harness-verified), so a boneless stub is never made."""
+    bone: with none the engine's model loader reports 'limbs are boneless!' and ComboTest.exe does not take the creature,
+    so a boneless stub is never made."""
     tail = ("a limb with no bones is an error in the game's model loader, and the creature cannot be combined")
     if root is None:
         return (f"the skeleton has no bone '{std.root}' for the {class_label(std.limb_id)} limb's root: add it first (Boner "
@@ -487,9 +487,9 @@ def limb_status(index, limb_ids, patch_count, bone_count) -> str:
 
 
 # --------------------------------------------------------------------------------------------- limb bone lists
-# Which bones swap with each limb (Boner's "select the bones of each limb"). Measured on the base-game creatures
-# (wf11 RULES.md 3): every non-torso limb is ONE subtree -- its root plus every descendant no other limb owns (727/728;
-# scorpion's antlers are in no limb) -- and the Torso is every bone no other limb owns (60/61). A limb's bone ORDER is the
+# Which bones swap with each limb (Boner's "select the bones of each limb"). On the base-game creatures
+# every non-torso limb is ONE subtree -- its root plus every descendant no other limb owns (scorpion's antlers are in
+# no limb) -- and the Torso is every bone no other limb owns. A limb's bone ORDER is the
 # order of the bones' vertex ranges and can't be re-derived (bones owning no points all start at 0), so an edit keeps the
 # source record's order for the bones it listed and appends the others in skeleton order: re-deriving a stock limb is
 # byte-identical, and moving a bone out and back restores the record. Names match ignoring case (the OE's dictionary
@@ -607,7 +607,7 @@ def torso_connection_hosts(connections) -> dict:
 
 def _host_refusal(verb, lists, new, limb_ids, limb_names, hosts):
     """Why an edit that takes a torso connection's host bone out of every Torso limb is refused (None when it doesn't).
-    Every torso connection's host bone is a Torso bone (726/726 base game, 698/698 add-on); with it in another limb (or
+    Every torso connection's host bone is a Torso bone; with it in another limb (or
     none) ComboTest.exe fails 'combinerimp.c:1949 Assertion of (Index >= 0)' when the creature is the torso."""
     if not hosts:
         return None
@@ -824,11 +824,11 @@ def bone_edit_warnings(edit, before, limb_ids, limb_names, owner_counts, limb_ho
 
 
 # --------------------------------------------------------------------------------------------- Connections sub-mode
-# Boner's Connection Options (dialog 113; wf11 RULES.md 4): the same classification boxes as a limb, edited for the
+# Boner's Connection Options (dialog 113): the same classification boxes as a limb, edited for the
 # Parent (flags1: the limb the ring is cut into -- the Torso 0x800 for every limb socket, the Head 0x40 for the horse /
 # owl antler rings) or the Child (flags2: the class of the limb attached through it). The loader masks NoSwap off both
 # words (0xFF7FFFFF), so Non-Swappable belongs on the limb: Boner copies a limb's full id into flags2 when it is picked
-# from the Child Limb list, but 22 of the 730 base-game records lack the bit their limb has, with no effect.
+# from the Child Limb list, but some base-game records lack the bit their limb has, with no effect.
 PARENT_TORSO = 0x800
 PARENT_HEAD = 0x40
 CONN_FLAGS = tuple(f for f in LIMB_FLAGS if f.bit != NOSWAP)
@@ -841,7 +841,7 @@ _STOCK_HOSTS = {0x40: "neck1", 0x80: "pelvis", 0x25: "spine3", 0x26: "spine3", 0
 
 
 def ring_corner_count(child_class) -> int:
-    """The corners a connection's ring needs: 6 for Head / Tail (0x40 / 0x80), 4 for every other class (730/730)."""
+    """The corners a connection's ring needs: 6 for Head / Tail (0x40 / 0x80), 4 for every other class."""
     return 6 if class_of(child_class) in (0x40, 0x80) else 4
 
 
@@ -873,8 +873,8 @@ def limbs_without_connection(limb_ids, conn_flags2):
 
 def unmirrored_left(limb_ids):
     """The indices of the Left limbs (class bit 0x1) no limb of the Right mirror class ``(class & ~1) | 2`` pairs:
-    ComboTest.exe asserts 'LimbToAdd.m_pLimb' (CombinerImp.cpp:918) combining such a creature, in either role
-    (``combotest.validate.picker_refusals``; every base-game and add-on Left limb has its mirror, 595/595)."""
+    ComboTest.exe asserts 'LimbToAdd.m_pLimb' combining such a creature, in either role
+    (``combotest.validate.picker_refusals``; every base-game and add-on Left limb has its mirror)."""
     have = {class_of(x) for x in limb_ids}
     return [i for i, x in enumerate(limb_ids) if class_of(x) & 1 and (class_of(x) & ~1) | 2 not in have]
 
@@ -907,8 +907,7 @@ def default_parent(child_class, child_bones, skeleton_names, parents, limb_ids, 
     """The Parent class Create Connection cuts a limb's ring into: :data:`PARENT_TORSO` when the Torso limb gives the
     connection a default host (:func:`default_host`), else :data:`PARENT_HEAD` when a Head limb does (the horse's antler
     rings: their root bones hang from ``head`` and their classes have no stock host), else Torso (refused with the
-    Torso's reason). Base game + add-ons: equals every connection's Parent class whose child limb exists (1428/1428;
-    a piranha's arm stubs hang from neck3, a head bone, but take the stock Torso host neck1)."""
+    Torso's reason). Base game + add-ons: equals every connection's Parent class whose child limb exists (a piranha's arm stubs hang from neck3, a head bone, but take the stock Torso host neck1)."""
     def lists(cls):
         return [b for lid, b in zip(limb_ids, limb_bone_lists) if class_of(lid) == cls]
     for cls in (PARENT_TORSO, PARENT_HEAD):
@@ -960,8 +959,8 @@ def stock_host(child_class) -> Optional[str]:
 
 def default_host(child_class, child_bones, parent_bones, skeleton_names, parents):
     """``(host, how)`` for a connection: the parent of the child limb's root bone when the parent limb lists that bone
-    (base game 718/728), else the stock host of the class when the parent limb lists it; the host is spelled as the
-    parent limb's list spells it (730/730 stock hosts match it exactly). ``(None, why)`` when neither is in the parent
+    (on the base game), else the stock host of the class when the parent limb lists it; the host is spelled as the
+    parent limb's list spells it (the stock hosts match it exactly). ``(None, why)`` when neither is in the parent
     limb (the Object Editor warns 'not found in parent limb' and ComboTest.exe asserts 'Index >= 0')."""
     in_parent = {_low(b): str(b) for b in parent_bones}
     root = limb_root_bone(child_bones, skeleton_names, parents)
@@ -1058,17 +1057,16 @@ def conn_status(index, conn_rows, limb_ids, limb_bone_lists, skeleton_names) -> 
 
 
 # --------------------------------------------------------------------------------------------- Add Stub Socket
-# Relic's stub bones (IC_Boner_Documentation: "stub bones ... must be defined in the limbing and connection sections";
-# wf11 RULES.md 2.2 / 3 / 4.4 / 5.1): a creature that models no wings or arms still carries a limb and a socket for each
-# of the Object Editor's required-but-stub-able classes, so it can take those parts from other creatures. Measured on
-# the 61 base-game creatures: a stub limb has 0 patches and exactly 1 bone, which owns no control points (61/61); its
-# ring is the 4-corner loop of ONE patch of the parent limb (358 torso + 4 head, 362/362), wound into the torso and
-# started like the stock partners; a stub side wing and a stub top wing of one side share the same torso quad (54/54);
-# a stub quad is never also a patched limb's ring. The exporter (Boner.dlm FUN_10002148) sets such a bone's BONE flags
+# Relic's stub bones (IC_Boner_Documentation: "stub bones ... must be defined in the limbing and connection sections"): a creature that models no wings or arms still carries a limb and a socket for each
+# of the Object Editor's required-but-stub-able classes, so it can take those parts from other creatures. On
+# the base-game creatures a stub limb has 0 patches and exactly 1 bone, which owns no control points; its
+# ring is the 4-corner loop of ONE patch of the parent limb (torso or head), wound into the torso and
+# started like the stock partners; a stub side wing and a stub top wing of one side share the same torso quad;
+# a stub quad is never also a patched limb's ring. The exporter (Boner.dlm) sets such a bone's BONE flags
 # low byte to 1, writes it after every other bone and gives it no clip track.
 STUB_SLOTS = tuple(s for s in STANDARD_LIMBS if s.need == "stub")
 STUB_BY_SUFFIX = {s.suffix: s for s in STUB_SLOTS}
-# the side / top wing of one side share one torso quad when both are stubs (54/54 base game, 46/46 add-on)
+# the side / top wing of one side share one torso quad when both are stubs
 WING_PARTNER = {0x501: 0x301, 0x301: 0x501, 0x502: 0x302, 0x302: 0x502}
 STUB_BYTE = 0x01
 STUB_TAIL_FRACTION = 0.25       # a created stub bone's (display) length: this share of the patch's corner distance
@@ -1243,16 +1241,15 @@ def stub_tail_length(quad_xyz, centre) -> float:
 
 
 # ------------------------------------------------------------------------------------------------ bone names
-# Bone names the game binaries look up by string (``strings`` of IC.exe / ComboTest.exe / ObjectEditor.exe and the
-# combiner's Lua; wf11 RULES §5.2-5.3). Renaming one is allowed (Relic's rule "do not change any bone names" is advisory
+# Bone names the game binaries look up by string (strings in IC.exe / ComboTest.exe / ObjectEditor.exe and the
+# combiner's Lua). Renaming one is allowed (Relic's rule "do not change any bone names" is advisory
 # in the tools) but silently loses what the lookup did in game, so Validate and Export warn, naming it.
 BONE_NAME_MAX = 63
 _SIDES = ("_l", "_r")
 PROC_ANIM_BONES = ("tail1", "tail2", "tail3", "tail4", "endtail", "neck1", "neck2", "neck3", "head", "spine1", "spine2",
                    "spine3")
-# names ComboTest.exe looks up (strings in the exe). Only some have a measured effect on an export: the canonical
-# bones (combotest.validate CANONICAL_BONES: pelvis drop, sockets, seam re-skin). The rest -- renamed on a creature
-# combined in both roles (cheetah Front_ankle_l -> front_hock_l: bull + its front legs, it + bull head) -- changed
+# names ComboTest.exe looks up (strings in the exe). Only some have an effect on an export: the canonical
+# bones (combotest.validate CANONICAL_BONES: pelvis drop, sockets, seam re-skin). The rest changed
 # nothing in the exports, so their warning says so instead of naming an effect nobody has seen
 COMBINER_BONES = ("pelvis", "spine1", "spine2", "spine3", "neck1", "tail1")
 COMBINER_UNOBSERVED_BONES = (tuple(f"{b}{s}" for b in ("front_leg1", "rear_leg1", "front_arm1", "front_leg2",
@@ -1279,7 +1276,7 @@ HARD_CODED_USES = (
 )
 
 
-# what a rename away from the name was MEASURED to do in the game's tools (the generic uses above say where it is read)
+# what a rename away from the name does in the game's tools (the generic uses above say where it is read)
 MEASURED_LOSS = {
     "tail1": ("when combined: with another creature's tail the tail seam tears, and with its own tail the combined "
               "creature loses its TailWag clip and tail ground clearance"),

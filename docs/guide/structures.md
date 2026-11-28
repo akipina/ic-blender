@@ -131,15 +131,15 @@ You should see “Wrote the item ...” with the number of files, how many parts
 
 If the export says “it is this model's own blueprint ... Export under another name” (see [Troubleshooting](trouble.md)), choose a different folder and a different name. That happens when a change such as a renamed bone, a new part or a changed texture would be applied a second time.
 
-6. In **3. Install into Test Game**, press **Install into Test Game** (see [Check, export, install, remove and share](ship.md)). Start the game from the test copy.
+6. Leave **Install into the game after export** ticked in the file window, or press **Install into Game** in **3. Install into Game** (see [Check, export, install, remove and share](ship.md)). Start the game.
 
 ## Seeing a thing with a new name
 
 A thing with a name of its own appears only where a map places it. To see it:
 
-1. Set the add-on's **Game folder** (preferences) to your test copy, so the add-on sees the files you installed.
+1. Check that the add-on's **Game folder** (preferences) is your game folder, so the add-on sees the files you installed.
 2. Open one of the game's maps (**File > Import > Impossible Creatures Map from the Game...**). In the **IC Map** tab use **Map > Placed objects > Add object at the 3D cursor...**.
-3. Save with **Map > Save > Save ready-to-drop folder...** and copy that folder into your test copy.
+3. Save with **Map > Save > Save ready-to-drop folder...** and copy that folder into your game folder.
 
 Or export again with **Replace the original ...**, and the game's own thing looks like your model everywhere.
 

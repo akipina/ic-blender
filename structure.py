@@ -283,7 +283,7 @@ def apply_structure(m, src, st, patch_limb, n_patches=None) -> Tuple[List[int], 
 
 # ------------------------------------------------------------------------------------------------ stub bones
 # Add Stub Socket may CREATE its stub limb's bone (the only bone the export adds for now): a leaf under a source bone,
-# owning no points. Boner's writer (Boner.dlm FUN_10002148) gives every bone of a limb with no patches the BONE flags
+# owning no points. Boner's writer gives every bone of a limb with no patches the BONE flags
 # low byte 1, writes those bones after all others and no clip track for them (61/61 base-game creatures).
 STUB_BYTE = 0x01
 
@@ -320,7 +320,7 @@ def apply_stub_bones(m, limb_src, new_bones) -> Tuple[List[str], List[str], List
       already have it, so their records keep their bytes). A bone that owns points keeps its flags: it is not a stub
       bone (Validate's STOCK 'owns control points' line reports it).
     * A bone a limb WITH patches lists loses the stub byte again (a stub limb re-classified into a real one, or given
-      patches): measured on the 61 base-game creatures, the 360 bones carrying the byte are all in limbs with no
+      patches): on the 61 base-game creatures the 360 bones carrying the byte are all in limbs with no
       patches and the 2,709 bones of limbs with patches all have low byte 0, so the byte and "is a stub" are the same
       fact. Leaving it behind kept such a bone a stub bone for the add rule, which refuses adding a bone under one.
 
@@ -806,10 +806,9 @@ def apply_bone_renames(m, renames, limb_aliases=None) -> RenameReport:
 # Add Bone (Boner > Bones), or a bone Blender's own Add / Extrude made that the skeleton guard adopts: an ordinary bone
 # the export inserts into the skeleton. Its owner key (``.bz_vert_bone``) is ``n_src + j`` (j: its entry in the store's
 # journaled new-bone table, or a key past the table for a bone no Boner operator has stamped yet), so points skinned to
-# it keep their meaning whatever index the bone gets in the file. Engine fact (B7 probe, 2026-09-15): a clip with no
+# it keep their meaning whatever index the bone gets in the file. Engine fact: a clip with no
 # track for a bone holds it at its bind-LOCAL transform -- it follows its parent -- in the Object Editor exactly as
-# ICParse's decode (cheetah + horn_l under head owning 8 head points, O_growl played: 4 frames at max 8.7e-7 m, where a
-# bind-WORLD hold would put those points 29-49 mm off), so kept clips need no track for an added bone.
+# ICParse's decode, so kept clips need no track for an added bone.
 @dataclass(frozen=True)
 class AddedBone:
     """A bone added on the rig. ``name``: its current name; ``key``: its owner key (``>= n_src``); ``parent``: the key
@@ -854,8 +853,8 @@ def export_stub_bones(src, rows=None, patch_limb=None, owners=None) -> set:
     this set, and the skeleton guard and Add Bone refuse an added bone under one of its bones, so where a bone goes and
     whether it is refused never depend on whether the geometry grew.
 
-    The rule is live in BOTH directions (fit-to-rig, 2026-09-16): a bone becomes a stub when its limb loses its patches,
-    and -- what the native pillbug build had to save and re-open for -- it STOPS being one as soon as the live limb table
+    The rule is live in BOTH directions: a bone becomes a stub when its limb loses its patches,
+    and it STOPS being one as soon as the live limb table
     gives that limb patches or the live skin gives the bone points. A flagged stub bone (the wing / arm sockets) stays a
     stub whatever the tables say: that flag is the file's own, and the writer keeps those bones last. For an unedited
     creature (source rows, source membership, source ranges) the answer is exactly :func:`stub_bone_indices`."""
@@ -1071,11 +1070,9 @@ class AddedLimbs:
 def added_limb_rows(rows, src, added, table_names=(), keep=(), by_stamp=False, pinned=()) -> AddedLimbs:
     """Limb membership of the added bones, by identity: every :class:`AddedBone` is in the limb that lists its CURRENT
     parent (ignoring case; a source parent by its file name, an added parent where it was put), whatever a row said --
-    unless a Boner limb operator PINNED it (``pinned``: the names the user put in a limb by hand, C8 + fit-to-rig
-    2026-09-16), and then it is in the row that lists it and its own added children follow it there. A new limb rooted
+    unless a Boner limb operator PINNED it (``pinned``: the names the user put in a limb by hand), and then it is in the row that lists it and its own added children follow it there. A new limb rooted
     at an added bone needs that: nothing can be re-parented into a limb that has no bones yet, so the parent rule alone
-    can never give such a limb its root (the native pillbug build had to re-class a stub limb and rename a source bone
-    instead). A pinned bone no row lists falls back to its parent's limb, so a pin can only ever say where a listed
+    can never give such a limb its root. A pinned bone no row lists falls back to its parent's limb, so a pin can only ever say where a listed
     bone stays.
 
     A limb entry is an added bone's when it names (ignoring case) an entry of the new-bone table (``table_names``: the
@@ -1207,7 +1204,7 @@ def classify_added_bones(added, source_of, table_uids, n_src, stub_names=(), cha
       longer holds (the table's Undo went further back than the rig's) gets a key past the table, and the bone goes
       into its parent's limb like an unstamped one.
     * A bone with no stamp at all (Blender's own Add / Extrude / E, a leaf or a whole chain of new bones) is adopted
-      automatically (C8.3): it gets a key past the table and goes into its parent's limb (Adopt Added Bones stamps such
+      automatically: it gets a key past the table and goes into its parent's limb (Adopt Added Bones stamps such
       bones so points can be skinned to them before the export; the export needs no button).
     * Its parent must be a source bone that is no stub bone, or an accepted added bone.
     * Refused (genuinely ambiguous): a copy of a source bone (it carries that bone's import stamp), a root bone, a copy
@@ -1266,7 +1263,7 @@ def classify_added_bones(added, source_of, table_uids, n_src, stub_names=(), cha
         uid = ident.get(b.name)
         if uid is None and b.children and not chains and b.uid is not None:
             # it carries the stamp of an added bone another bone is: a copy with bones under it (an unstamped chain --
-            # Blender's Add / Extrude -- is plain new bones and is taken as it is, C8.3)
+            # Blender's Add / Extrude -- is plain new bones and is taken as it is)
             orig = next((nm for nm, u in ident.items() if u == str(b.uid)), None) or b.stamp
             refused[b.name] = (f"bone '{b.name}' is a copy of the added bone '{orig}' (Duplicate / Symmetrize) with "
                                f"{b.children} bone(s) under it, so the export can't tell a chain from a re-parent: Boner > "

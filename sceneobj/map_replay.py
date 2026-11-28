@@ -1,5 +1,5 @@
 """Replay: act a cinematic out on the timeline from ``ICParse.sgb.cine_timeline`` events: stand-ins, a camera, markers and
-a text marking each event exact, approximate or skipped. Camera, fade and path rules are decompiled from IC.exe.
+a text marking each event exact, approximate or skipped. Camera, fade and path rules follow the game's.
 
 Frames are ``1 + seconds x 30``; game (x, y up, z) is Blender (-x, -z, y); a heading ``h`` is ``-degrees(h)`` (:func:`heading_of_dir`).
 Never change the map: replay objects live outside its collection with no ``ic_*`` key; originals are only hidden.
@@ -537,7 +537,7 @@ class _Skip(Exception):
 
 
 class PathTimes:
-    """A NISlet animation's path as the game moves along it (``ICParse.sgb.cine_pathanim``, a port of the decompiled path code: the Catmull-Rom
+    """A NISlet animation's path as the game moves along it (``ICParse.sgb.cine_pathanim``: the Catmull-Rom
     position, the Kochanek-Bartels speed, ``dist += dt * speed``). The timeline says how far along the path an animation is at each tick
     (``samples``); this turns a distance in metres into a place on the path.
 

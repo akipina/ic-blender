@@ -4,7 +4,7 @@
 ``Data`` folder: ``data/art/fx/<effect>.lua`` and the pictures and meshes an effect needs under the paths the effect names. Copying a game effect
 into the project writes its files there (:func:`copy_into_project`), editing an effect rewrites its file (:func:`save_effect`), and an export copies
 the whole ``data/`` folder into the export folder (:func:`write_effects`). A project effect outranks the game's effect of the same name
-(loose files outrank the archives: IC.exe ``App_SetupFilePathAliases`` 0x004034cc).
+(loose files outrank the archives).
 
 **Events** are the blueprint's ``EVNT`` list (:mod:`ICParse.ebp.events`). The panel keeps the edits as a list of :class:`EventItem` and
 :func:`apply_events` writes them into the ``.ebp`` at export, changing only the events that changed.
@@ -131,12 +131,12 @@ def effect_style_of_game(game_dir: Optional[str], name: str) -> str:
 def style_note(style: str) -> str:
     """What a modder should know about an effect type the game treats differently from what its name suggests ('' for the others).
 
-    ``STYLE_CONDITIONAL`` (FXConditional.cpp:199-210 ``Obj::Obj``, Simulation/FXLandWater.cpp): the game starts BOTH of its effects (``Fx1`` and
-    ``Fx2``) when the effect starts and follows them together; as soon as the first of them has ended it stops the other (``Obj::Update`` of
-    FXConditional.cpp, FXLandWater.cpp and FXCombo.cpp:318-341; a stop ends a spray, a looping effect or a trail, and a ring or beam that does not
+    ``STYLE_CONDITIONAL``: the game starts BOTH of its effects (``Fx1`` and
+    ``Fx2``) when the effect starts and follows them together; as soon as the first of them has ended it stops the other (the ``Obj::Update`` of the
+    conditional, land / water and combo effects; a stop ends a spray, a looping effect or a trail, and a ring or beam that does not
     loop plays out). The map's own ``land_and_water`` effect (the only one built with a terrain, ``FX_CreateLandAndWaterType``) also asks the terrain
-    whether it is over land or over water on every move (FXLandWater.cpp ``Obj::SetTransform``) and keeps the answer in two flags -- but nothing in
-    the effect code reads them (no reader was found in the decompiled source), so no choice between ``Fx1`` and ``Fx2`` is known. The editor
+    whether it is over land or over water on every move (``Obj::SetTransform``) and keeps the answer in two flags -- but nothing in
+    the effect code reads them, so no choice between ``Fx1`` and ``Fx2`` is known. The editor
     therefore shows it as an ordinary pair of effects."""
     if style == "STYLE_CONDITIONAL":
         return ("A conditional effect starts both of its effects together. It does not seem to pick one of them, not even in the map's "
@@ -449,9 +449,7 @@ def event_list(items: Sequence[EventItem]) -> List[Tuple[str, List[Tuple[str, st
 
 
 def events_of_animal(ebp_bytes: bytes, clips: Sequence[str], bones: Optional[Sequence[str]] = None, keep_index: bool = False) -> List[EventItem]:
-    """The events of another animal's blueprint that fit a creature with these ``clips`` (and ``bones``): Relic's Import Events step
-    (relic_workflow.md 4.4). An event is taken when its clip is one of the creature's (an event of a clip the creature lacks can never run,
-    AnimEvent.cpp:616-640) and, when ``bones`` is given, when the marker and hint fields it names resolve against them (the same filter
+    """The events of another animal's blueprint that fit a creature with these ``clips`` (and ``bones``): Relic's Import Events step. An event is taken when its clip is one of the creature's (an event of a clip the creature lacks can never run) and, when ``bones`` is given, when the marker and hint fields it names resolve against them (the same filter
     ``ICParse.ebp.package.copy_events`` applies). The items are new ones (``src`` is None, or the event's number in that blueprint with ``keep_index``), so exporting
     writes them as added events."""
     from ICParse import ebp as EBP
@@ -504,10 +502,10 @@ def fmt_time(t: float) -> str:
 def clip_time(frame: float, start: float, end: float) -> float:
     """The event time of a playhead frame in a clip whose keys run from frame ``start`` to ``end`` (both included).
 
-    ``animtime`` is a fraction of the clip's DURATION (AnimPlayList.cpp:1669-1672: ``time * GetInvDuration()``), and the game loads a clip with
-    ``frames = last - first + 1`` and ``duration = frames / fps`` (Anim.cpp:686-693), so the first frame is at 0 and frame ``f`` at
+    ``animtime`` is a fraction of the clip's DURATION (``time * GetInvDuration()``), and the game loads a clip with
+    ``frames = last - first + 1`` and ``duration = frames / fps``, so the first frame is at 0 and frame ``f`` at
     ``(f - first) / (last - first + 1)``: the last frame is at ``(N - 1) / N``, never at 1 (the same step ``duration / frames`` per frame is
-    what Anim.cpp:1618-1626 advances a clip by)."""
+    what the game advances a clip by)."""
     n = max(1.0, float(end) - float(start) + 1.0)
     return min(1.0, max(0.0, (float(frame) - start) / n))
 
@@ -519,7 +517,7 @@ def frame_of_time(t: float, start: float, end: float) -> float:
 
 def event_warnings(items: Sequence["EventItem"], baseline: Sequence["EventItem"], source: str, game_dir: Optional[str]) -> List[str]:
     """One plain warning for each event the modder added or changed that the game cannot play as meant: it names an effect neither the game nor the
-    project has, or its time is outside the clip (a time of 1 or more is never reached, AnimEvent.cpp:601-611; a time below 0 runs when the clip
+    project has, or its time is outside the clip (a time of 1 or more is never reached; a time below 0 runs when the clip
     starts, :TriggerStartEvents, whatever its size: only -1, the game's own 'when the clip starts', is left alone). Events as the blueprint had them
     are not reported: a stock event's quirk is not the modder's to fix."""
     base = {b.src: b for b in baseline}
@@ -559,7 +557,7 @@ def pick_label(value: str) -> tuple:
 
 def event_time(frame: float, start: float, end: float) -> float:
     """:func:`clip_time`, held below 1 (a frame past the clip's end): the game runs the events whose time is below the end of each step
-    (AnimEvent.cpp:601-611), so an event at exactly 1 never runs."""
+    so an event at exactly 1 never runs."""
     return min(0.999, clip_time(frame, start, end))
 
 
@@ -727,8 +725,8 @@ def delete_sound(source: str, value: str) -> List[str]:
 
 def sound_timing_note(item: "EventItem") -> str:
     """A plain note for an event that plays a sound with no time (or a negative one) -- '' for any other. The game starts such a sound as a looping
-    sound in the world that stays until the clip is over (RenderModelEventSink.cpp:720-731: ``animtime`` below 0, which is also what a missing
-    ``animtime`` reads as, AnimEvent.cpp:626-632); only a time of 0 or more plays it once (:687-690)."""
+    sound in the world that stays until the clip is over (``animtime`` below 0, which is also what a missing
+    ``animtime`` reads as); only a time of 0 or more plays it once."""
     sv = item.get("sound").strip()
     if not sv or sv.startswith("%"):
         return ""

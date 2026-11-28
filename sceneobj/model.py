@@ -19,13 +19,13 @@ SLICE_API = 1            # bumped only by the owner of this file when the Slice 
 ERROR, WARN, INFO = "ERROR", "WARN", "INFO"
 LEVELS = (ERROR, WARN, INFO)
 
-# The export stages, in the order they run (PLAN_FINAL section 5). A slice named like a stage keeps that stage's number.
+# The export stages, in the order they run. A slice named like a stage keeps that stage's number.
 STAGE_ORDER = {
     "materials": 10, "textures": 12, "skeleton": 20, "geometry": 30, "morphs": 40, "markers": 50, "bounds": 60,
     "anim": 70, "controller_meta": 80, "controller_motion": 81, "controller_events": 82, "files": 90, "validate": 100,
 }
 
-# The hand-over keys of OutBundle.shared and the stage that writes each one (PLAN_FINAL C22).
+# The hand-over keys of OutBundle.shared and the stage that writes each one.
 SHARED_OWNERS = {
     "skeleton": "skeleton",    # {"bone_map": {src_index: new_index | None}, "names": [...], "structural": bool}
     "materials": "materials",  # {"renames": {old: new}, "added": [...]}
@@ -39,7 +39,7 @@ SHARED_OWNERS = {
 SHARED_KEYS = set(SHARED_OWNERS)      # a set that declare_shared() extends in place, so every importer sees the same object
 BASE_SHARED_KEYS = frozenset(SHARED_OWNERS)
 
-# The edits the safety guard refuses until the slice that exports them lands (PLAN_FINAL C22, slice B02).
+# The edits the safety guard refuses until the slice that exports them lands.
 GUARD_CODES = (
     "skeleton_edit", "skeleton_rename", "object_transform", "modifier", "shape_key", "unclaimed_object", "shader_map",
     "material_edit", "morph_part_edit", "source_changed", "part_name", "normals", "image_stamp", "bounds_stale",
@@ -60,7 +60,7 @@ def _spec_exists(name: str) -> bool:
 
 @dataclass(frozen=True)
 class FallbackFinding:
-    """Stand-in for ICParse's ``Finding`` while slice I00 (ICParse/entity/findings.py) has not landed: same field names, same
+    """Stand-in for ICParse's ``Finding`` while ICParse/entity/findings.py is not there: same field names, same
     read-only aliases, same text form. ``finding_class()`` returns the real one as soon as it exists."""
     id: str
     severity: str
@@ -257,7 +257,7 @@ class OutBundle:
 
 @dataclass
 class ExportReport:
-    """What ``exporter.export_entity`` returns (slice B01 fills it; the sweeps and the panels read it)."""
+    """What ``exporter.export_entity`` returns (the sweeps and the panels read it)."""
     out: OutBundle | None = None                    # the finished bundle; None when the export was refused
     written: dict = field(default_factory=dict)     # relative path -> absolute path actually written
     issues: list = field(default_factory=list)
@@ -398,7 +398,7 @@ def known_guard_codes() -> set:
 
 
 def declare_guard_code(code: str, owner: str = "") -> None:
-    """The safety guard (slice B02) declares a guard code beyond the baseline of PLAN_FINAL C22."""
+    """The safety guard declares a guard code beyond the baseline."""
     if code not in GUARD_CODES:
         _EXTRA_GUARD_CODES[code] = owner
 
@@ -443,7 +443,7 @@ def registry_problems() -> list:
 class RefsBus:
     """``refs.rename(kind, old, new)``: something other data refers to by name was renamed; every slice follows it.
 
-    What refers to what (PLAN_FINAL / addon-audit 5.4): a *bone* is named by vertex groups, clip curves, markers, the part's rigid
+    What refers to what: a *bone* is named by vertex groups, clip curves, markers, the part's rigid
     bone, controller events and the skin palette; a *clip* by the controller's motion tree and events; a *marker* by controller events;
     a *material* by submesh shader names; a *part* by the visibility / morph channels of the clips."""
 

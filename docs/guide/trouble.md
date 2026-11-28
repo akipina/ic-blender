@@ -8,8 +8,8 @@ When something does not work, read the message first. Blender shows the last mes
 
 1. **A button is grey.** Hold the mouse over it. Blender says why. Usually you must select the creature or thing first, leave Edit Mode (press <kbd>Tab</kbd>), or choose an event in the list.
 2. **The add-on says it has not found the game.** In **Edit > Preferences > Add-ons > IC Blender**, set **Game folder** to the folder that holds `IC.exe`.
-3. **You have no test copy.** Make one: **IC Game** tab > **Game** panel > **Create Test Game Copy**.
-4. **The game still shows the old thing.** Close the game and start it from the test copy, not from Steam (see “The game shows nothing, or the old thing” below).
+3. **The export worked but the item is not in the game.** A line that starts “Not installed:” says why. Fix that, then press **Install into Game** in the **Game** panel.
+4. **The game still shows the old thing.** Close the game and start it again (see “The game shows nothing, or the old thing” below).
 5. **You cannot find a message.** Open the **Info** editor (see above).
 
 If your message is not here, search this page (<kbd>Ctrl</kbd>+<kbd>F</kbd>) for the first few words. If it is still not there, send the whole message with your report (see the last section).
@@ -26,31 +26,30 @@ Messages in **red** in a panel, or that start with **Error**, stop something. Me
 | `This was made with an older version of IC Blender. Import the original file again.` | The `.blend` was saved with an add-on older than 0.9.2, which kept models flipped left to right. Open the model again with **File > Import**, or start the project again. |
 | `The model file <name> was changed on disk after it was opened here ... Import <name> again to carry on from the file as it is now.` | Another program, or an export from another Blender session, changed the project's file. Import it again with **File > Import**. In the creature panels the box **Problems** offers **Relink Source** for a file that moved. |
 
-## Making the test copy
+## Making a separate game copy
 
-These come from **Create Test Game Copy**. The window shows the first one before you press **Create Copy**.
+These come from **Make a Separate Game Copy**, a button in the add-on's preferences beside **Install folder (optional)**. The window shows the first one before you press **Create Copy**.
 
 | What you see | What to do |
 | --- | --- |
 | `<folder> is inside a Steam library. Steam owns that folder: it rewrites it and would wipe the copy. Choose a folder somewhere else (your Documents, for example).` | Choose a folder outside every Steam library. |
 | `That is the game folder itself. Choose a new folder for the copy. / <folder> is inside the game folder it would copy. Choose a folder outside the game. / <folder> holds the game folder it would copy. Choose a new, empty folder.` | The copy must be a new folder of its own, not the game folder, not inside it and not around it. |
 | `<folder> already has files in it. Choose a new or an empty folder: the copy must not mix with other files.` | Choose a new or empty folder. |
-| `<folder> already is a test copy of the game. Set it as the Test game folder instead of making another (or delete the folder first to start again).` | Set that folder as **Test game folder** in the preferences, or delete it and make the copy again. |
+| `<folder> already is a copy of the game. Set it as the install folder instead of making another (or delete the folder first to start again).` | Set that folder as **Install folder (optional)** in the preferences, or delete it and make the copy again. |
 | `<folder> is not a game folder (it has no Engine.sga). / The game folder does not exist. Set the Game folder in the add-on's preferences.` | The **Game folder** is wrong. It must be the folder that holds `IC.exe` and `Engine.sga`. |
-| `A test copy is already being made. Wait for it, or press Cancel.` | Wait for the percentage in the Game panel to finish, or press **Cancel**. |
-| `This copy was not finished (the copy was interrupted). Delete the folder and press Create Test Game Copy again.` | Do what it says. |
+| `A game copy is already being made. Wait for it, or press Cancel.` | Wait for the percentage in the Game panel to finish, or press **Cancel**. |
+| `This copy was not finished. Delete the folder and make the copy again in the preferences.` | Do what it says. |
 | `The window shows the free space in red` | There is not enough room. Choose another disk, or free some space. A copy with links is about half a gigabyte, a full copy about 5 GB. |
 
 ## Installing and removing
 
-These come from the **Game** panel, box **3. Install into Test Game**.
+These come from the **Game** panel, box **3. Install into Game**.
 
 | What you see | What to do |
 | --- | --- |
-| `No Test game folder is set. Make a copy of the game and set it in the add-on's preferences (Test game folder).` | Press **Create Test Game Copy**. It sets the folder for you. |
-| `The Test game folder <folder> does not exist. Fix it in the add-on's preferences.` | The folder was moved or deleted. Set it again, or make a new copy. |
-| `<folder> is the Game folder of the add-on, the original game. Install into a copy of the game (set it as the Test game folder), or tick the box in the preferences if you really mean this folder.` | Your **Test game folder** is the same as your original game. Make a test copy and use that. Do not tick the box. |
-| `<folder> is the Steam game folder. Steam rewrites it and would wipe the item. Use a copy of the game as the Test game folder, or tick the box in the preferences if you really mean this folder.` | The same, for a folder inside a Steam library. Use a test copy. |
+| `No game folder found. Set the Game folder in the add-on's preferences.` | In **Edit > Preferences > Add-ons > IC Blender**, set **Game folder** to the folder that holds `IC.exe`. |
+| `The install folder <folder> does not exist. Fix it in the add-on's preferences.` | The folder was moved or deleted. Set **Install folder (optional)** again, or empty it to install into the game folder. |
+| `Not installed: ...` (after an export) | The export worked, but the item was not installed. The words after the colon say why. Fix that, then press **Install into Game**. |
 | `No item folder yet: export the project for the game first, or pick an item folder in the Game panel.` | Export first (step 2), or set **Item folder** to an item folder. |
 | `The game would not take this item as it is, so nothing was installed. ... Fix this and export again, or press Install Anyway in the Game panel to install it as it is.` | The lines after it say what is wrong. Fix it and export again. **Install Anyway** installs the item as it is, and it may not work. |
 | `<file> was changed after it was exported (it no longer matches the list in the manifest). Export the item again.` | A file in the item folder was edited after the export. Export again. |
@@ -62,11 +61,11 @@ These come from the **Game** panel, box **3. Install into Test Game**.
 | `<file> is a model the game would not load correctly. / ... is damaged or not in the format the game reads.` | Export the item again from Blender. If it happens again, send the message with your report. |
 | `Advice: <file> differs from the game's own models (advice only; the game may still load it): ...` (a yellow line after the install message) | Nothing to do. It is advice, not a refusal. The install went ahead. Only the red box with **Install Anyway** is a refusal. |
 | `Advice: ... is not something the Steam Workshop takes for sharing; the game still loads it.` | Ignore it. You are not using the Steam Workshop. The game loads the files. |
-| `The install stopped: ... Anything already written was taken back; press Remove if the item is listed.` | Usually the disk is full, or a file is in use. Close the game, free some space and press **Install into Test Game** again. |
+| `The install stopped: ... Anything already written was taken back; press Remove if the item is listed.` | Usually the disk is full, or a file is in use. Close the game, free some space and press **Install into Game** again. |
 | `<item>.lst is in the game folder and was not made by this add-on (another tool's item): choose another item id` | Another tool installed an item with that name. Export under another name. |
-| `<folder>: a symbolic link where a folder goes (a game copy made of links cannot be written to without changing the original)` | A folder in your copy is a link to the original. The install refuses so that it cannot change the original game. Make the test copy again with **Create Test Game Copy**. |
+| `<folder>: a symbolic link where a folder goes (a game copy made of links cannot be written to without changing the original)` | A folder in your install folder is a link to another folder. The install refuses so that it cannot write into the other folder. Make the copy again with **Make a Separate Game Copy**. |
 | `The creature list of <mod> was NOT changed: ... (or) ... is not a plain list of names, so it was NOT changed and the new creature is not offered in that mod.` | A mod's creature list could not be written, or you edited it by hand. Add your creature's name to that list yourself (the README of a zip made by **Pack for Sharing** shows the line). The creature shows in the other mods. |
-| `N file(s) of this item are also in the folder of the mod ... The game keeps loading that copy there, not the new file.` | A file of that name in a mod's folder (or in `DataMOD`) comes first. Play without that mod, or remove that file from the copy. |
+| `N file(s) of this item are also in the folder of the mod ... The game keeps loading that copy there, not the new file.` | A file of that name in a mod's folder (or in `DataMOD`) comes first. Play without that mod, or remove that file. |
 | `<item> is not installed / <item> was not installed by this add-on (its uninstall list is another tool's); it is left alone` | Nothing to remove here. Another tool owns that item. |
 | `The removal stopped: ... Press Remove again once the file is free.` | Close the game and press **Remove** again. |
 
@@ -191,9 +190,9 @@ These come from the box **4. Share**.
 
 | What you see | What to do |
 | --- | --- |
-| `Nothing in the add-on says anything, and the game shows the old thing.` | 1\. Close the game and start it again from the test copy.<br>2\. Check that you started the game from the **test copy**, not from the Steam game.<br>3\. Look at the **Installed here** list: is the item there?<br>4\. For a creature with a new name, look in the creature creator of the right game (base game, Insect Invasion, Tellurian).<br>5\. A thing with a name of its own shows only where a map places it.<br>6\. A file of that name in a mod's folder or in `DataMOD` comes first (the install says so).<br>7\. Read `warnings.log` in the test copy's folder. |
+| `Nothing in the add-on says anything, and the game shows the old thing.` | 1\. Close the game and start it again.<br>2\. Check that you started the game from the folder the item was installed into (the folder shown in box 3).<br>3\. Look at the **Installed here** list: is the item there?<br>4\. For a creature with a new name, look in the creature creator of the right game (base game, Insect Invasion, Tellurian).<br>5\. A thing with a name of its own shows only where a map places it.<br>6\. A file of that name in a mod's folder or in `DataMOD` comes first (the install says so).<br>7\. Read `warnings.log` in the game folder. |
 | `The creature is not in the campaign.` | In the campaign the army builder offers only the animals the campaign has unlocked. It shows in skirmish and in the free creature creator. |
-| `The game does not start from the test copy.` | The Steam version starts only while Steam is running. Make sure Steam is open and signed in. On Linux, `IC.exe` is a Windows program, so it must run through Wine or Proton (see [Start here](start.md), “Start the game”). |
+| `The game does not start.` | The Steam version starts only while Steam is running. Make sure Steam is open and signed in. On Linux, `IC.exe` is a Windows program, so it must run through Wine or Proton (see [Start here](start.md), “Start the game”). |
 
 ## Making a report
 
@@ -202,7 +201,7 @@ Open an issue on the add-on's page and include:
 - your operating system, your Blender version and the add-on's version (**Edit > Preferences > Add-ons > IC Blender**);
 - what you did, step by step;
 - the exact message, copied from the **Info** editor;
-- the last lines of `warnings.log` in the test copy's folder, if the game was involved.
+- the last lines of `warnings.log` in the game folder, if the game was involved.
 
 ---
 

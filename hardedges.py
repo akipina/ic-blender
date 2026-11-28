@@ -1,28 +1,26 @@
 """Hard edges and materials of a creature: Blender's Mark Sharp edges and the faces' material slots, read at export into the
 per-patch smoothing group (``store.KEY_PATCH_TYPE``) and material (``store.KEY_PATCH_MAT``) tables.
 
-What the game does with them (decompiled, ``decomp/ic/src``):
+What the game does with them:
 
-* A patch's ``type`` is a 32-bit smoothing-group mask (Shared/Cross/RenderAnim/PatchMesh.cpp:300-330, ``HandlePRIM``: ``iShader``,
-  ``smGroup``, 16 control points, uvs). The mesh builder pairs the two patches of a shared SIDE (``BuildEdgeAdjacency``,
-  PatchMesh.cpp:1669-1745): the side is *smooth* when the SECOND patch's group is not 0 (line 1715 reads ``B & B``, not ``A & B``:
-  the two masks need not overlap; measured against the Object Editor's vertex counts, RE_LOG 2026-11-15), and its display vertices
-  are shared when it is smooth and both patches use one shader with equal uvs. ``WeldLodNormals`` (PatchMesh.cpp:2104-2178) then
-  averages the normals along every smooth side (:2146-2153, the points between the two corners, at detail levels above 0).
+* A patch's ``type`` is a 32-bit smoothing-group mask (``HandlePRIM``: ``iShader``,
+  ``smGroup``, 16 control points, uvs). The mesh builder pairs the two patches of a shared SIDE (``BuildEdgeAdjacency``): the side is *smooth* when the SECOND patch's group is not 0 (the test reads ``B & B``, not ``A & B``:
+  the two masks need not overlap), and its display vertices
+  are shared when it is smooth and both patches use one shader with equal uvs. ``WeldLodNormals`` then
+  averages the normals along every smooth side (the points between the two corners, at detail levels above 0).
   The CORNERS are different: at a shared corner the patches are split into smoothing components -- patches whose masks overlap,
-  transitively -- and each component gets its own vertex and normal (``BuildCornerAdjacency``, PatchMesh.cpp:1749-1908, the
-  component loop :1822-1850; ``WeldLodNormals`` :2156-2175). So two patches whose masks share no bit are creased at the
+  transitively -- and each component gets its own vertex and normal (``BuildCornerAdjacency``, ``WeldLodNormals``). So two patches whose masks share no bit are creased at the
   corners they share; the points between the corners stay smooth (at detail levels above 0) because the side is still smooth.
   A mask of 0 is never given a component and ``WeldLodNormals`` then indexes its stack arrays with the missing number
   (``ICParse.validate.check_model`` refuses it): this module never writes 0.
 * A combination never takes a part's smoothing groups. ``CombinerImp`` writes each combined patch's control points, uvs and
-  shader and never its group (CombinerImp.cpp:5196-5220; the ``CombinerPatchInfo`` it copies from has no group field,
-  :2820-2835). ``ResizePatches`` (PatchMesh.cpp:695, called at CombinerImp.cpp:5191) is a plain vector resize that copies a default
-  ``Patch`` (PatchMeshObject.h:43-51), so every combined patch carries the same word the default ``Patch`` had (RE_LOG 2026-11-15:
-  uninitialised in retail; the value was not measured). So a hard edge is the creature's own look: how a combination shades there
+  shader and never its group (the ``CombinerPatchInfo`` it copies from has no group field).
+  ``ResizePatches`` is a plain vector resize that copies a default
+  ``Patch``, so every combined patch carries the same word the default ``Patch`` had (uninitialised in retail; the value is
+  not known). So a hard edge is the creature's own look: how a combination shades there
   is not known from the code (a non-zero word would smooth it, ``combotest`` writes group 1).
 * A patch's material is a slot of the creature's material table. A combined creature takes the torso limb's first patch's shader and
-  paints the combined skin on it (CombinerImp.cpp:5286-5386); ``ICParse.validate.material_layout_problems`` warns when a layout
+  paints the combined skin on it; ``ICParse.validate.material_layout_problems`` warns when a layout
   would put that skin in the wrong place.
 
 How it works here. The mesh of a creature has one corner quad per patch (``patchsel``): the edge between two quads is the SIDE two

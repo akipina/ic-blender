@@ -77,9 +77,9 @@ def _norm(v: Vector) -> Vector:
 def basis_for(rotation: float, declination: float, roll: float = 0.0, camera: bool = True) -> Matrix:
     """The 3x3 orientation (Blender's camera convention: the camera looks down -Z, +Y is up) of a view with the engine's rotation and
     declination (degrees; ``nislet.look_direction``) and roll (degrees). A camera and a moving object take the roll the opposite way
-    round: a positive roll banks the game's camera clockwise seen from behind (the view is turned by ``RotateZ(roll)``,
-    ``Camera_OrbitTarget::UpdateMatrix`` Util.dll 0x404e4deb), +roll about the look direction here; an object of a move animation
-    turns by ``RotateX(roll)`` before the heading (``MoveAnim::Blend`` IC.exe 0x004ee25b), a turn in the game's left-handed axes,
+    round: a positive roll banks the game's camera clockwise seen from behind (the view is turned by ``RotateZ(roll)``),
+    +roll about the look direction here; an object of a move animation
+    turns by ``RotateX(roll)`` before the heading, a turn in the game's left-handed axes,
     so -roll about its path here. ``camera`` says which."""
     f = Vector(g2b(N.look_direction(rotation, declination)))
     yaw = math.radians(rotation)

@@ -26,8 +26,8 @@ You should see the worker and its skeleton, and the message “Started the gathe
 ## 3. Check, export, install
 
 1. Open the **IC Game** tab and the **Game** panel. In **1. Check** press **Check**.
-2. In **2. Export for the Game** press **Export Entity Folder**. Choose a folder, and then **Export as** (in the panel at the right of the file window). Choose **Replace the original ...** to change the game's own worker, or **A new name of my own** for a worker that appears only where a map or script places it. For a new name, type a file name that is not the game's (not `henchmen`): with the game's own name, the files take the place of the original even under this choice.
-3. In **3. Install into Test Game** press **Install into Test Game**. Start the game from the test copy ([Start here](start.md), “Start the game”).
+2. In **2. Export for the Game** press **Export Entity Folder** (also under **File > Export**). Choose a folder, and then **Export as** (in the panel at the right of the file window). Choose **Replace the original ...** to change the game's own worker, or **A new name of my own** for a worker that appears only where a map or script places it. For a new name, type a file name that is not the game's (not `henchmen`): with the game's own name, the files take the place of the original even under this choice.
+3. Leave **Install into the game after export** ticked in the file window, or press **Install into Game** in **3. Install into Game**. Start the game ([Start here](start.md), “Start the game”).
 
 After changing a worker, check in the game that it still walks, gathers and carries correctly.
 

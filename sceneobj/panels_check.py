@@ -16,7 +16,7 @@ from . import panels_blueprint as BP
 ORDER = 90
 KEY_CHECK = "bz_check"                     # on the entity's holder: the last Check's findings (scenecheck.to_json)
 KEY_CHECK_HEAD = "bz_check_head"           # ... and its one-line summary
-SHOW_CHECK_PANEL = False                   # hidden (round 2 tidy): the Game panel of the IC Game tab draws this as its step 1, Check
+SHOW_CHECK_PANEL = False                   # hidden: the Game panel of the IC Game tab draws this as its step 1, Check
 MAX_LINES = 12                             # lines of the Problems box before "... and N more"
 
 

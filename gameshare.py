@@ -4,14 +4,14 @@ The work is ``ICParse.hub.share`` (read its text for what the zip holds and ever
 
 * ``bz.pack_for_sharing`` -- writes ``<item id>.zip`` of the item folder (the picked one, else the last export): the files, a README that
   says in plain words what it is and how to install it with and without this add-on, and, for a creature with a NEW name, the creature
-  list a player of the unmodified game also needs (the creature creator offers only the animals named on its list,
-  ``ArmyBuilder/CombinerCL.cpp:254-265`` and ``:777-796``; ``ICParse.hub.install.retail_roster`` has the whole story);
+  list a player of the unmodified game also needs (the creature creator offers only the animals named on its list;
+  ``ICParse.hub.install.retail_roster`` has the whole story);
 * ``bz.install_from_zip`` / ``bz.install_from_folder`` -- install an item someone else made: the zip (or folder) is read safely
-  (nothing outside ``data/``, no path that climbs out of its folder, lower-case names), checked like any item, and installed into the Test
+  (nothing outside ``data/``, no path that climbs out of its folder, lower-case names), checked like any item, and installed into the
   game folder.  An item the check refuses is remembered by its source (not copied anywhere) so the Game panel can show why and offer Install
   Anyway (``bz.install_shared_anyway``, which reads the source again).
 
-Nothing here writes into the original game or a Steam library.
+Items go into the same folder as Install into Game (:func:`gameinstall.target_folder`).
 """
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ def pack(context, out_zip: str, anyway: bool = False, overwrite: bool = False):
     item = gi.item_folder(context)
     if not item or not os.path.isdir(item):
         return False, "No item folder yet: export the project for the game first, or pick an item folder in the Game panel.", []
-    game = prefs.resolve_game_dir(context)[0] or gi.test_game_folder(context)       # the original game, read only: its own creature list
+    game = prefs.resolve_game_dir(context)[0] or gi.target_folder(context)       # the original game, read only: its own creature list
     sh = _share()
     try:
         res = sh.pack_item(item, bpy.path.abspath(out_zip), game=game, stock=gi._stock(game) if game else None, allow_problems=anyway,
@@ -118,7 +118,7 @@ class BZ_OT_pack_for_sharing(bpy.types.Operator):
 
 # ---- install from a zip or a folder ------------------------------------------------------------------------------------------------
 def install_source(context, source: str, anyway: bool = False):
-    """Read ``source`` (a zip file or a folder), stage it, and install it into the Test game folder.  Returns ``(ok, text, warnings, infos)``."""
+    """Read ``source`` (a zip file or a folder), stage it, and install it into the game folder.  Returns ``(ok, text, warnings, infos)``."""
     if not available():
         return False, "Part of this add-on is out of date, so it cannot read a shared item. Install the newest version of the add-on.", [], []
     gi = _gi()
@@ -189,7 +189,7 @@ class BZ_OT_install_shared_anyway(_InstallSource, bpy.types.Operator):
 
 
 class BZ_OT_install_from_zip(_InstallSource, bpy.types.Operator):
-    """Install an item someone else made (a zip made by Pack for Sharing) into the Test game folder"""
+    """Install an item someone else made (a zip made by Pack for Sharing) into the game folder"""
     bl_idname = "bz.install_from_zip"
     bl_label = "Install From Zip"
     bl_options = {"REGISTER"}
@@ -210,7 +210,7 @@ class BZ_OT_install_from_zip(_InstallSource, bpy.types.Operator):
 
 
 class BZ_OT_install_from_folder(_InstallSource, bpy.types.Operator):
-    """Install an item someone else made (a folder with a data folder in it) into the Test game folder"""
+    """Install an item someone else made (a folder with a data folder in it) into the game folder"""
     bl_idname = "bz.install_from_folder"
     bl_label = "Install From Folder"
     bl_options = {"REGISTER"}

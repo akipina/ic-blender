@@ -124,7 +124,7 @@ It is a **preview, not the game's own picture**:
 
 1. In the **Game** panel, **1. Check**: for a structure, a worker, a character or a prop, **Check** lists an effect the game would not load as an error. For a creature, **Check the Creature** does not test your effects. The export does. A project of the type Effect model also shows one note: “This effect installs as loose files ... The Steam Workshop does not take effect items yet, so it cannot be shared there”. It does not mean anything is wrong with your effect.
 2. Export (**Export Creature for the Game** or **Export Entity Folder**). It writes the model, the blueprint with your events and the project's effect files in one go. It stops, before writing anything, if an effect is one the game would not load at all. The message names the file and why.
-3. Press **Install into Test Game**. The effect files install as loose files, and the game reads them.
+3. Install it: leave **Install into the game after export** ticked, or press **Install into Game**. The effect files install as loose files, and the game reads them.
 
 ## Projectiles and effect models
 

@@ -1,12 +1,11 @@
 """Blueprint panel extras for scene objects: *Calc from model* (the footprint) and *Icon from this view* (the blueprint's picture).
 
-Footprint: a blueprint footprint of 0 x 0 makes the game measure the model (``BuildingDynamics::GetEntityWidthHeight``,
-``decomp/simengine/src/SimEngine/BuildingDynamics.cpp:134-141``: each half extent of the model's quantized entity box, rounded to whole path
+Footprint: a blueprint footprint of 0 x 0 makes the game measure the model (each half extent of the model's quantized entity box, rounded to whole path
 cells). *Calc from model* writes that measurement into the panel's two numbers, from the model the export WOULD write (so a model scaled in
 Blender is measured as scaled). The measuring is ``ICParse.ebp.footprint``.
 
-Icon: the blueprint header holds a 64 x 64 palette picture (``BlueprintHeader::GetIcon``, ``EntityBlueprint.cpp:564``; the game's army
-builder and info boxes draw it: ``ArmyBuilderScreen.cpp:603``, ``AnimalInfoPopup.cpp:59``). *Icon from this view* takes the 3D view as it is now
+Icon: the blueprint header holds a 64 x 64 palette picture (the game's army
+builder and info boxes draw it). *Icon from this view* takes the 3D view as it is now
 (``gpu`` off-screen draw of the scene, the middle square), shrinks it to 64 x 64 and reduces it to 256 colours with ICParse's own
 ``Icon.from_image`` -- what is stored is exactly what the preview shows. The picture waits in the panel (an image called ``IC icon ...``)
 until Export Entity Folder writes it into the blueprint (``panels_blueprint.blueprint_bytes``).

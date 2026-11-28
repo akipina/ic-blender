@@ -66,11 +66,10 @@ KEY_STUB_BONE = "bz_stub_bone"                # on a Bone Add Stub Socket create
 KEY_STUB_PARENT = "bz_stub_parent_src"        # ... and the source index of the bone it was created under (its host)
 KEY_BONE_UID = "bz_uid"                       # on a Bone Add Bone made (or adopted): its identity (the store's new-bone table)
 KEY_BONE_NEW_NAME = "bz_new_name"             # ... and the name it was stamped with (what limb rows list it by)
-KEY_BONE_LIMITS = "bz_joint_limits"           # on a rig Bone (C8.4): the BONE record's joint limits -- min x, y, z then max
-#                                               x, y, z, Euler angles in RADIANS on disk. The Skeleton.cpp READER converts
-#                                               them to degrees (x180/pi) before storing -- in IC.exe (Skeleton_ReadChunk
-#                                               0x00596da3) AND in the Object Editor (0x00591810), the same C++ function;
-#                                               Bone::SetJointLimits (0x0059724d / OE 0x00561906) only SWAPS a pair whose
+KEY_BONE_LIMITS = "bz_joint_limits"           # on a rig Bone: the BONE record's joint limits -- min x, y, z then max
+#                                               x, y, z, Euler angles in RADIANS on disk. The game's reader converts
+#                                               them to degrees (x180/pi) before storing -- in the game and in the Object Editor alike;
+#                                               it only SWAPS a pair whose
 #                                               min > max. Then the record's limit flag word (bit 0; present when more than
 #                                               3 bytes remain) as ICParse keeps it. Export writes a bone's limits only
 #                                               when they differ from its record.
@@ -297,7 +296,7 @@ def added_bones(arm_obj, table_uids=(), model=None):
 def current_bone_names(arm_obj, model=None, deleted=None):
     """The rig's current name of every source bone, in file order, by identity (the import stamps; renamed bones under
     their new names). Raises KeyError when a source bone has no rig bone (deleted, or copies that can't be told apart:
-    the skeleton guard refuses those first) -- unless ``deleted`` is given: that string stands in for such a bone (C8: a
+    the skeleton guard refuses those first) -- unless ``deleted`` is given: that string stands in for such a bone (a
     deleted source bone has no rig bone and no vertex group to read)."""
     sk = rig_skeleton(arm_obj, model)
     if sk is None:
@@ -381,7 +380,7 @@ def skeleton_error(arm_obj, model=None, src_stubs=None, rules=None):
     """Why the armature's bones can't be exported as they are, or None. Renamed bones export under their new names
     (limb bone lists, connection hosts, IK chains and clip tracks follow); added bones export when the add rule takes
     them (``structure.classify_added_bones``: Add Bone's stamped bones, bones Blender added under a bone of the creature,
-    the stub bones Add Stub Socket creates); deleted and re-parented source bones export (C8: the record dropped or its
+    the stub bones Add Stub Socket creates); deleted and re-parented source bones export (the record dropped or its
     parent changed, points / limb lists / IK chains / clip tracks following) unless the delete / re-parent rules refuse
     them (``topology.topology_refusals`` against ``rules`` -- the export's limb lists, hosts and stub bones; None: the
     source's records); refused too: added bones the rule refuses (a copy of a source bone, a root, a bone under a stub
@@ -610,7 +609,7 @@ def build_armature(context, mesh_obj, model):
         name = created[bi]
         vg = mesh_obj.vertex_groups.get(name) or mesh_obj.vertex_groups.new(name=name)
         vg.add(vs, 1.0, "REPLACE")
-    stamp_joint_limits(arm_obj, model)                     # C8.4: the joint limits, editable per bone
+    stamp_joint_limits(arm_obj, model)                     # the joint limits, editable per bone
 
     mod = mesh_obj.modifiers.new("Armature", "ARMATURE")
     mod.object = arm_obj

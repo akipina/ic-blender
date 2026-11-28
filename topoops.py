@@ -1062,7 +1062,7 @@ def _rings_for_plan(obj):
 
 def _tables_of(obj):
     from . import hardedges, store
-    hardedges.before_rebuild(obj)                       # the mesh's sharp edges and material slots first (r2shape)
+    hardedges.before_rebuild(obj)                       # the mesh's sharp edges and material slots first
     n = len(store.patches(obj))
     return (store.patch_uv(obj), store.patch_mat(obj), store.patch_type(obj), store.patch_limb(obj),
             store.manual_interior(obj, n))
@@ -1245,7 +1245,7 @@ def apply_plan(op, obj, plan: TopoPlan, patches_old, select="rows", keep_mode=Tr
                 out.append(dataclasses.replace(r, corners=patchsel.remap_ring(r.corners or [], plan.o2n)))
         store.set_conn_rows(obj, out)
     from . import hardedges
-    hardedges.after_rebuild(obj)                        # the creases and material slots back on the rebuilt mesh (r2shape)
+    hardedges.after_rebuild(obj)                        # the creases and material slots back on the rebuilt mesh
     # 4. back in Edit Mode: hidden patches stay hidden, interiors hidden, the selection
     bpy.ops.object.mode_set(mode="EDIT")
     patchfeel.apply_interior_visibility(obj)
@@ -1381,7 +1381,7 @@ if bpy is not None:
                 target = act.index
             thr = self.threshold if self.threshold > 0 else 0.01 * creature_size(obj)
             from . import hardedges
-            hardedges.before_rebuild(obj)                   # the mesh's sharp edges and material slots first (r2shape)
+            hardedges.before_rebuild(obj)                   # the mesh's sharp edges and material slots first
             plan = weld_plan(V, patches, sel, thr, target=target, rings=_rings_for_plan(obj), uv=store.patch_uv(obj),
                              mat=store.patch_mat(obj), ptype=store.patch_type(obj), limb=store.patch_limb(obj),
                              manual=store.manual_interior(obj, len(patches)))

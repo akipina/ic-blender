@@ -1,8 +1,7 @@
 """Effects panel and Events box (IC Game tab of the 3D view sidebar): the events of the selected thing's blueprint, the effects they start, and an editor for
 those effects.
 
-In the game an effect is a Lua file under ``art/fx`` (read by ``FXLoad``, FXLoad.cpp:336) that something starts by name: an event on a blueprint
-(``RenderModelEventSink::OnEvent``, RenderModelEventSink.cpp:633-760), another effect (a combo, a conditional or a spray's particle) or a map
+In the game an effect is a Lua file under ``art/fx`` that something starts by name: an event on a blueprint, another effect (a combo, a conditional or a spray's particle) or a map
 trigger. This panel works on the first two ways:
 
 * **Events** (the box): the blueprint's events per clip, each a name and fields -- clip (``anim``), time (``animtime``, 0 to 1 along the clip, from
@@ -163,7 +162,7 @@ def clip_range(ent, clip: str, scene):
 
 def marker_names(ent) -> list:
     """Markers of the model (the Markers panel's), then the bones of its skeleton: the names an event's ``marker`` can hold (the game looks a
-    marker up first and then a bone, RenderModelEventSink.cpp:650-657 via GetMarkerIndex)."""
+    marker up first and then a bone)."""
     out = []
     try:
         from .sceneobj import slice_markers as SM
@@ -723,7 +722,7 @@ class BZ_OT_fx_event_add(bpy.types.Operator):
             names = clip_names(ent)
             clip = names[0] if names else ""
         if not clip.strip():
-            # an event with no clip is filed under the clip name "" and so never runs (AnimEvent.cpp:616-640, FindGroup :546-558)
+            # an event with no clip is filed under the clip name "" and so never runs
             self.report({"ERROR"}, "Name the clip first: type it in the Clip box above the list.")
             return {"CANCELLED"}
         first, last = clip_range(ent, clip, context.scene)
@@ -1508,10 +1507,10 @@ def export_effect_model(context, obj, directory, *, name=None, folder=None, lega
             f"This folder was written by the Impossible Creatures add-on for Blender (Export Entity Folder) for an effect model.\n"
             f"The model is data/{rel}: an effect draws it when one of its properties says  Mesh = Data:{rel}  with UseMesh on.\n"
             f"There is no blueprint: the game loads an effect's mesh straight from its path.\n\n"
-            "1. Work in a copy of the game that you own (not the Steam copy: Steam can overwrite files it did not put there).\n"
-            "2. Copy the data folder of this item into the main folder of that copy and merge it with the data folder there\n"
-            "   (or press Install into Test Game in the IC Game tab).\n"
-            "3. Start the game from the copy. Loose files in its data folder are read before the packed archives.\n\n"
+            "1. Close the game.\n"
+            "2. Press Install into Game in the IC Game tab, or copy the data folder of this item into the game's main folder\n"
+            "   and merge it with the data folder there.\n"
+            "3. Start the game. Loose files in its data folder are read before the packed archives.\n\n"
             "Files written: " + ", ".join(written) + "\n").encode("utf-8"))
     except OSError as e:
         raise PB.Refused(f"The files could not be written into '{item_dir}': {e.strerror or e}. Some of them may be there already.") from None

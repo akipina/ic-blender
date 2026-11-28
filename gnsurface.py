@@ -16,7 +16,7 @@ from . import store
 
 GROUP = "BZ Patch Surface"          # the node group (one per .blend, built by script)
 # The group's layout version, stored on it as a custom property; node_group() rebuilds an older group a .blend carries.
-# 2 (2026-11-15): Merge by Distance runs only when Weld Distance > 0. From Blender 5.3 that node merges points that
+# 2: Merge by Distance runs only when Weld Distance > 0. From Blender 5.3 that node merges points that
 # sit exactly on top of each other even at distance 0 (5.2 merged none), so version 1 welded every patch seam by default.
 GROUP_VERSION = 2
 MODIFIER = "BZ Patch Surface"       # the modifier on the creature object
@@ -191,8 +191,7 @@ def _build_group():
     cur = _sock(setpos, "Geometry", out=True)
 
     # The generated grid has no material list of its own, so the creature's material slots would not be
-    # on the output mesh and every patch would render with Blender's default (measured: the evaluated
-    # mesh's material list was [None] while the corner quads carried the right 9 indices). Joining the
+    # on the output mesh and every patch would render with Blender's default. Joining the
     # input mesh brings its list along; the input's own points -- and with them its corner quads -- are
     # deleted again immediately, and the list stays.
     mark = N.new("GeometryNodeStoreNamedAttribute"); mark.data_type = "BOOLEAN"; mark.domain = "POINT"
@@ -347,7 +346,7 @@ def apply_appearance(obj, patches=None) -> int:
             me.materials.append(mt)
     # An Image Texture node with nothing wired to its Vector input reads the mesh's ACTIVE RENDER UV
     # map, and a UV map the node group creates from nothing is neither active nor active-render (the
-    # texture then samples one texel and the creature renders flat-coloured -- measured). Giving the
+    # texture then samples one texel and the creature renders flat-coloured). Giving the
     # control mesh an empty UV map of the same name makes the joined output inherit the flags, and the
     # group's Store Named Attribute fills it in. Nothing reads the control mesh's UV layers (the UV
     # editing cage is its own object, ops._UV_LAYER) and no UV reaches the file from here.
@@ -566,7 +565,7 @@ def evaluated(obj, depsgraph=None):
     """``(positions, pid, u, v)`` of the evaluated surface points, read off the depsgraph.
 
     Through ``bpy.data.meshes.new_from_object``: in EDIT MODE ``obj.evaluated_get(dg).data`` hands back
-    the edit cage's own datablock (the node result's attributes are not on it -- measured), while a
+    the edit cage's own datablock (the node result's attributes are not on it), while a
     new_from_object copy carries the whole evaluated mesh in both modes."""
     if depsgraph is None:
         depsgraph = bpy.context.evaluated_depsgraph_get()

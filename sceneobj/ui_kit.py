@@ -11,7 +11,7 @@ import importlib.util
 
 import bpy
 
-ORDER = 5                 # imported early: panels of other slices subclass SubPanel
+ORDER = 5                 # imported early: the other panels subclass SubPanel
 ABSTRACT = ("SubPanel",)  # defined here, never registered (the contract test skips these)
 
 # The three tabs of the 3D view sidebar: every panel's ``bl_category`` is one of these.
@@ -30,7 +30,7 @@ ICON_BY_LEVEL = {"ERROR": "ERROR", "WARN": "INFO", "INFO": "DOT"}
 
 # ---------------------------------------------------------------------------------------------------- optional sibling modules
 def _optional(name: str):
-    """The sibling module ``name`` when it exists (a later slice may not have landed yet), else None. An error INSIDE it is not hidden."""
+    """The sibling module ``name`` when it exists, else None. An error INSIDE it is not hidden."""
     if importlib.util.find_spec(f"{__package__}.{name}") is None:
         return None
     return importlib.import_module(f"{__package__}.{name}")
@@ -97,7 +97,7 @@ PURPOSE = {
     "BZ_PT_fx_used": "The effects your events start. Copy a game effect into your project to change it.",
     "BZ_PT_fx_editor": "Every setting of one effect. Each change is saved to the effect's file at once.",
     "BZ_PT_stats": "The numbers of your creature: hit points, speed, attacks, abilities. They start as the numbers of the animal you began with.",
-    "BZ_PT_game": "The steps that take your work into the game: check it, export it, install it into your test copy, and share it.",
+    "BZ_PT_game": "The steps that take your work into the game: check it, export it, install it into the game, and share it.",
     "BZ_PT_map": "Change a game map: its ground, water, textures and the things placed on it. Save a folder to copy into the game.",
     "BZ_PT_map_terrain": "Raise or lower the ground, and move the water.",
     "BZ_PT_map_look": "Show the map the way the game draws it: sun, sky, ground picture, water and fog. This is never saved.",

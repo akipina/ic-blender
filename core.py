@@ -133,8 +133,7 @@ def resolve_source(path: str) -> str:
 
 
 # Parsed creature sources, keyed by absolute path and validated by the file's stat (mtime, size, inode;
-# for a .ebp also its sibling .sgm, which a proxy blueprint reads). One Export / Validate used to parse
-# the same source 2-3 times. Entries hold a pickled snapshot, so every read hands out a private copy
+# for a .ebp also its sibling .sgm, which a proxy blueprint reads). Entries hold a pickled snapshot, so every read hands out a private copy
 # that the caller may edit (export_model does) without touching the cache.
 _SOURCE_CACHE: dict = {}
 _SOURCE_CACHE_MAX = 8
@@ -247,7 +246,7 @@ def surface_uvs(patch_uv: np.ndarray, n: int) -> np.ndarray:
     """Per-surface-vertex UVs (M,2) by bilinear interpolation of each patch's 4 corner UVs.
 
     Matches the tessellation grid order (vertex a*n+b within a patch block) and the corner order the
-    ENGINE uses (verified against the Object Editor's own vertex stream, 2026-09-13): patch.uvs holds
+    ENGINE uses: patch.uvs holds
     the corners in control-point-slot order 0, 3, 12, 15 = grid (0,0), (0,1), (1,0), (1,1). V is
     flipped to Blender's bottom-up convention."""
     pu = np.asarray(patch_uv, dtype=np.float64).reshape(-1, 4, 2)
@@ -325,7 +324,7 @@ def validate_model(model, edited_verts=None) -> list:
     for p in ICval.check_creature_rulebook(m, include_structural=False):
         problems.append("STOCK " + p[len("ERROR "):] if p.startswith("ERROR ") else p)
     problems += host_bone_problems(m)
-    problems += topology.ik_chain_problems(m)            # every IK chain one path of the hierarchy (C8.5; 905/905 stock)
+    problems += topology.ik_chain_problems(m)            # every IK chain one path of the hierarchy
     problems += ICval.check_limb_bones(m)               # every bone in exactly one limb (STOCK)
     oe = ICval.check_oe_structure(m)                    # the Object Editor's own limb warnings (never blocking)
     problems = [p for p in problems if not _oe_loads_unknown_limb_bone(p, oe)]
@@ -343,8 +342,7 @@ _UNKNOWN_LIMB_BONE = re.compile(r"^limb (.*): references unknown bone '(.*)'$")
 
 def _oe_loads_unknown_limb_bone(problem, oe_lines) -> bool:
     """True for ICParse check_model's ``limb X: references unknown bone 'b'`` when the Object Editor's own warning for
-    it is among ``oe_lines``: the editor LOADS such a creature and only warns (harness 2026-09-15: cheetah whose new
-    LFArm stub limb and socket name a deleted front_arm1_l -> LOADED), so the line must not block loading; the OE line
+    it is among ``oe_lines``: the editor LOADS such a creature and only warns, so the line must not block loading; the OE line
     (WARN) and the combiner precheck's COMBINE ERROR (ComboTest.exe fails on it) still report it."""
     hit = _UNKNOWN_LIMB_BONE.match(problem)
     if not hit:
@@ -354,8 +352,8 @@ def _oe_loads_unknown_limb_bone(problem, oe_lines) -> bool:
 
 
 def host_bone_problems(m) -> list:
-    """``STOCK`` lines for connections whose host bone owns no control points. Measured: on the 61 base-game creatures
-    all 730 connections' host bones own points (a limb grafted on a bone its own points don't follow); some Tellurian
+    """``STOCK`` lines for connections whose host bone owns no control points. On the base-game creatures
+    every connection's host bone owns points (a limb grafted on a bone its own points don't follow); some Tellurian
     add-on creatures have empty hosts for limbs they lack (tuna's arms and wings), and they load, so it never blocks.
     A Boner Remove / Assign / Auto Skin can empty a host bone, which this line reports."""
     bones = {str(b.name).lower(): b for b in m.bones}
@@ -420,8 +418,7 @@ def mirror_pairs(verts: np.ndarray, axis: int = 0, eps: float = 1e-3):
     Returns (pairs {i: j}, on_plane [indices on the mirror plane]). Matching is spatial, so
     a partially symmetric creature pairs only the verts that have a partner: the nearest point within
     ``eps`` on every axis of the mirror image (points are bucketed on an ``eps`` grid and the 27
-    neighbouring cells are searched, so a partner a hair across a cell boundary still pairs -- a fitted
-    near-symmetric net missed 6 of 866 with a same-cell key)."""
+    neighbouring cells are searched, so a partner a hair across a cell boundary still pairs)."""
     V = np.asarray(verts, dtype=np.float64)
     q = np.floor(V / eps).astype(np.int64)
     cells = {}
@@ -542,7 +539,7 @@ def _patch_limb_of(model) -> np.ndarray:
 # stores their count in the BONE record's third count word (``aux_count``, ICParse ``Bone.meta5``). Points no bone owns
 # (woolly_mammoth's two unused points) sit before every range. The reskin and grown exports write that layout, and so
 # does Export of a source that arrives off it (``build_export``).
-# The rule is the game's, not a convention (IC.exe, decompiled 2026-11-15): at its coarsest level the renderer poses
+# The rule is the game's, not a convention (IC.exe): at its coarsest level the renderer poses
 # only the first aux_count points of each range (Skeleton::UpdateMesh -> PatchMeshObject::SetupLevel0Vertices), and
 # its combiner builds this layout. The helpers live in ICParse (``ICParse.sgm.creature.layout``), shared with
 # ``build_creature`` and ``check_model``; the names here are kept for the add-on and its tests.
@@ -573,8 +570,8 @@ def aux_rule_problems(m) -> List[str]:
 def _layout_bones(m, sorted_owners, owners, corner) -> None:
     """Rebuild each bone's vertex range from the sorted owners and recompute ``aux_count`` (``meta5``) for EVERY bone.
     A reskin or grown export re-sorts the whole pool into the stock layout (:func:`skin_order`: corners first in every
-    bone's range), so every bone's word is re-derived from that layout: the stock rule holds on 61/61 base-game
-    creatures, so their words come out unchanged, and a file off the rule comes out on it. ``owners`` / ``corner``:
+    bone's range), so every bone's word is re-derived from that layout: the stock rule holds on every base-game
+    creature, so their words come out unchanged, and a file off the rule comes out on it. ``owners`` / ``corner``:
     per pool point in the pool's old order; ``sorted_owners``: per point in file order."""
     own = np.asarray(owners, dtype=np.int64)
     cm = np.asarray(corner, dtype=bool)
@@ -587,7 +584,7 @@ def _unowned_local(src_local, src_owner, world):
     a point at its stored coordinates, so its source bytes are kept while they still put it where it is (an untouched
     unowned point, woolly_mammoth's two); otherwise (a point just removed from its bone, or moved) its position is
     written as is, so it re-imports where Blender shows it. (The game puts it at the model ORIGIN instead:
-    ``PatchMeshObject::SkinVertices``, IC.exe 0x005680c4, zero-fills the posed array and moves only the bones' ranges,
+    ``PatchMeshObject::SkinVertices`` zero-fills the posed array and moves only the bones' ranges,
     and the mesh's bound volume -- the combiner's Creature Size rule reads it -- includes the point there. Only the
     bound can differ, since no patch may use an unowned point: Export refuses that.)"""
     w = np.asarray(world, dtype=np.float64)
@@ -1782,8 +1779,8 @@ def refresh_kept_bounds(built, kept, warnings=None) -> list:
     """Recompute the motion bounds of the kept clips when the model's extent changed, keys untouched; returns the clip names.
 
     A clip's two boxes (``bbox1``: the whole clip, ``bbox2``: the last frame) come from the geometry it was exported with, and the
-    engine culls and picks by them (``AnimPlayList::GetBounds``, decomp ``AnimPlayList.cpp:1041-1046``); it recomputes them only
-    when a file's box is degenerate (``Anim.cpp:1571``). So a clip kept byte for byte beside a bigger or smaller body would keep
+    engine culls and picks by them (``AnimPlayList::GetBounds``); it recomputes them only
+    when a file's box is degenerate. So a clip kept byte for byte beside a bigger or smaller body would keep
     the old body's boxes: here they are derived again with ``ICParse.codecs.anim.clip_bounds`` (the same recipe a clip written
     from scratch gets), and only the INFO bounds of the clip change -- every key stays its source bytes. Version-1 clips carry no
     boxes (the engine derives them at load). A failure leaves the clip as it was and is added to ``warnings``."""

@@ -44,12 +44,11 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # ComboTest.exe's part buttons, in the tool's order, and the slot keys each picks from the other creature
 # (combotest.slots.PARTS is the single source of the mapping).
 PARTS: Dict[str, List[str]] = OrderedDict((k, list(v)) for k, v in ct_slots.PARTS.items()) if ct_slots else OrderedDict()
-# Round 2 (r2shape): the combiner knows 16 limb slots, ComboTest.exe's six buttons reach 12 of them ("No button reaches the mid
+# The combiner knows 16 limb slots, ComboTest.exe's six buttons reach 12 of them ("No button reaches the mid
 # legs", combotest/slots.py). The game's combiner picks a limb for every open connection ring by its class, whatever the class
-# (FindBestCandidateFrom per ring, CombinerImp.cpp:862 and :1074), and knows the mid legs: ComputeLimbScale scales a mid-leg graft
-# (CombinerImp.cpp:2992, `class & 0x20000`) and takes the mid legs as the leg reference when a creature has no other legs (:3019,
-# Find(0x20021)). BUT a candidate limb marked Non-Swappable is taken only from the torso creature itself (CreatureCompat.cpp:166-225,
-# FindBestCandidateAny / FindBestCandidateFrom), and every stock mid leg is Non-Swappable (insects 0x820021/22, spiders 0x840021/22).
+# (FindBestCandidateFrom per ring), and knows the mid legs: ComputeLimbScale scales a mid-leg graft
+# (`class & 0x20000`) and takes the mid legs as the leg reference when a creature has no other legs (Find(0x20021)). BUT a candidate limb marked Non-Swappable is taken only from the torso creature itself
+# (FindBestCandidateAny / FindBestCandidateFrom), and every stock mid leg is Non-Swappable (insects 0x820021/22, spiders 0x840021/22).
 # So with the game's rules the buttons graft the mid legs of a donor whose mid legs are NOT flagged (a creature of your own), and
 # for a stock donor they change nothing: the panel says so. Whether the game's own builder screen offers a mid-leg choice is not
 # known (only the combiner and the saved-design path were read). Fins, stubs and antennae have no slot of their own in the
@@ -945,7 +944,7 @@ def partners_weld_reversed(points, partner_dirs, same_only: bool = False) -> "tu
     """``(reversed, n)``: how many of the ``n`` stock partner rings (``partner_dirs``: :func:`partner_ring_dirs`, rings of another corner
     count skipped) the by-index weld pairs ``points`` REVERSED against (``combotest.validate.best_alignment``: the reversed pairing beats the
     by-index one by more than the twist margin, the test ``ring_fix`` already uses). Unlike the torso-centroid rule this does not depend on the
-    rest of the torso: it is what the combiner's weld (FUN_005c5962, corner i to corner i) actually needs, so a pinned ring that is the stock
+    rest of the torso: it is what the combiner's weld (corner i to corner i) actually needs, so a pinned ring that is the stock
     ring stays judged the same however far the retarget moves the torso. ``same_only``: only a ring that IS a partner's ring (mean corner angle
     under :data:`RING_SAME_DEG`) counts as welded the stock way; the by-index measure is not trusted (a ring picked at any start corner, as Pick
     Ring gets it, makes it unreliable for stub rings)."""
@@ -969,19 +968,16 @@ def winding_verdict(points, torso_centre_, partner_dirs=None, same_only: bool = 
     """``"into"``, ``"out"`` or ``"unclear"``: which way the ring ``points`` (corners in ring order, IC axes) is wound against the torso.
 
     The combiner's own rule (``combotest.validate.winding_into_torso``: the ring's winding normal points from its centre toward the torso's
-    centroid; true of all 730 base-game rings) is a PROXY for what the game needs, the same corner order as the stock partner's ring
-    (the by-index weld, FUN_005c5962), and it is ill-conditioned for a ring that lies sideways to the centroid. The base-game cheetah's four
-    wing rings are 89 degrees from it (0.008 m of dot product); retargeting the cheetah onto a rhinoceros or a tiger moves the torso's
-    centroid 2 cm, the dot product changes sign, and the rule called four unchanged, pinned rings reversed -- while the 11 real combines of the
-    same creature gave no issue and the rings are the stock ones (corner order and place unchanged: ``Retarget`` pins them).
+    centroid; true of every base-game ring) is a PROXY for what the game needs, the same corner order as the stock partner's ring
+    (the by-index weld), and it is ill-conditioned for a ring that lies sideways to the centroid: a small move of the torso's
+    centroid changes the sign of the dot product, and the rule then calls unchanged, pinned rings reversed.
     So a ring within :data:`WINDING_UNCLEAR_DEG` of a right angle is ``"unclear"``: it is neither reversed nor refused on that evidence.
 
     ``partner_dirs`` (optional, :func:`partner_ring_dirs`): with the stock partners at hand the ring the centroid rule calls ``"out"`` is judged
     by the weld itself as well (:func:`partners_weld_reversed`): ``"out"`` only when at least one partner pairs it reversed. A ring that every
     partner welds the stock way is ``"unclear"`` whatever the centroid says -- the band above is a margin (a torso moved more than about 2 cm
-    turns a ring 5 to 10 degrees off a right angle too), the partners are the evidence. Measured over the 61 base-game creatures with the
-    torso moved along each axis: 10 cm, 176 false "out" with the band alone, none with partners; 20 cm, 385 against none. The cost:
-    6 of the 726 base-game rings (snake stubs whose plane differs from the partners') are not caught when reversed by hand by this rule;
+    turns a ring 5 to 10 degrees off a right angle too), the partners are the evidence. The cost:
+    some base-game rings (snake stubs whose plane differs from the partners') are not caught when reversed by hand by this rule;
     the combiner's own by-index weld check still sees them. ``same_only`` (Pick Ring and the start plan, which get a ring picked from any start
     corner and exist to REVERSE one): only a ring that is a partner's very ring is spared, so what Pick Ring reverses is unchanged by partners."""
     _require()
@@ -1120,7 +1116,7 @@ def ring_fix(points, corners, slot_key, torso_centre_, partner_dirs) -> "tuple[l
     return corners, notes
 
 
-# ------------------------------------------------------------------------------------- the ring-start optimiser (B8)
+# ------------------------------------------------------------------------------------- the ring-start optimiser
 MIN_START_GAIN_DEG = 1.0        # a rotation must win at least this much of the precheck's measure to be worth writing
 
 
@@ -1128,7 +1124,7 @@ MIN_START_GAIN_DEG = 1.0        # a rotation must win at least this much of the 
 class RingStartPlan:
     """What rotating one connection ring's start corner would do to the by-index weld, measured the way
     ``combotest.validate.precheck`` measures it: per stock partner, the mean corner angle of the pairing the combiner
-    really makes (``FUN_005c5962`` welds corner i to corner i) against the best pairing of the same two rings, and how
+    really makes (it welds corner i to corner i) against the best pairing of the same two rings, and how
     many partners that leaves over :data:`combotest.validate.TWIST_MARGIN_DEG`.
 
     ``shift`` is the rotation to apply (0 = keep the start); ``corners`` the ring after it. ``ok`` says there is
@@ -1164,7 +1160,7 @@ def ring_start_plan(points, corners, slot_key, torso_centre_, partner_dirs, part
     ``points``: the corners' world positions (IC axes) in ring order; ``partner_dirs`` / ``partner_names``: the stock
     partners' ring directions (:func:`partner_ring_dirs`, ``donors_only=True`` for the precheck's own set). Rotations
     only: the other thing the file could express, reversing the corner list, flips the ring's winding normal, and every
-    one of the 730 base-game rings winds into the torso (``winding_into_torso``) -- so a ring the partners would rather
+    base-game ring winds into the torso (``winding_into_torso``) -- so a ring the partners would rather
     weld reversed is REPORTED (``reversed_wins`` / ``reversed_gain``), never reversed."""
     corners = [int(c) for c in corners]
     X = np.asarray(points, dtype=np.float64).reshape(-1, 3)

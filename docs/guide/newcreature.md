@@ -9,8 +9,8 @@ This chapter uses the cheetah as the starting animal. Use any animal you like.
 ## 1. Start the project
 
 1. Choose **File > New > Impossible Creatures Project...**. A file window opens. The choices are in the panel at the right of it. (If you do not see it, press the small gear button at the top right of the window.) Keep **Type** on **Creature**.
-2. Open **Start from** and choose **Cheetah (Base game)**. The list holds the animals of the base game, of Insect Invasion, of Dino Dawn and of Tellurian, and of any mod you installed. The origin is in brackets.
-3. Under it, keep **A new creature of my own**. (The other choice, **Replace the original ...**, is for animals of the base game and of Insect Invasion only. For the animals of Dino Dawn, Tellurian or a mod there is no choice to make.)
+2. Open **Start from** and choose **Cheetah (Base game)**. The list holds the animals of the base game, of Insect Invasion and of Tellurian, and of any mod you installed. The origin is in brackets.
+3. Under it, keep **A new creature of my own**. (The other choice, **Replace the original ...**, is for animals of the base game and of Insect Invasion only. For the animals of Tellurian or a mod there is no choice to make.)
 4. Set **Animations** (see below), then go to an empty folder of your own. Type a file name at the bottom of the window, and press **New Impossible Creatures Project** at the bottom right.
 
 Ignore the **Name** box in the panel: the name comes only from the file name at the bottom. The file name starts as `NewCreature.sgm`. Replace it, or your creature is called “newcreature”. The file name is the creature's name in the game. It must be 3 to 24 letters (a to z), digits or underscores, in lower case, with no spaces. It cannot be the name of an animal the game already has. If it is, the message says “'cheetah' is the name of a creature the game already has: choose another name”. If a name is refused, the window has closed: open **File > New > Impossible Creatures Project...** again and type another name, for example `my_cheetah`.
@@ -52,35 +52,38 @@ A creature made from a game animal shows about a dozen warnings, for example “
 ## 5. Export it for the game
 
 1. In **2. Export for the Game**, the box says “Built on cheetah's blueprint and stats” and “Export as: A new creature of my own”.
-2. Press **Export Creature for the Game**. A window opens.
+2. Press **Export Creature for the Game** (also under **File > Export**). A window opens.
 3. Fill it in:
    - **Name**: the creature's file name. It is your file name already. If it is wrong, a red line says what is wrong, as soon as you type.
    - **Display name**: the name the creature creator shows. Type it as you want to see it, for example `My Cheetah`.
    - **Description**: a text shown with the creature's numbers.
    - **Icon picture**: the picture the creature creator shows (it is resized to 64 by 64). Leave it empty and keep **Make the icon from the creature** ticked, and the export draws a picture from your creature. Untick it to keep the original animal's picture.
    - **Folder**: where the export folder goes. Empty means a folder called `ic_items` beside your model files.
+   - **Install into the game after export**: ticked, so the item goes into the game as soon as it is written.
 4. Press **OK**.
 
-You should see a line in the **Info** editor that starts with “Wrote” and ends with “Next: press Install into Test Game in the Game panel”. The box now shows “Last export: my_cheetah”.
+You should see a line in the **Info** editor that starts with “Wrote” and ends with “Next: press Install into Game in the Game panel”, then one that starts “Installed 'my_cheetah' into ...”. The box now shows “Last export: my_cheetah”.
 
 The export folder holds the files the game reads. All their names are in lower case, because the game's archives look names up exactly as they are written. If the export folder already exists, the export replaces an earlier export of the same creature. It refuses to replace any other folder.
 
 The picture drawn from the creature needs Blender's renderer. If Blender cannot draw it, you get a warning, and the creature keeps the original animal's picture. Choose an **Icon picture** or press **Icon from this View** and export again.
 
-## 6. Install it into your test copy
+## 6. Install it into the game
 
-1. In **3. Install into Test Game**, check the line **Installs: my_cheetah**.
-2. Press **Install into Test Game**.
+With **Install into the game after export** ticked, step 5 already did this. If you unticked it, or the message says it was not installed:
+
+1. In **3. Install into Game**, check the line **Installs: my_cheetah**.
+2. Press **Install into Game**.
 
 You should see “Installed 'my_cheetah' into ...” followed by the number of files and a part that starts “added to the creature creator (...)” with the mods that got the new name.
 
-The game's creature creator shows only the animals whose name is on a list it reads when it starts. The install adds your creature's name to the list of **every mod** in your test copy: the base game, Insect Invasion, Tellurian and any mod you installed. A mod that hides some of its animals on purpose keeps hiding them. Its list gets your name and nothing else. **Remove** takes the name out again.
+The game's creature creator shows only the animals whose name is on a list it reads when it starts. The install adds your creature's name to the list of **every mod** in your game folder: the base game, Insect Invasion, Tellurian and any mod you installed. A mod that hides some of its animals on purpose keeps hiding them. Its list gets your name and nothing else. **Remove** takes the name out again.
 
 If the message says a mod's list could not be written, or that you edited a list by hand, it names the mod where your creature will not show. Add the name to that list yourself. The line to add is shown in the README of a zip made by **Pack for Sharing**.
 
 ## 7. Play it
 
-1. Close the game if it is running. Start it from the test copy (run `IC.exe` there; [Start here](start.md) says how on Linux).
+1. Close the game if it is running. Start it (run `IC.exe` in the game folder; [Start here](start.md) says how on Linux).
 2. Open the creature creator or start a skirmish. Look for **My Cheetah** in the list of animals.
 3. Choose it as the body (the “torso”), or add it to another creature as a part.
 

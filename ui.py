@@ -60,7 +60,7 @@ def _skeleton_error_cached(arm, obj=None):
             if fail is not None:
                 raise fail
             from . import boneops, core
-            src = core.read_source(store.source_path(obj)) if obj is not None else None   # cached parse (C8 rules)
+            src = core.read_source(store.source_path(obj)) if obj is not None else None   # cached parse
             err = rig.skeleton_error(arm, src, src_stubs=stubs,
                                      rules=boneops.topology_rules(obj, src) if src is not None else None)
         except Exception as e:
@@ -188,7 +188,7 @@ class BZ_PT_panel(bpy.types.Panel):
         if (not scene_obj and context.active_object and context.active_object.type == "MESH"
                 and not store.is_native(context.active_object)):
             # Convert Mesh is not offered any more: Fit Patches to Mesh with the Own Quads layout does the same job (the
-            # operator bz.convert_mesh still exists; DESIGN.md says why)
+            # operator bz.convert_mesh still exists)
             col.operator(fitops.BZ_OT_fit_mesh.bl_idname, icon="MOD_SHRINKWRAP")
 
         if not scene_obj:                       # the creature surface display settings
@@ -215,7 +215,7 @@ class BZ_PT_panel(bpy.types.Panel):
         if obj is not None and obj.get("bz_scene") and not store.is_native(obj):
             ui_kit.draw_scene_pointer(layout, obj, rig_box=self._rig_box)     # the info box and export buttons, or a pointer to the Entity panel
         if store.is_native(obj):
-            # D10: every refusal the state already earns, not just the pool guard's (the rig box draws 'skeleton')
+            # every refusal the state already earns, not just the pool guard's (the rig box draws 'skeleton')
             guards.draw_problems(layout, obj, skip=("skeleton",) if obj.get("bz_rig") else ())
             info = layout.box()
             info.label(text=obj.get(store.KEY_NAME, obj.name), icon="OUTLINER_OB_MESH")
@@ -237,7 +237,7 @@ class BZ_PT_panel(bpy.types.Panel):
                 r.operator(patchsel.BZ_OT_set_vertex_type.bl_idname, text="Set Corner").kind = "CORNER"
                 r.operator(patchsel.BZ_OT_set_vertex_type.bl_idname, text="Set Coplanar").kind = "COPLANAR"
 
-                tp = layout.box()                       # B7 topology tools (topoops)
+                tp = layout.box()                       # topology tools (topoops)
                 tp.label(text="Topology", icon="MOD_REMESH")
                 r = tp.row(align=True)
                 r.operator(topoops.BZ_OT_weld.bl_idname, text="Weld").mode = "SELECTED"
@@ -407,9 +407,9 @@ class BZ_PT_boner(bpy.types.Panel):
         layout.operator_menu_enum(ops.BZ_OT_skin_auto.bl_idname, "target", text="Auto Skin", icon="MOD_ARMATURE")
         if obj.mode == "EDIT":
             layout.operator_menu_enum(ops.BZ_OT_assign_bone.bl_idname, "bone", text="Skin Selected to Bone")
-        from . import ikops                                 # C8.4 / C8.5: the active bone's joint limits, the IK chains
+        from . import ikops                                 # the active bone's joint limits, the IK chains
         ikops.draw_limits_box(layout, context, obj, s.bone)
-        if SHOW_IK_CHAINS:                                  # hidden (round 2 tidy): nothing in the game reads a chain a modder edits here
+        if SHOW_IK_CHAINS:                                  # hidden: nothing in the game reads a chain a modder edits here
             ikops.draw_ik_box(layout, context, obj)
 
     @staticmethod

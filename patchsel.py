@@ -45,7 +45,7 @@ def face_error_pure(faces, patches):
     are): the count, or a face whose vertices are not its patch's corners."""
     rows, quads = face_quads(patches)
     if len(faces) == 0 and len(rows):
-        return None                       # an object built before B6 (no corner quads at all): ensure_faces adds them
+        return None                       # an older object (no corner quads at all): ensure_faces adds them
     if len(faces) != len(rows):
         n, k = len(faces), len(rows)
         what = (f"{k - n} corner quad{'s' if k - n != 1 else ''} deleted" if n < k
@@ -175,13 +175,13 @@ def face_count(obj) -> int:
 
 def face_error(obj, patches=None):
     """The pool guard's face rule on a native object: None when the mesh holds exactly the corner quads of the patch
-    table (see :func:`face_error_pure`; a mesh with no faces at all is a pre-B6 object, tolerated)."""
+    table (see :func:`face_error_pure`; a mesh with no faces at all is an older object, tolerated)."""
     patches = store.patches(obj) if patches is None else patches
     return face_error_pure(mesh_faces(obj), patches)
 
 
 def ensure_faces(obj) -> int:
-    """Give a native object built before B6 (a mesh with no faces) its corner quads; returns how many were added (0
+    """Give a native object built earlier (a mesh with no faces) its corner quads; returns how many were added (0
     when it has faces, is in Edit Mode, or its pool is not the patch table's). Run for every creature of a loaded
     .blend (``load_post``)."""
     if not store.is_native(obj) or obj.mode == "EDIT" or len(obj.data.polygons):

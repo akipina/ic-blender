@@ -47,7 +47,7 @@ KEY_CONN_FLAGS2 = "bz_conn_flags2"    # LCON flags2 per connection (exported: th
 KEY_CONN_SRC = "bz_conn_src"          # per connection: the source LCON record it came from, -1 = made in Blender
 KEY_LIMB_IDS = "bz_limb_ids"          # limb_id per limb (exported: the classification; i32-stored u32)
 KEY_LIMB_PINS = "bz_limb_pins"        # names of the ADDED bones a Boner limb operator put in a limb by hand: those stay
-                                      # in the row that lists them instead of following their parent (C8 + fit-to-rig)
+                                      # in the row that lists them instead of following their parent
 KEY_STORE_VERSION = "bz_store_version"  # 2 = rings stored as corner loops (absent: raw ints, decoded on read)
 STORE_VERSION = 2
 KEY_GEN = "bz_gen"                    # generation of the tables currently on the object
@@ -80,7 +80,7 @@ CONN_TABLE_KEYS = (KEY_CONN_FLAGS1, KEY_CONN_FLAGS2, KEY_CONN_SRC)
 # The new-bone table joined in Boner Add Bone: an entry journaled before it has no such key, which means no added bone
 # (sync then removes the key, the state that generation had).
 BONE_TABLE_KEYS = (KEY_BONE_NEW, KEY_BONE_NEW_NAMES)
-# The IK chain table (Boner > Bones > IK Chains, C8): absent = the source's IKCH chunk as it is (an entry journaled
+# The IK chain table (Boner > Bones > IK Chains): absent = the source's IKCH chunk as it is (an entry journaled
 # before the table has no such key, which means just that).
 KEY_IK_NAMES = "bz_ik_names"          # per chain: its name
 KEY_IK_SRC = "bz_ik_src"              # per chain: the source IKCH chain it came from, -1 = made in Blender
@@ -844,9 +844,7 @@ def export_stubs(obj) -> frozenset:
     """The source bone indices Export writes as stub bones (``structure.export_stub_bones``), which take no added bone:
     every flagged one, plus the point-less bones of a limb with no patches -- read off the LIVE limb rows, the stored
     patch membership and the owner table (a Ctrl+G reassignment counts once a Boner skin edit stores it), not off the
-    source file. Giving a limb patches in Blender therefore takes its bones OUT of the stub set at once; before
-    2026-09-16 only a save and re-import did that (the native pillbug build: 43 stub bones live, 4 after re-opening the
-    very same creature, and C8 refused every bone in between). What the panel read-outs, Add Bone and Adopt Added Bones
+    source file. Giving a limb patches in Blender therefore takes its bones OUT of the stub set at once. What the panel read-outs, Add Bone and Adopt Added Bones
     classify added bones against, so they say what Export's skeleton guard says. Worked out again only when the
     generation (every owner / patch-limb write starts one) or the limb table changes (panel draw runs every redraw).
     Raises when the source or the limb table can't be read."""

@@ -535,7 +535,7 @@ class BZ_OT_conn_set_host(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# --------------------------------------------------------------------------------------- Optimise Ring Start (B8)
+# --------------------------------------------------------------------------------------- Optimise Ring Start
 def ring_start_plans(obj, context, rows, indices, margin=None, gain=None):
     """``[(row index, combocore.RingStartPlan)]`` for the connection ``indices`` of ``obj``: each torso socket ring's
     start corner tried in every rotation against the stock partners that really donate that part (the partner set

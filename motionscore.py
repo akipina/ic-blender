@@ -1,7 +1,7 @@
 """The Motions box without Blender: how fast a clip moves its unit, how a motion reads in the list, how many motions were changed, and what the export
 tells the modder about clips nothing plays. What ``motionspanel.py`` draws and writes.
 
-The rules about what the game reads are in ``ICParse/ebp/motions.py`` (decompiled MotionTree.cpp and AnimPlayList.cpp).
+The rules about what the game reads are in ``ICParse/ebp/motions.py``.
 """
 from __future__ import annotations
 
@@ -74,7 +74,7 @@ def ground_speed(points, seconds: float, up: int = 2, root: int = 0) -> Optional
 def follows_ground_speed(row) -> bool:
     """Whether a motion's speed rule is about how fast the unit walks, so a ground speed measured from its clip is the right reference value: the
     variable is ``Velocity``, the rule is not inverted (an inverted one fits a TIME, such as an attack's ``AttackTime``: reference / variable) and the
-    variable is not the position in the clip (AnimPlayList.cpp:2209-2252, the unit's own speed reference only for ``Velocity``: :2247-2251)."""
+    variable is not the position in the clip (the unit's own speed reference only for ``Velocity``)."""
     return (bool(row.clip) and row.speed_var.lower() == "velocity" and not row.invert_speed and not row.absolute_time and row.speed_ref > 0)
 
 

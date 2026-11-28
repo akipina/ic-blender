@@ -140,8 +140,8 @@ Only the rig's active Action, Actions on its NLA tracks and imported ones are ex
 A creature built from the template has no game animal behind it, so the export has no original to copy. It makes the blueprint for you, from your clips, and starts the numbers from the cheetah's. The export window says so (“Built from nothing: a generated blueprint”; the field **Start stats from** lets you pick another animal to start the numbers from).
 
 1. Open the **IC Game** tab, **Game** panel. Press **Check the Creature**.
-2. Press **Export Creature for the Game**. Give it a name such as `my_rhino` and a display name, and press **OK**.
-3. Press **Install into Test Game** and start the game from the test copy.
+2. Press **Export Creature for the Game**. Give it a name such as `my_rhino` and a display name, leave **Install into the game after export** ticked, and press **OK**.
+3. Start the game.
 
 The chapter [A new creature from a game animal](newcreature.md) shows these steps in full. The template's skin is a plain checker pattern, so a combined creature looks patchy.
 

@@ -6,7 +6,7 @@ formats, ready to install.
 
 This is an unofficial fan project. It is not affiliated with or endorsed by the owners of the game.
 
-> **Status: alpha (0.9.3).** See [Known limitations](#known-limitations) before relying on it.
+> **Status: alpha (0.9.5).** See [Known limitations](#known-limitations) before relying on it.
 
 ## Features
 

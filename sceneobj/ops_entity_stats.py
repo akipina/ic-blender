@@ -1,12 +1,12 @@
 """Editable gameplay numbers of a structure, gatherer, character or prop (the Blueprint tab's "Gameplay numbers").
 
-**Which script the game loads.** ``BlueprintHeader::LoadAttributes`` (decompiled, ``decomp/ic/src/EntityBlueprint.cpp:2185``) takes the blueprint's own
-path, swaps ``.ebp`` for ``.lua`` (:2196-2199) and loads that script; when no such file exists it loads ``data:art/ebps/defstats<class>.lua`` instead
-(:2200-2201, the class is the blueprint's ``defstats class``, :232). The script is run as Lua (``LuaConfig::LoadFile``, :2204: so ``dofilepath``
-inherits another script and the LAST assignment of a name wins), and then the table ``gameattributes`` is read, number by number (:2215-2225). A script that
-fails to load leaves the entity without any numbers (no second fallback: :2204-2205). The numbers are what the game's rules read per entity
-(``decomp/icmod/src/ModRDN/Simulation/ExtInfo``: hit points ``HealthExtInfo.cpp:24``, cost ``CostExtInfo.h:41-44``, speeds ``MovingExtInfo.cpp:30-32`` ...),
-each clamped into a range by ``GetVal`` (``ModStaticInfo.h:156-176``): ``ICParse.ebp.stats.GAME_RANGES``.
+**Which script the game loads.** When it loads a blueprint the game takes the blueprint's own
+path, swaps ``.ebp`` for ``.lua`` and loads that script; when no such file exists it loads ``data:art/ebps/defstats<class>.lua`` instead
+(the class is the blueprint's ``defstats class``). The script is run as Lua (so ``dofilepath``
+inherits another script and the LAST assignment of a name wins), and then the table ``gameattributes`` is read, number by number. A script that
+fails to load leaves the entity without any numbers (no second fallback). The numbers are what the game's rules read per entity
+(hit points, cost, speeds ...),
+each clamped into a range: ``ICParse.ebp.stats.GAME_RANGES``.
 
 **What the panel writes.** Export Entity Folder writes ``<name>.lua`` beside the blueprint, in the stock spelling: ``dofilepath`` of the class default,
 ``ext = gameattributes``, ``ext.name = number`` for each number that differs (``ICParse.ebp.stats.entity_overrides``). It inherits what the original's
@@ -16,9 +16,9 @@ file can then replace the original's script at its own path (a script that inclu
 sets over its base are written again first; then the author's changes. An original that inherits nothing (the lab's script is one plain table)
 gets its whole table written: it would otherwise gain every number of the class default.
 
-* **Replace the original**: the file lands at the original's path and takes the place of its script (a loose file in ``Data`` outranks the archive:
-  ``App_SetupFilePathAliases``, IC.exe 0x004034cc). Nothing is written when no number was changed.
-* **A new name**: with no ``.lua`` of the new name the game gives the thing the class default's numbers, not the original's (:2200-2201). So "Use the
+* **Replace the original**: the file lands at the original's path and takes the place of its script (a loose file in ``Data`` outranks the archive).
+  Nothing is written when no number was changed.
+* **A new name**: with no ``.lua`` of the new name the game gives the thing the class default's numbers, not the original's. So "Use the
   original's numbers" (``bz_blueprint.stats_base``) decides what a new name starts from: ticked, the original's numbers (the script is written even
   when nothing was changed); unticked, the default of its kind (a script only when a number was changed). The list shows what the export starts from.
 

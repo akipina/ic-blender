@@ -2,7 +2,7 @@
 Export Creature for the Game.
 
 **Where the numbers come from.** A creature's numbers are the ``limbattributes`` table of its ``<name>.lua``; the game reads the ``.lua`` with
-the blueprint's own name (``decomp/ic/src/EntityBlueprint.cpp:2196-2201``, ``:2227-2243``; the rest of the pipeline is in ``statscore.py``).
+the blueprint's own name (the rest of the pipeline is in ``statscore.py``).
 The panel starts from the DONOR's ``.lua`` (the one beside the project's model, else the one the model was imported from, else the stock animal
 the project was started from: ``gameexport.find_donor``; a creature with no donor starts from the stock animal Export Creature for the Game
 names): never a made-up baseline, which the port's checker refuses. The numbers are kept as rows on the creature (``Object.bz_stats``), so they

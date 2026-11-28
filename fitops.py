@@ -33,7 +33,7 @@ except ImportError:                      # no Blender: the pipeline only (tests/
 # The real ceiling is display VERTICES, not patches: the engine puts the whole tessellated patch mesh in one
 # DirectX 8 vertex set of at most ICV.MAX_DISPLAY_VERTICES (12288), and a patch costs 16 of them when its seams
 # weld with its neighbours' and 25 when every patch has its own texture island (ICParse.validate.display_vertices
-# has the decompiled rule and the measurements). MAX_PATCHES is the best case, so it is a hard refusal only;
+# has the rule). MAX_PATCHES is the best case, so it is a hard refusal only;
 # COMBINABLE_PATCHES is the budget a fitted creature can still be COMBINED at, which is what an author wants.
 MAX_PATCHES = ICV.MAX_PATCHES                                  # 767: even a perfectly welded mesh dies above this
 SPLIT_UV_PATCHES = ICV.MAX_DISPLAY_VERTICES // 25              # 491: a fit + per-patch texture atlas costs 25 each
@@ -276,8 +276,7 @@ def mirrored_layout(coords, faces):
 
 def layout_score(cage_coords, cage_quads, points, grid: int = 5) -> float:
     """How close a quad layout's initial surface (``acc.cage_to_patches``) starts to the target: the rms
-    target-to-surface distance on a coarse projection grid. Cheap (a second for a few hundred quads), and on
-    Suzanne it orders the layouts as the fit does (start 3.1 / 1.7 / 1.5 % -> fitted 0.34 / 0.19 / 0.17 %)."""
+    target-to-surface distance on a coarse projection grid. Cheap (a second for a few hundred quads)."""
     coords = [tuple(float(x) for x in c) for c in np.asarray(cage_coords, dtype=np.float64).reshape(-1, 3)]
     pool0, patches = acc.cage_to_patches(len(coords), coords, [list(int(i) for i in f) for f in cage_quads], None)
     _, _, _, d = fit.project(np.asarray(points, dtype=np.float64), np.asarray(pool0), np.asarray(patches), n=grid)
@@ -671,15 +670,14 @@ def _loose_parts(me) -> int:
 
 @dataclass
 class Topology:
-    """What a mesh's *surface* is, measured on a positionally welded copy (the mesh itself is untouched).
+    """What a mesh's *surface* is, taken on a positionally welded copy (the mesh itself is untouched).
 
     An index buffer is not a surface: glTF stores one vertex per position+UV+normal tuple, so a UV atlaser
     (xatlas, as image-to-3D pipelines run) duplicates every vertex on a chart boundary, and our own Bake
-    Surface duplicates every patch-seam sample. Measured on a Hunyuan3D glTF (3DInputs/Pillbug.glb): as
-    modelled 472 parts and 14524 boundary edges; welded by position 1 part, 0 boundary edges, 0 edges with
-    more than two faces -- one closed watertight shell all along. Judging it as modelled is what sent that
-    mesh through a voxel remesh and cost it its texture, so: weld first, then judge, and keep **boundary**
-    edges (one face: holes) and **true non-manifold** edges (more than two faces) as separate numbers.
+    Surface duplicates every patch-seam sample. As modelled, such a mesh can read as hundreds of loose parts
+    with thousands of boundary edges; welded by position it can be one closed watertight shell. So: weld
+    first, then judge, and keep **boundary** edges (one face: holes) and **true non-manifold** edges (more
+    than two faces) as separate numbers.
     """
     parts_raw: int      # loose parts as modelled
     parts: int          # loose parts of the surface -- the real shell count
@@ -754,9 +752,7 @@ def _quads_of(me, join_triangles: bool, weld_dist: Optional[float] = None):
 
 
 QUADRIFLOW_SEEDS = 8        # remesh attempts (QuadriFlow leaves small holes at random; the best closed layout is taken)
-# QuadriFlow cancels on a mesh that is simply SMALL: measured 2026-09-16 on Suzanne's skin (6,964 vertices, budget
-# 300), same mesh, only scaled -- diagonal 3.64 / 0.73 / 0.51 / 0.36 m finish, 0.18 m CANCELS, and 18.9 / 364 m
-# finish; the pillbug scan (0.44 m, 25,300 faces) cancels too, so it is the absolute size of the cells, not the
+# QuadriFlow cancels on a mesh that is simply SMALL: it is the absolute size of the cells, not the
 # diagonal alone. The remesh is therefore retried on a copy scaled up by a POWER OF TWO (exact in binary floating
 # point, so scaling the layout back is lossless -- asserted) until it finishes.
 QUADRIFLOW_MIN_DIAG = 4.0   # the size a scaled-up copy is taken to at least (well inside the proven range)
@@ -937,9 +933,9 @@ def rig_split(model, pool_blender, patches) -> Optional[RigSplit]:
     """Split a freshly fitted control net across the TEMPLATE creature's limbs and bones, so the result is a creature
     that can be rigged straight away. None when the template has no bones or no limbs.
 
-    Why it exists (fit-to-rig, 2026-09-16): with every patch in limb 0 and every point on bone 0, every OTHER limb of
+    Why it exists: with every patch in limb 0 and every point on bone 0, every OTHER limb of
     the template has no patches and its bones own no points -- which is exactly the file's definition of a stub bone
-    (``ICParse.validate.stub_bone_lines``), so 43 of the pillbug template's 48 bones counted as stubs and every C8
+    (``ICParse.validate.stub_bone_lines``), so the template's bones counted as stubs and every bone
     operator refused them ("'head' is a stub bone ..."). They are not stubs; they are ordinary bones whose limb has
     no geometry yet.
 
@@ -970,7 +966,7 @@ def rig_split(model, pool_blender, patches) -> Optional[RigSplit]:
         return None
     # The fitted net into the template's frame, box onto box PER AXIS: the split needs a correspondence between the
     # two body plans, not an isometry -- one uniform scale puts a compact mesh in a long template's middle, where
-    # every point's nearest bone is a leg (measured: Suzanne on the pillbug scaffold gave the Head limb 0 patches).
+    # every point's nearest bone is a leg.
     # It assumes the mesh faces the way the template does, which is the add-on's convention everywhere.
     lo, hi = P.min(0), P.max(0)
     tlo, thi = tpl.min(0), tpl.max(0)

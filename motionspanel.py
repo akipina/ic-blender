@@ -10,7 +10,7 @@ you changed are rewritten; ``ICParse.ebp.motions``).
 The state is on the creature's mesh object, or on the scene object's holder (the same object as the Blueprint panel's values). The list is kept in the
 scene as plain values and compared with what was read: a motion counts as changed when it differs from that.
 
-Logic without Blender is in ``motionscore.py``; the rules (decompiled game code) are in ``ICParse/ebp/motions.py``.
+Logic without Blender is in ``motionscore.py``; the rules are in ``ICParse/ebp/motions.py``.
 """
 from __future__ import annotations
 

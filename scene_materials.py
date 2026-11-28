@@ -1,6 +1,6 @@
 """Scene objects' materials and textures: what the import records on each Blender material, and the export's materials step.
 
-The game side (decompiled, see ICParse.sgm.scene.shader): a scene's shaders (``SHDR``) name their textures, textures come from
+The game side (see ICParse.sgm.scene.shader): a scene's shaders (``SHDR``) name their textures, textures come from
 ``TXRF`` paths (an external ``.txr``, loaded into ONE inventory shared by every model) or are embedded in the model (its own),
 and both must be loaded before the shader that names them. A texture is filed under the NAME inside it, and names are shared,
 so an edited external texture is written as a NEW ``.txr`` under a new lower-case name; an edited embedded one is rebuilt in
@@ -131,8 +131,7 @@ def opacity_channel(spec):
 
 
 def set_opacity(spec, oc, alpha: int, label: str = "", notes=None) -> None:
-    """Set the shader's opacity to ``alpha`` (0..255) so that the game draws it (ShaderImp::IsOpaquePass / IsInvisible,
-    ShaderImp.cpp): the opacity channel's colour alpha counts only in modes 0, 2 and 3 -- a texture-only channel
+    """Set the shader's opacity to ``alpha`` (0..255) so that the game draws it: the opacity channel's colour alpha counts only in modes 0, 2 and 3 -- a texture-only channel
     (mode 1) becomes mode 3, texture x colour, which keeps the texture's own cut-outs -- and only when the blend pair is
     not (1, 0), which always draws opaque: that one becomes (6, 7), the alpha blend of almost every stock shader."""
     from ICParse.sgm.scene import shader as SH

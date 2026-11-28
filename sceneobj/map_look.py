@@ -660,7 +660,7 @@ def _decal_material(img, key: str):
 
 
 def decal_mesh(mv, d, width_px: int, height_px: int, lift: float = 0.0):
-    """One decal on the ground cells it covers, as the game builds it (``DecalObj::CreateDecalMesh``): the terrain's own points, so it
+    """One decal on the ground cells it covers, as the game builds it: the terrain's own points, so it
     lies exactly on every slope, raised ``lift`` metres along the ground's normal. ``(vertices (n, 3) in the game's axes, quads (m, 4),
     uv (n, 2) in Blender's sense)``. A texture coordinate is the offset from the decal's middle along its axes / its full size + 0.5;
     outside the picture the game repeats the edge. Empty arrays for a decal that is off the map or has no size."""

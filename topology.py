@@ -669,9 +669,8 @@ def retrack_clips(m, src, ins: SkeletonEdit, topo: BoneTopology) -> RetrackRepor
 # The BONE record's tail: joint_limit_min (x, y, z) then joint_limit_max (x, y, z), Euler angles in RADIANS, then the
 # optional u32 limit flag (bit 0; present when more than 3 bytes remain), which ICParse keeps as a float-viewed word at
 # index 6. The tail itself is optional: the reader takes the 24 limit bytes only when the chunk has >= 0x18 left.
-# Radians on disk is now settled on both binaries (2026-09-17): the Skeleton.cpp READER -- IC.exe Skeleton_ReadChunk
-# 0x00596da3 and ObjectEditor 0x00591810, the same C++ function -- multiplies all six by 180/pi before calling
-# Bone::SetJointLimits (IC.exe 0x0059724d / OE 0x00561906), which does no conversion itself and only SWAPS a pair whose
+# Radians on disk: the game's reader (the game and the Object Editor alike) multiplies all six by 180/pi before storing them; the
+# store does no conversion itself and only SWAPS a pair whose
 # min > max, stores min/max/midpoint at bone+0xe0/+0xec/+0xf8 and derives an unread 3-bit widest-axis mask at +0x104.
 # So: write radians (what we do); in-memory values in the game and the editor are degrees. Nothing reads the fields back.
 def apply_bone_limits(m, ins, limits) -> List[str]:

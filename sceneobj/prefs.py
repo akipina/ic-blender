@@ -1,11 +1,10 @@
 """Add-on preferences. Slices read them through these functions, never ``bpy.context`` directly, so the defaults apply
 when the add-on is not enabled (headless tests).
 
-Every setting here is read by something: Game folder (where the game's own files are read from), Test game folder (the copy of the
-game "Install into Test Game" writes to, ``gameinstall.py``), Allow the Steam game folder (the explicit box that lets that install
-write to a Steam library folder), and Game build (the kind numbers the Blueprint panel knows). The settings an earlier version listed
-as "not used yet" (Build folder, Mods folder, Damage states, Texture type, Replace game files, Selection box) did nothing and were removed:
-the export asks for its folder each time, a texture's type follows its alpha, and the replace-or-new-name choice is made in the export.
+Every setting here is read by something: Game folder (where the game's own files are read from, and where "Install into Game" writes
+unless the Install folder is set, ``gameinstall.py``), Install folder (optional: another copy of the game to install into instead),
+and Game build (the kind numbers the Blueprint panel knows). ``allow_steam_install`` is not used any more; it stays defined so saved
+preferences still load.
 """
 from __future__ import annotations
 
@@ -42,11 +41,11 @@ class BZ_AP_prefs(bpy.types.AddonPreferences):
         name="Game folder", subtype="DIR_PATH", default=DEFAULTS["game_dir"],
         description="The game folder (with IC.exe); empty uses IC_INSTALL or the usual Steam folders")
     test_game_dir: StringProperty(
-        name="Test game folder", subtype="DIR_PATH", default=DEFAULTS["test_game_dir"],
-        description="A copy of the game that Install into Test Game writes to. It must contain Engine.sga")
+        name="Install folder (optional)", subtype="DIR_PATH", default=DEFAULTS["test_game_dir"],
+        description="Leave empty to install into the game folder. Set it to install into another copy of the game instead")
     allow_steam_install: BoolProperty(
-        name="Allow the Steam game folder", default=DEFAULTS["allow_steam_install"],
-        description="Allow Install into Test Game to write into a Steam game folder. Steam can wipe the item, so use a copy instead")
+        name="Allow the Steam game folder", default=DEFAULTS["allow_steam_install"], options={"HIDDEN"},
+        description="Kept so saved preferences still load")
     target_mod: EnumProperty(
         name="Game build", items=TARGET_MOD_ITEMS, default=DEFAULTS["target_mod"],
         description="The game build you work for; it sets which kind (class) numbers are known")
@@ -67,20 +66,18 @@ class BZ_AP_prefs(bpy.types.AddonPreferences):
             col.label(text=f"Using {folder} ({SOURCE_WORDS[source]})", icon="CHECKMARK")
 
         box = layout.box()
-        box.label(text="Test game", icon="PLAY")
+        box.label(text="Install", icon="PLAY")
         col = box.column()
         col.prop(self, "test_game_dir")
-        col.prop(self, "allow_steam_install")
-        col.operator("bz.create_test_game", icon="DUPLICATE")                # r2install: makes the copy and sets the folder above
-        test = resolve_test_game_dir(context)
-        if test is None:
-            col.label(text="Not set: Install into Test Game is off.", icon="INFO")
-        elif is_steam_folder(test) and not self.allow_steam_install:
-            ui_kit.alert(col, "This is a Steam game folder: Install is refused. Use a copy of the game, or tick the box above.", icon="ERROR")
-        elif folder is not None and _same_folder(test, folder) and not self.allow_steam_install:
-            ui_kit.alert(col, "This is the Game folder above, the original game: Install is refused. Use a copy of the game, or tick the box above.", icon="ERROR")
-        else:
-            col.label(text=f"Installs go to {test}", icon="CHECKMARK")
+        col.operator("bz.create_test_game", text="Make a Separate Game Copy", icon="DUPLICATE")        # makes the copy and sets the folder above
+        raw = (self.test_game_dir or "").strip()
+        own = resolve_test_game_dir(context)
+        if raw and own is None:
+            ui_kit.alert(col, "The install folder does not exist. Fix it above, or empty it to install into the game folder.", icon="ERROR")
+        elif own is not None:
+            col.label(text=f"Items install into {own}", icon="CHECKMARK")
+        elif folder is not None:
+            col.label(text=f"Items install into the game folder: {folder}", icon="CHECKMARK")
 
         box = layout.box()
         box.label(text="Game build (used by the Blueprint panel)", icon="INFO")
@@ -141,22 +138,16 @@ def game_dir_line(context=None) -> str:
 
 
 def resolve_test_game_dir(context=None):
-    """The Test game folder setting as an existing folder, else None (the folder ``gameinstall`` installs into)."""
+    """The optional Install folder setting as an existing folder, else None."""
     return _folder(get(context).test_game_dir)
 
 
-def _same_folder(a: str, b: str) -> bool:
-    import os
-    return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))      # no case on Windows: C:\\Games and c:\\games are one folder
-
-
-def is_steam_folder(folder: str) -> bool:
-    """Whether ``folder`` is a Steam library's game folder (or the one the add-on reads the game from): see ICParse.hub.install."""
-    try:
-        from ICParse.hub.install import is_steam_folder as check
-    except ImportError:
-        return False
-    return check(folder)
+def resolve_install_dir(context=None) -> tuple:
+    """``(folder or None, source)`` of the folder ``gameinstall`` installs into: the Install folder when it is set and exists
+    (source ``"install folder"``; None when it is set but does not exist), else the Game folder (:func:`resolve_game_dir`)."""
+    if (get(context).test_game_dir or "").strip():
+        return resolve_test_game_dir(context), "install folder"          # set but missing: None, never the game folder by mistake
+    return resolve_game_dir(context)
 
 
 CLASSES = (BZ_AP_prefs,)

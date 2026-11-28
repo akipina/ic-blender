@@ -1,12 +1,12 @@
 # Making and changing Impossible Creatures models in Blender
 
-Change creatures, buildings, workers, effects and maps in Blender, and play your work in the game. The add-on has three sidebar tabs: **IC Model**, **IC Game** and **IC Map**. Never try your work in the game you bought. Use a test copy, which chapter 1 shows how to make.
+Change creatures, buildings, workers, effects and maps in Blender, and play your work in the game. The add-on has three sidebar tabs: **IC Model**, **IC Game** and **IC Map**. The export can install your work into the game in the same step.
 
 Chapters 1 to 11 are walk-throughs. Each one takes one kind of work from a new project to the game. The chapters after them are reference chapters about shaping a creature in detail, the Blueprint panel and maps.
 
 ## Chapters
 
-1. [Start here: install, set up, and how a project works](start.md): Install the add-on, point it at your game, make a test copy, and learn how a project works.
+1. [Start here: install, set up, and how a project works](start.md): Install the add-on, point it at your game, and learn how a project works.
 2. [Replace one of the game's animals](replace.md): The shortest way to see your own work in the game: change the wolf and play it.
 3. [A new creature from a game animal](newcreature.md): A creature of your own, under a new name, in the creature creator.
 4. [A creature from your own mesh](mesh.md): Two routes from a model made elsewhere: Retarget (it combines) and Fit (shape only).
@@ -15,7 +15,7 @@ Chapters 1 to 11 are walk-throughs. Each one takes one kind of work from a new p
 7. [Structures and props](structures.md): Parts, textures, bones, attachment points and damage stages of a building or a prop.
 8. [Gatherers and characters](gatherers.md): A worker or a story character: the body, the skin, the skeleton, the animations.
 9. [Effects, events and sounds](effects.md): Copy and retune an effect, hook it to an animation, add your own sound.
-10. [Check, export, install, remove and share](ship.md): Check, export, install into a test copy, remove, share a zip, install someone else's.
+10. [Check, export, install, remove and share](ship.md): Check, export, install into the game, remove, share a zip, install someone else's.
 11. [Troubleshooting](trouble.md): Every message you are likely to meet, in the add-on's own words, and what to do.
 12. [Finding your way around a creature](tour.md): What is on screen when a creature is open: points, patches, rig, panels, combine preview.
 13. [Editing an existing animal](edit.md): Reshape an animal: patch feel, control points, symmetry, loop cut, hard edges.

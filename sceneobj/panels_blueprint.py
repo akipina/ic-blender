@@ -1,4 +1,4 @@
-"""Blueprint (.ebp) panel for gatherers, characters, structures and props (proof of concept): load, edit, export folder.
+"""Blueprint (.ebp) panel for gatherers, characters, structures and props: load, edit, export folder.
 
 Values live on one object of the entity (rig, else group empty, else first part). Export re-reads the source file,
 writes only changed chunks (untouched = byte-identical), refuses if it changed on disk (SHA-1) and never writes into
@@ -25,16 +25,16 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProp
                        StringProperty)
 from .. import enumitems
 
-ORDER = 80                        # a sceneobj module's place in the slice order ("controller_meta"); ignored while this file sits in the add-on's folder
+ORDER = 80                        # a sceneobj module's place in the order the modules are loaded; ignored while this file sits in the add-on's folder
 
 # ---------------------------------------------------------------------------------------------------------------- limits and words
-NAME_LIMIT = 255                  # letters: the engine reads the name into a 256-letter buffer (decompiled: ebp-meta 5.2, BlueprintHeader::Load)
-SOUND_LIMIT = 259                 # letters: a sound path of 260 or more is a fatal error when the game loads it (decompiled: ebp-meta 7, HandlePIDS)
-FOOTPRINT_MAX = 255               # path cells (the brief's range; stock footprints are 0..43)
+NAME_LIMIT = 255                  # letters: the engine reads the name into a 256-letter buffer
+SOUND_LIMIT = 259                 # letters: a sound path of 260 or more is a fatal error when the game loads it
+FOOTPRINT_MAX = 255               # path cells (stock footprints are 0..43)
 CLASS_MAX = 65535
 STATS_ROWS_MAX = 500
 
-OFFER_NEW_BLUEPRINT = False   # hidden (round 2 tidy): "Start a New Blueprint" only makes a blueprint with no motion tree and no events, which plays no animation
+OFFER_NEW_BLUEPRINT = False   # hidden: "Start a New Blueprint" only makes a blueprint with no motion tree and no events, which plays no animation
 STATES = ("NONE", "FILE", "NEW", "LEGACY", "EMBEDDED", "PROBLEM", "NO_LIBRARY")
 EDITABLE = ("FILE", "NEW")        # the states in which the panel's values can be changed and written
 FIELDS = ("name", "class", "footprint", "offset", "sounds")
@@ -91,7 +91,7 @@ def _addon(name: str):
 
 
 def _ebp_lib(name: str):
-    """``ICParse.ebp.<name>`` when it exists, else None (a later slice has not landed yet). A real error INSIDE an existing module is not hidden."""
+    """``ICParse.ebp.<name>`` when it exists, else None. A real error INSIDE an existing module is not hidden."""
     full = f"ICParse.ebp.{name}"
     try:
         spec = importlib.util.find_spec(full)
@@ -211,7 +211,7 @@ def _f32(x) -> bytes:
 
 @dataclass(frozen=True)
 class Values:
-    """What the panel edits, in plain Python (no Blender): the five things of a blueprint the proof of concept can change."""
+    """What the panel edits, in plain Python (no Blender): the five things of a blueprint the panel can change."""
     name: str = ""
     class_id: int = 0
     footprint: tuple = (0, 0)
@@ -233,8 +233,7 @@ class Values:
 
 
 def values_of(sb) -> Values:
-    """The values of a ``SceneBlueprint``. A file with no build chunk means footprint (0, 0) and offset 0: the game starts those at zero (decompiled:
-    ``ResetBuildInfo``), and (0, 0) makes it measure the model."""
+    """The values of a ``SceneBlueprint``. A file with no build chunk means footprint (0, 0) and offset 0: the game starts those at zero, and (0, 0) makes it measure the model."""
     b = sb.build
     return Values(
         name=str(sb.header.name or ""), class_id=int(sb.header.defstats_class),
@@ -298,7 +297,7 @@ class ClassInfo:
     name: str
     family: str
     registered: bool        # the game build of the preferences (Game build; the original game unless changed) makes a controller of this number
-    buildable: bool         # the controller has a building site: the only kind that reads the footprint (decompiled: ebp-meta 6.2)
+    buildable: bool         # the controller has a building site: the only kind that reads the footprint
     expansion_only: bool
     label: str              # one plain line: "5 - Structure: a building"
     note: str
@@ -317,7 +316,7 @@ def class_info(class_id: int) -> ClassInfo:
     except ValueError:                                                    # a build name the class table does not know: the original game
         registered = bool(c.is_registered(cid, "icmod"))
     exts = tuple(ct.extensions) + tuple(getattr(ct, "expansion_extensions", ()) or ())
-    buildable = "Site" in exts                          # only a controller with a building site reads the footprint (decompiled: ebp-meta 6.2)
+    buildable = "Site" in exts                          # only a controller with a building site reads the footprint
     if cid == 0:
         name = "Plain prop"
     elif not ct.registry_name:
@@ -432,11 +431,11 @@ class BZ_PG_blueprint_sound(bpy.types.PropertyGroup):
 
 
 class BZ_PG_blueprint_stat(bpy.types.PropertyGroup):
-    """One gameplay number the game would give the thing, listed from the game's stats files, and the author's change to it (r2stats)."""
+    """One gameplay number the game would give the thing, listed from the game's stats files, and the author's change to it."""
     key: StringProperty()
     value: StringProperty()
     origin: StringProperty()
-    # r2stats (ops_entity_stats.py): the number can be edited
+    # the number can be edited
     orig: FloatProperty(description="The number as the game's files give it")
     new_value: FloatProperty(name="Value", precision=3, description="The number this thing will have")
     dflt: FloatProperty(description="What this kind of thing has by default")
@@ -468,7 +467,6 @@ class BZ_PG_blueprint(bpy.types.PropertyGroup):
     stats_source: StringProperty(default="")
     stats_note: StringProperty(default="")
     stats_game: StringProperty(default="", description="Which game folder the gameplay numbers were read from, in one plain line")
-    # r2stats (ops_entity_stats.py)
     stats_own: BoolProperty(default=False, description="The numbers come from a stats file of this thing's own name (not from the default of its kind)")
     stats_filter: StringProperty(default="", name="Search", options={"TEXTEDIT_UPDATE"}, description="Part of a number's name")
     stats_base: BoolProperty(default=False, name="Use the original's numbers", update=_refresh_after_edit,
@@ -643,7 +641,7 @@ def _sha1(data: bytes) -> str:
     return hashlib.sha1(data).hexdigest()
 
 
-# the counts: every art/ebps blueprint of the five game archives read with ICParse on 2026-11-18 (measured; STATUS.md): 479 blueprints,
+# the counts: every art/ebps blueprint of the five game archives: 479 blueprints,
 # 34 in the old layout (10 map markers, cut-scene props and a menu object, and the 24 below), 86 with the model inside (62 creatures, 24 older things)
 LEGACY_NOTE = ("This blueprint uses the game's oldest file layout: you can view it, not change it.")
 EMBEDDED_NOTE = ("This blueprint holds its model inside itself, not in a separate .sgm file: view only.")
@@ -663,7 +661,7 @@ def classify(sb):
 
 def fill_pg(bp, values: Values) -> list:
     """Put ``values`` into the property group. Returns the fields the panel could not hold exactly (Blender clamps a number outside a property's range
-    and cuts a text at a limit without a word; measured on 5.3.0), which is empty when everything fits. Raises ValueError / TypeError / OverflowError /
+    and cuts a text at a limit without a word), which is empty when everything fits. Raises ValueError / TypeError / OverflowError /
     UnicodeError for a value Blender refuses outright."""
     with quiet():
         bp.display_name = values.name
@@ -683,7 +681,7 @@ def default_values(ent) -> Values:
 
 def refresh_stats(bp, ent, keep: bool = True) -> None:
     """List the gameplay numbers again. The changes the author made to them are kept (``keep``: the kind or the folder was edited, which only
-    changes what the numbers start from) unless the blueprint is read again from its file, which throws them away (r2stats: ``ops_entity_stats``)."""
+    changes what the numbers start from) unless the blueprint is read again from its file, which throws them away (``ops_entity_stats``)."""
     from . import ops_entity_stats as ES
     snap = ES.snapshot(bp) if keep else {}
     try:
@@ -694,7 +692,7 @@ def refresh_stats(bp, ent, keep: bool = True) -> None:
 
 def _list_stats(bp, ent) -> None:
     """List the gameplay numbers the game would give this thing. They come from the thing's own stats file when the game has one under
-    its name, else from the default file of its class (decompiled: ebp-meta 9.1; ``ICParse.ebp.stats`` does the lookup and the reading)."""
+    its name, else from the default file of its class (``ICParse.ebp.stats`` does the lookup and the reading)."""
     bp.stats.clear()
     bp.stats_note = ""
     bp.stats_source = ""
@@ -706,7 +704,7 @@ def _list_stats(bp, ent) -> None:
     folder = game_dir()[0]                     # the Game folder preference, else $IC_INSTALL, else the usual Steam folders
     bp.stats_game = game_dir_words()
     target = f"data:art/ebps/{bp.folder + '/' if bp.folder else ''}{default_name(ent)}.ebp"
-    if bp.stats_base:                                                         # r2stats: the numbers of the thing the project was started from
+    if bp.stats_base:                                                         # the numbers of the thing the project was started from
         rt = replace_target(ent)
         if rt is not None:
             target = f"data:art/ebps/{rt.folder + '/' if rt.folder else ''}{rt.name}.ebp"
@@ -721,7 +719,7 @@ def _list_stats(bp, ent) -> None:
     names = [os.path.basename(c.replace("\\", "/")) for c in view.chain]
     bp.stats_source = (f"From {names[0]}" + (f", which builds on {', '.join(names[1:])}" if len(names) > 1 else "") + "."
                        + ("" if own else " The game finds no stats file under this name, so it uses the default numbers of this kind of thing."))
-    from . import ops_entity_stats as ES                                  # r2stats: what the kind of thing has by default
+    from . import ops_entity_stats as ES                                  # what the kind of thing has by default
     cdefault = ES.class_default(lib, target, int(bp.class_id), resolver)
     bp.stats_own = own
     for key in sorted(view.attrs)[:STATS_ROWS_MAX]:
@@ -731,7 +729,7 @@ def _list_stats(bp, ent) -> None:
         row.value = f"{v:g}" if isinstance(v, (int, float)) else str(v)
         row.origin = os.path.basename(str(view.origin.get(key, ref)).replace("\\", "/"))
         if isinstance(v, (int, float)):
-            ES.number_row(row, v, cdefault)                                   # r2stats
+            ES.number_row(row, v, cdefault)
     notes = []
     if len(view.attrs) > STATS_ROWS_MAX:
         notes.append(f"{len(view.attrs) - STATS_ROWS_MAX} more numbers are not listed.")
@@ -1125,7 +1123,7 @@ class EntityBuild:
     sgm_rel: str
     ebp_rel: str
     title: str
-    stats_lua: str = ""       # r2stats: the text of the stats script written beside the blueprint ('' = none)
+    stats_lua: str = ""       # the text of the stats script written beside the blueprint ('' = none)
 
 
 def build_entity(context, obj, *, name=None, folder=None, mode: str = MODE_NEW, legacy_lod: bool = True, drop_morphs: bool = False,
@@ -1136,7 +1134,7 @@ def build_entity(context, obj, *, name=None, folder=None, mode: str = MODE_NEW, 
     ent = entity_of(obj)
     if ent is None:
         raise Refused("Select a gatherer, character, structure or prop that was imported or started with this add-on.")
-    if _stamp(ent, "bz_project") == "EFFECT":                             # a1fx: an effect mesh has no blueprint (export_entity routes it to fxpanel)
+    if _stamp(ent, "bz_project") == "EFFECT":                             # an effect mesh has no blueprint (export_entity routes it to fxpanel)
         raise Refused("An effect model has no blueprint, so there is nothing to build or check here. Its effect files are checked when you export, "
                       "and in the Effects panel.")
     bp = getattr(ent.holder, "bz_blueprint", None)
@@ -1179,9 +1177,9 @@ def build_entity(context, obj, *, name=None, folder=None, mode: str = MODE_NEW, 
     notes += marker_notes
     ebp_data, level_notes = _addon("scene_damage").blueprint_with_added_levels(ent.parts, ebp_data)   # damage levels added in Blender
     notes += level_notes
-    ebp_data, fx_notes = _addon("fxpanel").export_entity_ebp(ent, ebp_data)   # a1fx: events edited in the Effects box (refuses an effect the game would not load)
+    ebp_data, fx_notes = _addon("fxpanel").export_entity_ebp(ent, ebp_data)   # events edited in the Effects box (refuses an effect the game would not load)
     notes += fx_notes
-    ebp_data, motion_notes = _addon("motionspanel").export_entity_ebp(ent, ebp_data, rep.get("plan"))   # r2motions: edits of the Motions box, notes on clips nothing plays
+    ebp_data, motion_notes = _addon("motionspanel").export_entity_ebp(ent, ebp_data, rep.get("plan"))   # edits of the Motions box, notes on clips nothing plays
     notes += motion_notes
     if bp_note.startswith("copied unchanged") and any(n.startswith("Motions:") for n in motion_notes):
         bp_note = "copied from the original with the motions you changed"
@@ -1193,11 +1191,11 @@ def build_entity(context, obj, *, name=None, folder=None, mode: str = MODE_NEW, 
     files = {sgm_rel: sgm_data, ebp_rel: ebp_data}
     for rel, blob in sorted(textures.items()):                            # the model's new texture files (lower-case paths inside Data)
         files[f"{hub.ROOT}/{rel}"] = blob
-    fx_files = _addon("fxpanel").effect_file_blobs(ent)                   # a1fx: the project's effect files, pictures and meshes (in the manifest)
+    fx_files = _addon("fxpanel").effect_file_blobs(ent)                   # the project's effect files, pictures and meshes (in the manifest)
     files.update(fx_files)
     if fx_files:
         notes += [f"{len(fx_files)} effect file(s) in the item's data folder (with the pictures and meshes they use)"]
-    from . import ops_entity_stats as ES                                  # r2stats: the stats script (<name>.lua) of edited numbers
+    from . import ops_entity_stats as ES                                  # the stats script (<name>.lua) of edited numbers
     stats_out = ES.export_files(ent, bp, mode, ebp_rel, MODE_NEW)
     files.update(stats_out.files)
     notes += stats_out.notes
@@ -1236,10 +1234,9 @@ def check_build(context, b: EntityBuild) -> list:
 
 def lua_words(mode: str, written: bool = False) -> list:
     """The README's lines about the stats file (.lua), which an export does not write. The game finds it by the blueprint's own path with the
-    extension changed, through the file alias, and falls back to the default numbers of the kind only when no such file exists
-    (``BlueprintHeader::LoadAttributes``, EntityBlueprint.cpp:2196-2201). So it depends on the mode: files replacing a thing of the game
+    extension changed, through the file alias, and falls back to the default numbers of the kind only when no such file exists. So it depends on the mode: files replacing a thing of the game
     sit at its path and keep its stock .lua; a new name has no .lua of its own."""
-    if written:                                                           # r2stats: numbers were changed in the Gameplay numbers panel
+    if written:                                                           # numbers were changed in the Gameplay numbers panel
         return ["- The stats file (.lua) is in this folder: it starts from the default numbers of its kind of thing and sets the numbers that",
                 "  differ (the ones you changed, and the ones the original's own stats file sets). The game finds it by the blueprint's path.",
                 "  Every player in a multiplayer game needs the same file."]
@@ -1251,7 +1248,7 @@ def lua_words(mode: str, written: bool = False) -> list:
 
 
 def readme_text(b: EntityBuild, parent_name: str = "") -> str:
-    """The README written in the item folder: plain words, how to try the files in a copy of the game the user owns."""
+    """The README written in the item folder: plain words, how to try the files in the game."""
     files = sorted(b.files)
     rel = f"{b.folder + '/' if b.folder else ''}{b.name}"
     lines = [
@@ -1273,13 +1270,13 @@ def readme_text(b: EntityBuild, parent_name: str = "") -> str:
         f"- {mode_words(b.mode, b.name, b.folder, b.hard_bound)}",
         "",
         "What to do",
-        "1. Work in a copy of the game that you own. Do NOT put these files into the Steam copy of the game: Steam can overwrite or",
-        "   delete files that are not its own.",
-        "2. Copy the 'data' folder of this item into the main folder of your copy of the game (the one that already has a Data folder)",
-        "   and let your computer merge the two folders. On Linux, copy the files inside 'data' into the game's 'Data' folder instead.",
-        "3. Start the game from your copy. The game reads loose files in its Data folder before the files packed inside its .sga archives,",
+        "1. Close the game.",
+        "2. Press Install into Game in the add-on's IC Game tab. Or copy the 'data' folder of this item into the main folder of the game",
+        "   (the one that already has a Data folder) and let your computer merge the two folders. On Linux, copy the files inside 'data'",
+        "   into the game's 'Data' folder instead.",
+        "3. Start the game. The game reads loose files in its Data folder before the files packed inside its .sga archives,",
         "   so these files are used instead of a packed file with the same path.",
-        "4. To undo it, delete the files listed above from your copy again.",
+        "4. To undo it, press Remove in the IC Game tab, or delete the files listed above from the game folder.",
         "",
         "About this export",
         f"- Model: {len(b.rebuilt)} part(s) rebuilt from your edits, {len(b.kept)} part(s) left exactly as they were; the animations follow your Actions.",
@@ -1324,7 +1321,7 @@ def export_entity(context, obj, directory, *, name=None, folder=None, mode: str 
     (``scenesafety.guard_write``)."""
     root = check_target(directory)
     ent0 = entity_of(obj)
-    if ent0 is not None and _stamp(ent0, "bz_project") == "EFFECT":       # a1fx: an effect mesh has no blueprint; it goes to data/art/fx of an item folder
+    if ent0 is not None and _stamp(ent0, "bz_project") == "EFFECT":       # an effect mesh has no blueprint; it goes to data/art/fx of an item folder
         return _addon("fxpanel").export_effect_model(context, obj, directory, name=name, folder=folder, legacy_lod=legacy_lod,
                                                       drop_morphs=drop_morphs, remove_missing=remove_missing, export_anyway=export_anyway,
                                                       item_folder=item_folder)
@@ -1387,7 +1384,7 @@ def export_entity(context, obj, directory, *, name=None, folder=None, mode: str 
     leftovers = _leftovers(item_dir, written)
     if leftovers:
         notes.append(f"the item folder holds {len(leftovers)} file(s) from an earlier export that this one did not write "
-                     f"({', '.join(leftovers[:3])}{' ...' if len(leftovers) > 3 else ''}): delete them, or Install into Test Game refuses the item")
+                     f"({', '.join(leftovers[:3])}{' ...' if len(leftovers) > 3 else ''}): delete them, or Install into Game refuses the item")
     return EntityExport(item_dir, sgm_path, ebp_path, readme, b.name, b.folder, b.rebuilt, b.kept, b.changes, b.blueprint_note, notes,
                         item=b.item, mode=b.mode, manifest=os.path.join(item_dir, *f"data/hub/{b.item}.item".split("/")),
                         files=sorted(written), problems=problems, in_place=in_place)
@@ -1565,12 +1562,17 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
         name="Export anyway",
         description="Write the files even if Check finds errors. The game may refuse them",
         default=False, options={"SKIP_SAVE"})
+    install_after: BoolProperty(
+        name="Install into the game after export",
+        description="Install the exported item into the game folder at once",
+        default=False, options={"SKIP_SAVE"})                                 # set in invoke(): a script installs only when it asks
 
     @classmethod
     def poll(cls, context):
         return _entity_poll(context)
 
     def invoke(self, context, event):
+        self.install_after = True
         ent = entity_of(context.active_object)
         if ent is not None:                                               # the name and folder belong to THIS entity, never to the last export
             bp = ent.holder.bz_blueprint
@@ -1581,7 +1583,7 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
                     pass
             self.entity_name = default_name(ent)
             self.folder = bp.folder if bp.loaded else ""
-            if _stamp(ent, "bz_project") == "EFFECT":                     # a1fx: the folder under art/fx of the model it was started from
+            if _stamp(ent, "bz_project") == "EFFECT":                     # the folder under art/fx of the model it was started from
                 self.folder = _addon("fxpanel").effect_model_target(ent)[1]
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
@@ -1589,7 +1591,7 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
     def draw(self, context):
         col = self.layout.column()
         ent = entity_of(context.active_object)
-        is_fx = ent is not None and _stamp(ent, "bz_project") == "EFFECT"      # a1fx: an effect model has no blueprint and nothing to replace
+        is_fx = ent is not None and _stamp(ent, "bz_project") == "EFFECT"      # an effect model has no blueprint and nothing to replace
         replacing = self.mode == MODE_REPLACE and not is_fx
         target = replace_target(ent) if ent is not None and not is_fx else None
         if not is_fx:
@@ -1623,6 +1625,14 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
         col.prop(self, "remove_deleted_parts")
         col.separator()
         col.prop(self, "export_anyway")
+        col.prop(self, "install_after")
+
+    def _install(self, context, res) -> None:
+        """Install the item just written when "Install into the game after export" is ticked (the export has succeeded either way)."""
+        if not self.install_after:
+            return
+        for level, text in _addon("gameinstall").install_after_export(context, res.root):
+            self.report({level}, text)
 
     def execute(self, context):
         try:
@@ -1647,9 +1657,10 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
             self.report({nl.level(n)}, n)                                 # a plain fact is information; only what needs action is a warning
         if len(res.notes) > 8:
             self.report({"INFO"}, f"... and {len(res.notes) - 8} more notes (the README in the item folder lists them)")
-        if not res.ebp:                                                   # a1fx: an effect model: a model and effect files, no blueprint
+        if not res.ebp:                                                   # an effect model: a model and effect files, no blueprint
             self.report({"INFO"}, f"Wrote the item {res.item} ({len(res.files or [])} files) under {res.root}: the effect model "
                                   f"{os.path.basename(res.sgm)} in data/art/fx. {os.path.basename(res.readme)} says how to use it.")
+            self._install(context, res)
             return {"FINISHED"}
         if res.in_place:
             self.report({"INFO"}, "The model's own source file was overwritten; this session now matches it")
@@ -1657,6 +1668,7 @@ class BZ_OT_export_entity_folder(bpy.types.Operator):
                               f"{'replaces the original ' if res.mode == MODE_REPLACE else ''}{res.folder + '/' if res.folder else ''}{res.name}. "
                               f"Blueprint {res.blueprint_note}; {len(res.rebuilt)} part(s) rebuilt, {len(res.kept)} unchanged. "
                               f"{os.path.basename(res.readme)} says how to use it.")
+        self._install(context, res)
         return {"FINISHED"}
 
 
@@ -1841,7 +1853,7 @@ class BZ_PT_blueprint(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         ent = entity_of(context.active_object)
-        return ent is not None and _stamp(ent, "bz_project") != "EFFECT"      # a1fx: an effect mesh has no blueprint
+        return ent is not None and _stamp(ent, "bz_project") != "EFFECT"      # an effect mesh has no blueprint
 
     def draw(self, context):
         draw_blueprint(self.layout, context.active_object)
@@ -1878,7 +1890,7 @@ def draw_stats(layout, obj) -> None:
         _hint(layout, bp.stats_source)
     if bp.stats_note:
         _hint(layout, bp.stats_note)
-    from . import ops_entity_stats as ES                                  # r2stats: the numbers can be edited
+    from . import ops_entity_stats as ES                                  # the numbers can be edited
     ES.draw_edit(layout, bp, bp.state in EDITABLE, ent)
 
 

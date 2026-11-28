@@ -11,7 +11,7 @@ It plugs into the map tools through ``map_hooks`` (no other module is edited):
 * checks (``register_check``): players without a start, objects outside the map, blueprints the game does not have, heights out of range,
   a map the game would not list, the ground picture a new map needs.
 
-What each thing is and where the game reads it is in ``ICParse/sgb/scenario.py``'s docstring (decompiled).
+What each thing is and where the game reads it is in ``ICParse/sgb/scenario.py``'s docstring.
 """
 from __future__ import annotations
 
@@ -198,7 +198,7 @@ def _player_id(mv, slot: int) -> int:
 
 def place_start(context, top, slot: int, x: float, y: float) -> list:
     """Give player ``slot`` (0-based) a start at Blender position ``x, y``: a laboratory and three henchmen round it, all owned by that
-    player (the way every stock map starts a player: measured on 2p_faceoff and 4p_hill_fort, 4 owned objects each). Returns the objects."""
+    player (the way every stock map starts a player: 4 owned objects each). Returns the objects."""
     sc = _sc()
     X = _X()
     game_dir = prefs.resolve_game_dir(context)[0]
@@ -331,7 +331,7 @@ def render_ground(context, top, side: int = 512):
 
 def make_preview(context, top, method: str = "GAME") -> dict:
     """Make the map's icon (128 x 128) and minimap (256 x 256) and keep them in the .blend for the save. ``method`` ``"GAME"``: the ground picture
-    (``<map>.tga``) the way the editor's fallback draws them (``TerrainEditorImp::GenerateIcon`` / ``GenerateMinimap``); ``"BLENDER"``: the ground
+    (``<map>.tga``) the way the editor's fallback draws them; ``"BLENDER"``: the ground
     rendered from above by Blender (a sculpted or painted ground shows), with the editor's water drawn on it. Returns
     ``{"where", "water_pixels", "icon", "minimap"}``."""
     sc = _sc()

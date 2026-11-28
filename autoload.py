@@ -1,6 +1,6 @@
 """A panel reads its own data the first time it is shown.
 
-Creature Stats, the Blueprint, the Motions box and the Events box each start from a file of the donor. They used to wait for a Load button. Now the
+Creature Stats, the Blueprint, the Motions box and the Events box each start from a file of the donor. The
 first time a panel is drawn for a thing it asks for the file to be read (:func:`once`), and the read runs a moment later in Blender's timer (a panel
 cannot change data while it is drawn). The panel's own button stays as a way to read the file again, and as the second try when the first one
 failed: a failure is not tried again by itself, so a panel never loops on a missing game folder.

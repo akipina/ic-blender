@@ -8,7 +8,7 @@ from . import draw
 
 def _on_density(self, context):
     draw.invalidate()
-    from . import gnsurface                      # D9: the evaluated surface follows the same density
+    from . import gnsurface                      # the evaluated surface follows the same density
     if getattr(context.scene, "bz_gn_surface", False):
         gnsurface.apply_scene(context)
     _redraw(context)

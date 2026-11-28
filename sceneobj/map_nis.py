@@ -127,8 +127,8 @@ def bone_constants(bind_world, parents):
 
 
 def densify_rotations(keys, wide_dot: float = 0.95, step_deg: float = 18.0) -> np.ndarray:
-    """Rotation keys ``(n, 5)`` (time, x, y, z, w) with extra keys inside every wide gap. The game blends two keys on the sphere
-    (``Slerp``, ``AnimStream.h:91``); Blender blends the components linearly and normalises, the same for keys that are close
+    """Rotation keys ``(n, 5)`` (time, x, y, z, w) with extra keys inside every wide gap. The game blends two keys on the sphere;
+    Blender blends the components linearly and normalises, the same for keys that are close
     and a visible shortcut for keys far apart (a tumbling piece of debris, 100 degrees between two keys). A pair whose
     quaternion dot product is below ``wide_dot`` gets slerped keys every ``step_deg`` degrees or less, and Blender's own blend
     between those is then within a fraction of a degree of the sphere."""
@@ -175,7 +175,7 @@ def basis_quat(consts, xyzw) -> np.ndarray:
 
 def camera_matrix(position, rotation_xyzw):
     """The Blender transform ``(location (3,), quaternion wxyz)`` of a model camera at an SGM position and rotation: the camera
-    looks down its +Z with +Y up (``Camera::GetLookAt`` / ``GetUp``); Blender's looks down -Z, so the axes become (right, up, back)
+    looks down its +Z with +Y up; Blender's looks down -Z, so the axes become (right, up, back)
     with right = forward x up in Blender, which is the game's right (up x forward in its left-handed axes) after the reflection."""
     R = np.array(NS.quat_to_matrix(rotation_xyzw))
     f, u = _B3 @ R[:, 2], _B3 @ R[:, 1]
@@ -187,9 +187,7 @@ def camera_matrix(position, rotation_xyzw):
 # ---------------------------------------------------------------------------------------------------- the camera hand-over
 def transition_weight(seconds_since: float, transition_s: float) -> float:
     """How much of the cut-scene camera the view has taken ``seconds_since`` after "NIS start" / "UseAnimationCamera" with a
-    transition of ``transition_s`` seconds: the blend runs 0 to 1 at 1 / ``transition_s`` per second (``CameraMan::SetEntityFocus``
-    ``UI/CameraMan.cpp:451``; a time of 0 is a cut) and is eased in and out, ``2b^2`` below the middle and ``1 - 2(1-b)^2`` above
-    (``CameraMan::UpdateMatrix`` ``CameraMan.cpp:1383-1400``)."""
+    transition of ``transition_s`` seconds: the blend runs 0 to 1 at 1 / ``transition_s`` per second (a time of 0 is a cut) and is eased in and out, ``2b^2`` below the middle and ``1 - 2(1-b)^2`` above."""
     if transition_s <= 0.0:
         return 1.0 if seconds_since >= 0.0 else 0.0
     b = min(max(seconds_since / transition_s, 0.0), 1.0)
@@ -203,7 +201,7 @@ def transition_weight(seconds_since: float, transition_s: float) -> float:
 def blend_camera(view, nis, weight: float):
     """The camera the game shows while the hand-over is ``weight`` (0..1) done: ``view`` and ``nis`` are
     ``(location (3), quaternion wxyz, fov)`` of the normal view and of the cut-scene camera, in one space. Position and
-    field of view blend linearly, the rotation on the sphere (``AnimPlayList::SetupMatrix`` ``AnimPlayList.cpp:895``)."""
+    field of view blend linearly, the rotation on the sphere."""
     if weight <= 0.0:
         return view
     if weight >= 1.0:
@@ -287,14 +285,13 @@ class _Loader:
 
 
 def _merge_parts(sd, model, loader, notes, counts, part_nodes):
-    """Add to the NIS model's own ``SceneData`` the parts it borrows (``XREF`` nodes), placed and bound as ``GeoGroup::LoadMesh`` /
-    ``HandleNODE`` (``GeoGroup.cpp:267, 1046``) do:
+    """Add to the NIS model's own ``SceneData`` the parts it borrows (``XREF`` nodes), placed and bound as the game does it:
 
     * the borrowed mesh is the node of that name in the other model, its vertices as stored there;
     * the node's own MTRX places it; when the node it is taken from is bound to a bone there, the part is first brought into that
       bone's space (``* inverse bind``) and then onto this model's bone (``* bind``), so it follows this model's bone;
     * a skinned mesh binds each of its bones to the bone of THIS model with the same name after the node's find / replace pair
-      (``LinkMeshBonesToNodes`` ``GeoGroup.cpp:896``: every occurrence of the find text is replaced, then a case-insensitive match).
+      (every occurrence of the find text is replaced, then a case-insensitive match).
     """
     core = loader.core
     rigmod = _addon("rig")
@@ -367,7 +364,7 @@ def _merge_parts(sd, model, loader, notes, counts, part_nodes):
                              f"({', '.join(sorted(miss)[:3])}{'...' if len(miss) > 3 else ''}): their weights are left out")
             skin = [[(names[int(bi)], w) for bi, w in infl if 0 <= int(bi) < n_src and names[int(bi)] is not None] for infl in part.skin]
             # The engine skins a borrowed mesh with ITS OWN inverse bind matrices and THIS model's animated bone matrices
-            # (GeoGroup::Draw hands each mesh bone the group transform of the same name), so where this skeleton sits elsewhere
+            # (each mesh bone gets the group transform of the same name), so where this skeleton sits elsewhere
             # than the borrowed one (a character moved into the scene) the part is carried along. Blender deforms by
             # (pose * inverse of THIS skeleton's rest), so the rest shape is moved first by each bone's offset
             # D = (this bind) * (the mesh's bind)^-1, blended by the vertex's weights: exact when the offset is the same for every
@@ -493,8 +490,7 @@ def _clip_action(arm, name, clip_tracks, bone_idx, consts, bone_bl, clip, entry,
             continue
         animated += 1
         grp = bone_bl[i]
-        # A clip that animates a bone owns the whole bone: a stream it has no keys for is the bind pose (Anim::GetBonePosRot,
-        # Anim.cpp:1707), not what a lower clip left there. So the missing stream is keyed once, as the bind pose.
+        # A clip that animates a bone owns the whole bone: a stream it has no keys for is the bind pose, not what a lower clip left there. So the missing stream is keyed once, as the bind pose.
         if not len(tr.trans_keys) and len(tr.rot_keys):
             for c in range(3):
                 _set_keys(_fc(act, arm, f'pose.bones["{grp}"].location', c, grp), np.array([base + tr.rot_keys[0][0] * scale]), np.zeros(1))
@@ -586,7 +582,7 @@ def _make_camera(context, coll, root, model, sched, cuts, build, fps, start_fram
         clip = model.clip(entry.clip) if entry else None
         into_clip = (t - entry.delay) if entry else 0.0
         if entry is not None and entry.loop and clip is not None and clip.duration > 0:
-            into_clip = into_clip % clip.duration                       # a looping clip starts over (PlayingAnim::Update)
+            into_clip = into_clip % clip.duration                       # a looping clip starts over
         pose = NS.camera_pose(model, clip, ci, into_clip)
         if not pose.animated and clip is not None:
             lost += 1
@@ -871,10 +867,10 @@ def build_entity_camera(context, parent, blueprint_ref: str, plays, *, collectio
 
     ``parent`` is the replay's object for that entity (the camera hangs from it, in the model's space); ``blueprint_ref`` its blueprint
     (``art/ebps/characters/rex.ebp``); ``plays`` the clips it plays, ``[(seconds, clip name)]`` or ``[(seconds, clip name, loops)]``
-    (a later play is on top of an earlier one, as ``AnimPlayList`` puts a new motion at the front). The camera is the model camera
-    the clips' ``setcamera`` lines pick (the first at the start), its pose that of the top clip (``AnimPlayList::GetCameraState``);
+    (a later play is on top of an earlier one, as the game puts a new motion at the front). The camera is the model camera
+    the clips' ``setcamera`` lines pick (the first at the start), its pose that of the top clip;
     with no clip playing yet, the camera's rest pose. A play's fade-in is not blended (a clip is at full weight from its start).
-    A model with no camera is seen from behind its head bone by the game (``AnimPlayList::SetupMatrix``): not built, said in ``notes``."""
+    A model with no camera is seen from behind its head bone by the game: not built, said in ``notes``."""
     from ICParse.data import ICData
     data, _gd = _data_for(context, None, game_dir, data)
     ref = ICData.normalize(blueprint_ref)

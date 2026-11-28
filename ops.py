@@ -248,7 +248,7 @@ def object_state_error(obj):
     if obj.data.shape_keys is not None:
         return (f"'{obj.name}' has shape keys: Export writes the base mesh only, so key shapes would be dropped. Apply "
                 "the mix as the basis or delete the shape keys")
-    from . import gnsurface              # D9: the evaluated-surface modifier is ours and changes nothing exported
+    from . import gnsurface              # the evaluated-surface modifier is ours and changes nothing exported
     extra = [m.name for m in obj.modifiers if not (m.type == "ARMATURE" and m.object is not None and m.object == arm)
              and not (m.type == "NODES" and m.name == gnsurface.MODIFIER)]
     if extra:
@@ -456,7 +456,7 @@ def gather_export(obj, context, animations=True) -> ExportJob:
     if err:
         raise ExportGatherError(err)
     warnings = []
-    from . import hardedges                              # round 2 (r2shape): Mark Sharp edges and material slots -> the tables
+    from . import hardedges                              # Mark Sharp edges and material slots -> the tables
     try:
         warnings += hardedges.commit(obj)
     except ValueError as e:
@@ -898,7 +898,7 @@ class BZ_OT_bake(bpy.types.Operator):
 
     @staticmethod
     def _apply_engine_normals(obj, bm, patches, density, cps):
-        """Shade the bake exactly like the game: ICParse's engine-verified normal rule (analytic
+        """Shade the bake exactly like the game: ICParse's normal rule (analytic
         normals welded along edges and per smoothing group at corners) as custom split normals."""
         N = core.engine_normals(np.asarray(cps, dtype=np.float64), patches, store.patch_type(obj), density)
         if len(N) != len(bm.vertices):
@@ -1069,8 +1069,8 @@ class BZ_OT_edit_uvs(bpy.types.Operator):
         me.from_pydata([tuple(v) for v in co.reshape(nv, 3).tolist()], [], faces)
         me.update()
         uvl = me.uv_layers.new(name=_UV_LAYER)
-        # cage face corners are control points 0,3,15,12; the file's uv slots are corners 0,3,12,15
-        # (engine-verified), so loop k reads uv slot (0,1,3,2)[k]
+        # cage face corners are control points 0,3,15,12; the file's uv slots are corners 0,3,12,15,
+        # so loop k reads uv slot (0,1,3,2)[k]
         for p, poly in enumerate(me.polygons):
             for k, loop in enumerate(poly.loop_indices):
                 if k < 4:
@@ -1484,7 +1484,7 @@ def point_selection(obj) -> np.ndarray:
 def select_points(obj, mask, extend=False) -> int:
     """Select the control points in ``mask`` (edit mode; a hidden point is never selected, as in Blender's own
     selection); returns how many the mask holds. A hidden interior point of the mask whose frame corner ends up
-    selected is still edited (the B5 rule: interiors follow their corner, :func:`point_selection`); the ones left
+    selected is still edited (the rule: interiors follow their corner, :func:`point_selection`); the ones left
     behind are :func:`hidden_left_behind`, which every operator that acts on the selection names."""
     import bmesh
     mask = np.asarray(mask, dtype=bool)
@@ -1746,7 +1746,7 @@ def auto_skin_rig(obj, arm, n_bones):
     :func:`store.owner_count`, the source bones then the new-bone table's): the rig's rest heads (what the viewport
     shows, rest-pose edits included), tails by :func:`boner.skin_segments` (to the nearest child's head, an added child
     included; a leaf is its head alone -- never the rig's drawn 0.1 leaf stub), and the bones it may skin to: rig bones
-    that deform, not stub and not end-site bones (:func:`boner.auto_skin_mask`, measured on the base-game creatures).
+    that deform, not stub and not end-site bones (:func:`boner.auto_skin_mask`).
     Added bones on the rig are segments and targets like source bones (their parent from the rig, end sites by name);
     a table entry whose bone is not on the rig is none. Raises ValueError when the source creature can't be read or the
     added bones can't be checked."""
@@ -2552,7 +2552,7 @@ class BZ_OT_set_connection_bone(bpy.types.Operator):
         arm = store.rig(obj)
         try:
             from . import boneops
-            # the source and the C8 rules, as the rig box and Export check them: without the source a rig with a
+            # the source and the skeleton rules, as the rig box and Export check them: without the source a rig with a
             # deleted or re-parented bone can't be checked at all and every host edit would be refused
             src = core.read_source(store.source_path(obj))
             err = store.sync(obj) or (rig.skeleton_error(arm, src, src_stubs=store.export_stubs(obj),
@@ -2984,6 +2984,11 @@ def menu_import(self, context):
 
 
 def menu_export(self, context):
+    # the exports the game loads first: the blueprint (.ebp) with the model and the files beside it; then the model files alone
+    if hasattr(bpy.types, "BZ_OT_export_creature_game"):
+        self.layout.operator("bz.export_creature_game", text="Impossible Creatures Creature for the Game (.ebp)")
+    if hasattr(bpy.types, "BZ_OT_export_entity_folder"):
+        self.layout.operator("bz.export_entity_folder", text="Impossible Creatures Scene Object for the Game (.ebp)")
     self.layout.operator(BZ_OT_export.bl_idname, text="Impossible Creatures Creature (.sgm)")
     self.layout.operator(BZ_OT_export_scene.bl_idname, text="Impossible Creatures Scene Object (.sgm)")
     self.layout.operator(BZ_OT_export_scene_geometry.bl_idname, text="Impossible Creatures Scene Geometry (.sgm)")

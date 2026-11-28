@@ -67,7 +67,7 @@ def _current_verts(obj) -> np.ndarray:
     if obj.visible_get():
         try:                                                 # posed/animated positions
             ev = obj.evaluated_get(bpy.context.evaluated_depsgraph_get()).data
-            # a modifier that CHANGES the geometry (D9's evaluated surface) is not the pool: keep the
+            # a modifier that CHANGES the geometry (the evaluated surface) is not the pool: keep the
             # control points, or the patch table would index someone else's vertices
             me = ev if len(ev.vertices) == len(obj.data.vertices) else obj.data
             if str(_notes.get(obj.name, "")).startswith("posed surface"):
@@ -421,7 +421,7 @@ def _draw():
         # matrix stack and state are always restored, and the other creatures still draw
         gpu.matrix.push()
         try:
-            from . import gnsurface          # D9: with the evaluated surface on, the overlay would z-fight it
+            from . import gnsurface          # with the evaluated surface on, the overlay would z-fight it
             _draw_object(obj, **dict(opts, show_surface=opts["show_surface"] and not gnsurface.is_enabled(obj)))
         except Exception as e:
             _errors[obj.name] = f"{type(e).__name__}: {e}"
@@ -537,7 +537,7 @@ def _draw_text():
             lines.append((f"{obj.name}: {err}", (1.0, 0.45, 0.35, 1.0)))
         elif _notes.get(obj.name):
             lines.append((f"{obj.name}: {_notes[obj.name]}", (1.0, 0.85, 0.4, 1.0)))
-    from . import guards                  # D10: the export refusals the state already earns (cached; nothing is run here)
+    from . import guards                  # the export refusals the state already earns (cached; nothing is run here)
     lines += guards.text_lines()
     if not lines:
         return

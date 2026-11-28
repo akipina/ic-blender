@@ -2,8 +2,7 @@
 
 A scene ``.sgm`` is a triangle mesh with stored normals/UVs, per-material submeshes, an optional
 skeleton with rigid part binding (structures) or per-vertex skin weights (characters), external or
-embedded textures and bone clips. It is imported exactly as the engine draws it (verified against
-the Object Editor's draw stream): every part at its stored positions with its stored normals as
+embedded textures and bone clips. It is imported exactly as the engine draws it: every part at its stored positions with its stored normals as
 custom split normals, materials with the resolved images, the skeleton as an armature at bind.
 Decoding lives in ``core.load_scene`` (ICParse); this module builds the Blender datablocks and writes an edited
 object back (``export_scene_object``: any topology, per part, through ICParse's ``write_scene_part``).
@@ -775,7 +774,7 @@ def export_scene_object(obj, legacy: bool = True, only=None, force: bool = False
     notes += marker_notes
     moved = [part.mesh_index for _o, _pi, part, _b, _m, unchanged in jobs if not unchanged and 0 <= part.mesh_index < n_forms]
     if moved:                       # a part whose geometry changed may outgrow the clips' stored boxes: it would be culled and
-        from ICParse.sgm.scene import parts as SP_      # picked by the old size (AnimPlayList::GetBounds), so the boxes grow
+        from ICParse.sgm.scene import parts as SP_      # picked by the old size, so the boxes grow
         raw = SP_.grow_bounds_for_parts(raw, moved, before=source_raw)    # by what the edit added to the part, no more
     shown = [(o, int(o[KEY_SCENE_PART])) for o in objs if o.get(KEY_SHOW_ALWAYS) and only is None
              and 0 <= data.parts[int(o[KEY_SCENE_PART])].mesh_index < n_forms]

@@ -18,7 +18,7 @@ markers are followed into the .ebp's events by Export Entity Folder (``follow_re
 
 Names: the marker's name is the custom property ``bz_marker_name`` (Blender object names are unique and at most 63 bytes; a game
 name is up to 126 bytes: the NAME chunk, NUL included, must be below 128). A name starting with '0' is refused: the game's
-lookup (``RenderModel::GetMarkerIndex``) never finds one. Renaming the empty in the Outliner renames the marker too.
+lookup never finds one. Renaming the empty in the Outliner renames the marker too.
 
 Hooks for the skeleton work: ``rename_marker_bone(arm, old, new)`` re-points markers from one bone to another keeping their place,
 ``markers_off_bone(arm, bone, to)`` moves a deleted bone's markers to another bone (or model space). Both are also reached through
@@ -359,8 +359,8 @@ def gather_markers(key, data, raw=None):
                 # the file names a bone the skeleton lacks: imported in model space, where the game puts it too; keep its bytes
                 bone = src.bone
             same_bone = bone.lower() == (src.bone or "").lower()
-            # 1e-3 (model units): the float32 chain bone bind -> Blender -> back moves a stock marker by up to ~6e-4 (InsectData
-            # antiairtower, Ground); an untouched marker must keep its bytes, a nudge below a thousandth of a unit is invisible
+            # 1e-3 (model units): the float32 chain bone bind -> Blender -> back moves a stock marker by up to ~6e-4;
+            # an untouched marker must keep its bytes, a nudge below a thousandth of a unit is invisible
             if same_bone:
                 bone = src.bone
             if same_bone and np.allclose(L, src.local(), atol=1e-3):
@@ -419,7 +419,7 @@ def can_find(name: str) -> bool:
 
 def finds(value: str, names) -> bool:
     """Whether an event naming ``value`` finds something among ``names`` (lower case, :func:`marker_bones`): "random" always
-    does; a name starting with '0' never does (``RenderModel::GetMarkerIndex``)."""
+    does; a name starting with '0' never does."""
     from ICParse.sgm.scene import markers as MK
     if value.lower() == "random":
         return True

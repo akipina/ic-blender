@@ -1,7 +1,7 @@
 """Export Creature for the Game: the creature as the game reads it, not just a model file.
 
 Export Model writes only a ``.sgm``. The game finds a creature as a blueprint in ``data/art/ebps/stock`` (the model inside it) with a
-``.lua`` of stats, a ``.lsc`` of limb scales and a ``<name>_torso.bmp`` skin -- the rules, each with its decompiled source line, are in
+``.lua`` of stats, a ``.lsc`` of limb scales and a ``<name>_torso.bmp`` skin -- the rules are in
 ``ICParse/hub/package.py`` and ``ICParse/sgm/creature/torso.py``. This operator builds that folder ("the item") from the creature
 on screen and checks it with the same checker the hub uses (``ICParse.hub.check_item``):
 
@@ -12,13 +12,13 @@ on screen and checks it with the same checker the hub uses (``ICParse.hub.check_
    donor gets a generated blueprint and the events of a stock animal for the clips it has;
 4. stats and limb scales start from the donor's own ``.lua`` / ``.lsc`` (a made-up baseline is refused by the hub checker);
 5. the folder ``<out>/<name>/`` (all paths lower case) is written only when the hub checker passes it, and
-   ``scene["bz_last_item_dir"]`` names it for Install;
+   ``scene["bz_last_item_dir"]`` names it for Install; with "Install into the game after export" ticked the item is installed at once
+   (:func:`gameinstall.install_after_export`, the same check and install as the Install into Game button);
 6. "Replace the original <animal>" (instead of "A new creature of my own"): the same item under the stock animal's own name. The game takes
-   a loose ``Data\\art\\ebps\\stock\\<animal>.ebp`` over the archive's (``SigmaApp.cpp:2764`` loose Data at priority 500, ``Engine.sga``
-   at 100 :2786), the roster already names the animal (``CombinerCL.cpp:773-800``), so Install needs no roster change and clears the
-   cached mesh. The hub checker refuses a stock name on purpose (``creature.basename``, MODDING_PLAN.md 2.5), so a replacement is for
-   Install into Test Game only; the dialog says what it does to the game and to multiplayer
-   (``BlueprintManager.cpp:605-646``: the start-of-game check compares the numbers and the bounding box of the numbered creatures, i.e. those in the match's armies).
+   a loose ``Data\\art\\ebps\\stock\\<animal>.ebp`` over the archive's (loose Data is mounted at priority 500, ``Engine.sga`` at 100),
+   the roster already names the animal, so Install needs no roster change and clears the cached mesh. The hub checker refuses a stock
+   name on purpose (``creature.basename``), so a replacement is for Install into Game only; the dialog says what it does to the game and
+   to multiplayer (the start-of-game check compares the numbers and the bounding box of the creatures in the match's armies).
 
 Nothing here knows a byte layout; ``ICParse.hub.package.build_creature_item`` does the work and is tested without Blender.
 """
@@ -43,7 +43,7 @@ KEY_ICON = "bz_game_icon"          # on the creature: path of the picture "Icon 
 KEY_STATS_FROM = "bz_game_stats_from"
 KEY_MODE = "bz_game_mode"          # on the creature: "REPLACE" when it replaces the stock animal it was started from (New Project sets it)
 MODE_NEW, MODE_REPLACE = "NEW", "REPLACE"
-KEY_LAST_ITEM = "bz_last_item_dir"  # on the scene (CONTRACT.md)
+KEY_LAST_ITEM = "bz_last_item_dir"  # on the scene
 MAX_LINES = 6
 
 
@@ -342,7 +342,7 @@ def _build(obj, context, name, title="", description="", icon_file="", stats_fro
     kw = {}
     if stats_from:
         kw["stats_from"] = stats_from
-    # r2stats: the numbers edited in the Creature Stats panel go into the donor's .lua (nothing edited: its bytes are copied as they are)
+    # the numbers edited in the Creature Stats panel go into the donor's .lua (nothing edited: its bytes are copied as they are)
     from . import statspanel
     try:
         sx = statspanel.export_numbers(obj, donor, stats_from, _stock())
@@ -356,7 +356,7 @@ def _build(obj, context, name, title="", description="", icon_file="", stats_fro
         kw["stats"] = sx.stats
     if sx.stats_add:
         kw["stats_add"] = sx.stats_add
-    from . import motionspanel                              # r2motions: the edits of the Motions box, and what it says about new clips
+    from . import motionspanel                              # the edits of the Motions box, and what it says about new clips
     kw["motions"], motion_notes = motionspanel.creature_export(obj, donor)
     if icon is None and auto_icon and not dry:
         # the render costs a baked surface and a Blender render: only for an item the add-on's checks will take (this pass writes nothing)
@@ -398,13 +398,13 @@ def _build(obj, context, name, title="", description="", icon_file="", stats_fro
     who = f"built on {res.donor}" if res.donor else "built from nothing"
     if res.replaces:
         lines.append(("INFO", f"Wrote {len(res.files)} files to {res.item_dir}; they replace the game's own {res.replaces}. Press Install into "
-                              f"Test Game in the Game panel; Remove puts the original back."))
+                              f"Game in the Game panel; Remove puts the original back."))
     else:
-        lines.append(("INFO", f"Wrote {len(res.files)} files to {res.item_dir} ({who}). Next: press Install into Test Game in the Game panel"))
-        lines.append(("INFO", "Install into Test Game adds the creature to the creature creator. Copying the files by hand does not: "
+        lines.append(("INFO", f"Wrote {len(res.files)} files to {res.item_dir} ({who}). Next: press Install into Game in the Game panel"))
+        lines.append(("INFO", "Install into Game adds the creature to the creature creator. Copying the files by hand does not: "
                               "use Pack for Sharing."))
     lines += [("INFO", n) for n in res.notes]
-    # r2stats: say what was changed and what the game makes of it
+    # say what was changed and what the game makes of it
     lines += [("WARNING", n) for n in sx.notes]
     lines += numbers_lines(sx)
     return res, lines
@@ -433,6 +433,8 @@ class BZ_OT_export_creature_game(bpy.types.Operator):
                             description="The folder the item folder goes in. Empty: ic_items beside the source model")
     auto_icon: BoolProperty(name="Make the icon from the creature", default=True, options={"SKIP_SAVE"},
                             description="With no icon picture, draw the icon from the creature. Off: the original's icon stays")
+    install_after: BoolProperty(name="Install into the game after export", default=False, options={"SKIP_SAVE"},
+                                description="Install the exported item into the game folder at once")      # set in invoke(): a script installs only when it asks
 
     @classmethod
     def poll(cls, context):
@@ -440,6 +442,7 @@ class BZ_OT_export_creature_game(bpy.types.Operator):
 
     def invoke(self, context, event):
         obj = store.active_creature(context)
+        self.install_after = True
         from . import statspanel
         self.stats_from = statspanel.stats_from_of(obj) or "cheetah"
         if obj.get(KEY_MODE) == MODE_REPLACE and replace_target(obj):         # a project started as "replace the original" stays one
@@ -465,6 +468,7 @@ class BZ_OT_export_creature_game(bpy.types.Operator):
             col.prop(self, "icon_file")
             col.prop(self, "auto_icon")
             col.prop(self, "out_dir")
+            col.prop(self, "install_after")
             return
         col.prop(self, "name")
         why = name_problem(self.name)
@@ -481,6 +485,7 @@ class BZ_OT_export_creature_game(bpy.types.Operator):
         col.prop(self, "icon_file")
         col.prop(self, "auto_icon")
         col.prop(self, "out_dir")
+        col.prop(self, "install_after")
 
     def execute(self, context):
         obj = store.active_creature(context)
@@ -513,6 +518,10 @@ class BZ_OT_export_creature_game(bpy.types.Operator):
         except AttributeError:
             pass
         obj["bz_last_game_export"] = next(t for _l, t in lines if t.startswith("Wrote "))
+        if self.install_after:
+            from . import gameinstall
+            for level, text in gameinstall.install_after_export(context, res.item_dir):
+                self.report({level}, text)
         return {"FINISHED"}
 
 

@@ -4,11 +4,11 @@ What it does: for the events of a clip, :mod:`fxbake` (no Blender) runs each eff
 turns the result into meshes: one object per frame that has something to draw, named ``fxprev_<effect>_<frame>``, kept in the collection
 ``<name>_FXbake`` and shown for exactly its frame by hidden / shown keyframes, so playing, scrubbing and rendering the timeline show the effect with
 no handler running. The effects are placed at the event's marker (a marker empty of the Markers panel, or a bone; a name that is neither is the
-model's origin, as in the game: RenderModelEventSink.cpp:650-657) and follow it while it moves with the animation.
+model's origin, as in the game) and follow it while it moves with the animation.
 
 It is a preview, not the game's own picture: mesh particles show as flat pictures, a spray has no ground or wind, a trail follows the marker's own
-path, and both branches of a conditional effect play (the game's code starts both: FXConditional.cpp:199-210); a combo or conditional ends its
-spray, looping and trail children when its first child ends (FXCombo.cpp:318-341), which :mod:`fxbake` repeats.
+path, and both branches of a conditional effect play (the game's code starts both); a combo or conditional ends its
+spray, looping and trail children when its first child ends, which :mod:`fxbake` repeats.
 
 Baked meshes are throw-away: Clear preview removes them, and nothing of them is exported (an export never reads this collection).
 """

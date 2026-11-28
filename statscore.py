@@ -1,15 +1,15 @@
 """What a creature's numbers come to in the game: rank, cost, build time, population. No Blender in here (the Creature Stats panel,
 ``statspanel.py``, draws it and ``tests/so_stats_pure_test.py`` checks it).
 
-**How the game gets there** (decompiled, ``decomp/ic/src``):
+**How the game gets there**:
 
-* ``BlueprintHeader::LoadAttributes`` (``EntityBlueprint.cpp:2185``) reads a creature's ``<name>.lua`` as a ``limbattributes`` table
-  (``{group, value}`` per key, :2227-2243) and calls ``ProcessAttributes`` over it (:2244).
-* ``ProcessAttributes`` (``AttributeCalculator.cpp:781``) is four steps: ``ApplyStatDefaults`` (:553, the entries are summed per name, the part
-  of a key after its ``-`` dropped: ``hitpoints-head`` + ``hitpoints-torso`` + ... = ``hitpoints``), ``ComputeAttributes`` (:1476, melee and
-  range attacks), ``ReadMovementFlags`` (:587, a creature with an air speed flies and no longer walks or swims) and ``RunAttrCombiner``
-  (:1189) which runs ``combine_creature`` of ``Data:attrCombiner.lua`` (:1208) over the numbers.
-* Steps 1 to 3 are ``combotest.attrcombine.game_attributes`` (the combiner's own port of them, checked against ComboTest.exe); step 4 is the
+* ``BlueprintHeader::LoadAttributes`` reads a creature's ``<name>.lua`` as a ``limbattributes`` table
+  (``{group, value}`` per key) and calls ``ProcessAttributes`` over it.
+* ``ProcessAttributes`` is four steps: ``ApplyStatDefaults`` (the entries are summed per name, the part
+  of a key after its ``-`` dropped: ``hitpoints-head`` + ``hitpoints-torso`` + ... = ``hitpoints``), ``ComputeAttributes`` (melee and
+  range attacks), ``ReadMovementFlags`` (a creature with an air speed flies and no longer walks or swims) and ``RunAttrCombiner``
+  which runs ``combine_creature`` of ``Data:attrCombiner.lua`` over the numbers.
+* Steps 1 to 3 are ``combotest.attrcombine.game_attributes`` (the combiner's own port of them); step 4 is the
   game's own script, run here under Lua 5 with the few helpers Lua 4 had (``combotest.attrcombine.lua4_to_lua5``).
 
 **Whose formula.** The script is not the same in every game build: the original game (the IC mod) runs the ``attrcombiner.lua`` of
@@ -17,10 +17,10 @@
 "Power" number, ``ICParse.attrbalance``). :func:`rule_sets` lists the builds installed with the script each one runs; every result says
 which one it was worked out with.
 
-What the game does with the results (decompiled, ``decomp/icmod/src/ModRDN/Simulation``): the cost, the electricity cost and the build time
-are read from ``cost``, ``costrenew`` and ``constructionticks`` (``ExtInfo/CostExtInfo.h:41-44``, clamped 0..100000, 0..100000, 1..1000),
-the population from ``popsize`` (``Controllers/CreatureController.cpp:72``, 1..10) and the rank from ``creature_rank`` (:79, 1..5). The simulation runs 8
-steps a second (``RDNWorld.h:19``), so the build time in seconds is ``constructionticks / 8``.
+What the game does with the results: the cost, the electricity cost and the build time
+are read from ``cost``, ``costrenew`` and ``constructionticks`` (clamped 0..100000, 0..100000, 1..1000),
+the population from ``popsize`` (1..10) and the rank from ``creature_rank`` (1..5). The simulation runs 8
+steps a second, so the build time in seconds is ``constructionticks / 8``.
 
 Where the creature is used alone (a map, the campaign) these are its numbers. A creature combined with another is priced from the combination:
 Combine Preview shows that.
@@ -35,7 +35,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 PURE = True
 
-TICKS_PER_SECOND = 8                           # decomp/icmod/src/ModRDN/Simulation/RDNWorld.h:19 k_SimStepsPerSecond
+TICKS_PER_SECOND = 8
 ROMAN = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}
 SCRIPT = "attrcombiner.lua"
 #: the add-on's Game build preference -> the module name its ``.module`` file gives
@@ -246,17 +246,17 @@ _ON_OFF = {"can_dig", "leap_attack", "charge_attack"}
 
 def _zone_total(values, name: str) -> float:
     """The sum of every number of one speed: ``speed_max-front`` + ``speed_max-back`` + ``speed_max-torso`` ... (the game adds the entries of a name
-    after dropping the part from the ``-`` on: ``ApplyStatDefaults``, AttributeCalculator.cpp:553-577)."""
+    after dropping the part from the ``-`` on)."""
     return sum(float(v) for k, v in values.items() if k == name or k.startswith(name + "-"))
 
 
 def speed_lines(values) -> List[str]:
     """Which of a creature's speed numbers it moves with, as plain sentences. ``values`` maps a number's name to its value (``{"speed_max-front": 13.2, ...}``).
 
-    What the game does (decompiled, ``decomp/ic/src/AttributeCalculator.cpp``): the numbers of one speed are ADDED, so a creature on land runs at
-    land speed front legs + back legs + torso, not at one of them (``ApplyStatDefaults`` :553-577). A creature with any air speed flies: its water and
-    land speeds are set to 0 (``ReadMovementFlags`` :587-601); otherwise a land speed above 0 makes it a land creature and a water speed above 0 a
-    swimmer (:603-615). Measured in the game: a wolf with 13.2 + 13.2 + 6.6 runs at 33; with 8.4 for the torso it runs at 34."""
+    What the game does: the numbers of one speed are ADDED, so a creature on land runs at
+    land speed front legs + back legs + torso, not at one of them. A creature with any air speed flies: its water and
+    land speeds are set to 0; otherwise a land speed above 0 makes it a land creature and a water speed above 0 a
+    swimmer. A wolf with 13.2 + 13.2 + 6.6 runs at 33; with 8.4 for the torso it runs at 34."""
     land, water, air = (_zone_total(values, n) for n in ("speed_max", "waterspeed_max", "airspeed_max"))
 
     def parts(name, words):

@@ -30,7 +30,6 @@ except ImportError:                      # no Blender: the measurements only
 
 SURFACE_N = 7          # samples per patch per direction: fit_points' own coverage density (49 per patch)
 STRAY_PCT = 2.0        # % of the creature's size: a surface sample farther than this from the target misses it
-                       # (the threshold A3b's per-limb coverage and the pillbug report already use)
 STRAY_FRACTION = 0.5   # a patch is stray when this share of its samples miss
 SNAP = 1e-6            # of the size: a control point that would move less than this is left EXACTLY where it is
                        # (so a collapse that changes nothing keeps the export byte-identical)
@@ -182,7 +181,7 @@ def collapse_pool(pool, patches, points, rows, threshold: float, fixed: Optional
     them). The ``fixed`` points (the connection rings: the combiner welds and scales at that stock ring geometry)
     never move either way. The patch table never changes, which is why the result is exactly as watertight as the
     input. With ``symmetric`` and an X-symmetric net the displacement is mirrored exactly
-    (``retargetops.symmetrize_displacement``, the A3 rule), so a symmetric creature stays symmetric."""
+    (``retargetops.symmetrize_displacement``), so a symmetric creature stays symmetric."""
     P = np.asarray(patches, dtype=np.int64).reshape(-1, 16)
     P0 = np.asarray(pool, dtype=np.float64).reshape(-1, 3)
     pts = np.asarray(points, dtype=np.float64).reshape(-1, 3)
@@ -221,7 +220,7 @@ def collapse_pool(pool, patches, points, rows, threshold: float, fixed: Optional
     if symmetric and len(P0):
         pairs, on_plane = (sym_pairs if sym_pairs is not None
                            else core.mirror_pairs(P0, axis=0, eps=max(fitops.SYMMETRY_EPS * size, 1e-9)))
-        # the A3 rule: a stock net is only NEAR-symmetric (cheetah 98.2 % at the pairing tolerance)
+        # a stock net is only NEAR-symmetric (cheetah 98.2 % at the pairing tolerance)
         if (len(pairs) + len(on_plane)) / max(N, 1) >= retargetops.CREATURE_SYMMETRIC_FRACTION:
             out = retargetops.symmetrize_displacement(P0, out, pairs, on_plane, ~free)
             symmetrized = True
@@ -247,9 +246,7 @@ def _validate_line(n_stray: int, n_patches: int, target: str) -> str:
 
 def frame_mismatch(creature_diag: float, target_diag: float, target: str, tol: float = SIZE_MISMATCH):
     """Why a recorded target cannot be the creature's own surface -- it is a different SIZE, so the distances mean
-    nothing and every patch comes out stray -- in plain words, or None. (The native pillbug build recorded the fit's
-    input mesh, a copy scaled x5.2, as ``bz_fit_source``; the Validate read-out then called all 518 patches stray,
-    which says nothing about the fit. The operator warns the same way, :data:`SIZE_MISMATCH`.)"""
+    nothing and every patch comes out stray -- in plain words, or None. (The operator warns the same way, :data:`SIZE_MISMATCH`.)"""
     if creature_diag <= 0 or target_diag <= 0:
         return None
     if abs(target_diag - creature_diag) / creature_diag <= tol:
@@ -299,7 +296,7 @@ if bpy is not None:
         return st, tgt, pts
 
     def validate_lines(obj, context) -> list:
-        """The Validate read-out (A5): a WARN naming how many patches are surface the RECORDED target does not
+        """The Validate read-out: a WARN naming how many patches are surface the RECORDED target does not
         have -- never blocking, and nothing at all when no fit / retarget source is recorded or it has gone."""
         name, _why = default_target(obj)
         if not name:
@@ -371,7 +368,7 @@ if bpy is not None:
                 if not name:
                     self.report({"ERROR"}, f"Trim Stray Surface: {why}")
                     return {"CANCELLED"}
-            got = retargetops.resolve_target(self, context, obj, name)   # the A3 target rules, reported as they are
+            got = retargetops.resolve_target(self, context, obj, name)   # the target rules, reported as they are
             if got is None:
                 return {"CANCELLED"}
             tgt, me_eval = got
@@ -482,7 +479,7 @@ if bpy is not None:
 
         def _fill(self, obj):
             """Close every hole Fill Hole can close -- a loop of an EVEN number of sides, at least 4 (4 sides -> one
-            patch, 6 -> a strip of two, ...; B7's rule, and the format cannot express the odd case) -- with
+            patch, 6 -> a strip of two, ...; the format cannot express the odd case) -- with
             ``bz.fill_hole``: (filled, the side counts of the holes left)."""
             filled = 0
             if not self.fill_holes:

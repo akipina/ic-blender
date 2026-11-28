@@ -1,19 +1,19 @@
 """The effect preview without Blender: what an event's effect looks like on the timeline, as arrays. ``fxpreview.py`` turns them into meshes.
 
 An event (``anim`` clip, ``animtime``, ``fx``, ``marker``) starts its effect at a marker of the model when the clip reaches that time. The
-game runs the effect through ``FXManager`` (the style classes under ``decomp/ic/src/Shared/Cross/RenderAnim/Fx``); this module runs the same
+game runs the effect through ``FXManager`` and the style classes; this module runs the same
 effect through :mod:`ICParse.fx.fxsim`, the simulator written from those classes, and returns the pictures it would draw, frame by frame.
 
 **What is the game's rule and what is approximate**
-* An event's time is a fraction of its clip (``AnimPlayList.cpp:1669-1672``): frame ``first + animtime * frames`` (:func:`ICParse.ebp.events`
+* An event's time is a fraction of its clip: frame ``first + animtime * frames`` (:func:`ICParse.ebp.events`
   and ``fxcore.clip_time`` hold the inverse); ``animtime`` -1 is "when the clip starts".
-* A Combo effect starts all its children at once (``FXCombo.cpp:253-257``: ``CreateChildEffect( name, 0, self, 0.0f )`` for each name) and a
-  Conditional effect starts BOTH of its children too (``FXConditional.cpp:199-210`` and ``Simulation/FXLandWater.cpp``: the land / water flags
-  the second one computes in ``SetTransform`` are not read in that file, so no branch is known): both are drawn here.
-* The group ends when the FIRST of its children has ended (``FXCombo.cpp:318-341`` ``Obj::Update``, ``FXConditional.cpp`` ``Obj::Update`` and
-  ``FXLandWater.cpp`` ``Obj::Update``): it then stops every child (``FXManager::StopEffect``). Stopping ends a looping child; a child that does
+* A Combo effect starts all its children at once (``CreateChildEffect( name, 0, self, 0.0f )`` for each name) and a
+  Conditional effect starts BOTH of its children too (the land / water flags
+  the second one computes in ``SetTransform`` are not read, so no branch is known): both are drawn here.
+* The group ends when the FIRST of its children has ended (the ``Obj::Update`` of the Combo,
+  Conditional and land / water effects): it then stops every child (``FXManager::StopEffect``). Stopping ends a looping child; a child that does
   not loop plays out as it was (a ring or beam ignores Stop), and a dead group is freed only when its children are gone
-  (``FXManager.cpp`` ``FreeDeadEffects``). So a looping child, a spray or a trail beside a shorter child is shown only until that one ends
+  (``FXManager``'s ``FreeDeadEffects``). So a looping child, a spray or a trail beside a shorter child is shown only until that one ends
   (:attr:`Leaf.stop_at`). A stopped looping effect or trail vanishes at that time (a trail really fades out faster); a stopped spray only makes
   no more particles, and the ones it made live out their time.
 * An effect ends at its ``Duration`` (``Emitter_Duration`` for a spray) unless it loops. A looping one with nothing to stop it is shown for
@@ -157,8 +157,8 @@ def _style(leaf: Leaf) -> str:
 
 
 def _stoppable(leaf: Leaf) -> bool:
-    """Whether the game's Stop ends this kind of effect: a spray's Update returns at once when stopped (FXSpray.cpp:364), a looping ring or beam ends
-    (FXRing.cpp:256, FXBeam.cpp:300) and a trail runs out (FXTrail.cpp:369-412); a ring or beam that does not loop ignores it."""
+    """Whether the game's Stop ends this kind of effect: a spray's Update returns at once when stopped, a looping ring or beam ends
+    and a trail runs out; a ring or beam that does not loop ignores it."""
     return leaf.loops or "SPRAY" in _style(leaf) or "TRAIL" in _style(leaf)
 
 
@@ -170,7 +170,7 @@ def _cut_by_stop(leaf: Leaf) -> bool:
 
 def _gone_at(leaf: Leaf) -> float:
     """Seconds until the effect has been freed when nothing stops it: never when it loops; a spray's emitter is dead at its duration but is freed
-    only when the particles it made are gone (``FXManager.cpp`` ``FreeDeadEffects``), so its particles' lifetime counts."""
+    only when the particles it made are gone (``FXManager``'s ``FreeDeadEffects``), so its particles' lifetime counts."""
     if leaf.loops:
         return _INF
     if "SPRAY" in _style(leaf):

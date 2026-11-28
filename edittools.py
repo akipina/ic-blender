@@ -77,10 +77,10 @@ class BZ_OT_validate(bpy.types.Operator):
             problems = [f"export failed, so there is nothing to validate: {type(e).__name__}: {e}"]
         problems += core.check_structure(store.limb_names(obj), store.patch_limb(obj),
                                          store.connections(obj), store.bone_names(obj), store.limb_ids(obj))
-        if model is not None:                      # clip names the game will not play (decomp MotionTree::Build wiring)
+        if model is not None:                      # clip names the game will not play
             from . import startcheck
             problems += startcheck.clip_lines(model, store.source_path(obj))
-        from . import trimops                      # A5: surface the recorded fit / retarget target does not have
+        from . import trimops                      # surface the recorded fit / retarget target does not have
         problems += trimops.validate_lines(obj, context)
         problems += self._combine_checks(context, obj, model)
         obj["bz_check_numbers"] = []                      # the numbers of an earlier Check are stale when this one stops before the export check

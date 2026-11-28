@@ -1,8 +1,8 @@
-"""Create Test Game Copy: a button that makes a private copy of the game to try items in.
+"""Make a Separate Game Copy: a button on the add-on's preferences page that makes another copy of the game to install items into.
 
 The work is ``ICParse.hub.gamecopy`` (read its text for what is linked, what is copied and why the copy is never in a Steam library).
 This module is the button, the dialog that says what the copy will take on disk BEFORE it starts, the progress while it runs, and the
-preference it sets: the new folder becomes the add-on's **Test game folder**, so Install into Test Game works at once.
+preference it sets: the new folder becomes the add-on's optional **Install folder**, so Install into Game goes there at once.
 
 * ``bz.create_test_game`` -- the dialog and the start; the copy runs in slices from a timer (Blender stays usable, the status bar shows
   progress) and ``bz.cancel_test_game`` stops it and removes what it made.  Called with ``wait=True`` (scripts, tests, background
@@ -87,7 +87,7 @@ def _redraw() -> None:
 
 
 def _set_test_folder(dest: str) -> bool:
-    """Make ``dest`` the Test game folder preference; False when the add-on's preferences are not live (nothing to set)."""
+    """Make ``dest`` the Install folder preference; False when the add-on's preferences are not live (nothing to set)."""
     live = prefs.get()
     if not isinstance(live, bpy.types.AddonPreferences):
         return False
@@ -102,9 +102,9 @@ def _finish_ok(job) -> str:
     parts = [f"{res.files_copied:,} files copied ({lib.describe_size(res.bytes_copied)})"]
     if res.files_linked:
         parts.append(f"{res.files_linked:,} big files linked to the original")
-    text = (f"The test copy is ready in {job.plan.dest}: " + ", ".join(parts) + ". " +
-            ("It is now your Test game folder: press Install into Test Game to put an item in it." if saved else
-             "Set it as the Test game folder in the add-on's preferences (Edit > Preferences > Add-ons > IC Blender)."))
+    text = (f"The game copy is ready in {job.plan.dest}: " + ", ".join(parts) + ". " +
+            ("It is now your Install folder: press Install into Game to put an item in it." if saved else
+             "Set it as the Install folder in the add-on's preferences (Edit > Preferences > Add-ons > IC Blender)."))
     for n in res.notes[:3]:
         text += f" ({n})"
     return text
@@ -114,9 +114,9 @@ def start(context, dest: str, everything: bool = False, wait: bool = False):
     """Start the copy into ``dest``.  Returns ``(ok, message)``.  ``wait``: do it all now (the message is the result), else it runs from
     a timer and the message says it started."""
     if not available():
-        return False, "Part of this add-on is out of date, so it cannot make a test copy. Install the newest version of the add-on."
+        return False, "Part of this add-on is out of date, so it cannot make a game copy. Install the newest version of the add-on."
     if busy():
-        return False, "A test copy is already being made. Wait for it, or press Cancel."
+        return False, "A game copy is already being made. Wait for it, or press Cancel."
     plan, why = make_plan(context, dest, everything, cached=False)
     if plan is None:
         return False, why
@@ -142,13 +142,13 @@ def start(context, dest: str, everything: bool = False, wait: bool = False):
         _STATE["wm"] = wm
     except (AttributeError, RuntimeError):
         _STATE["wm"] = None
-    _say("INFO", f"Making the test copy in {dest} ...")
+    _say("INFO", f"Making the game copy in {dest} ...")
     bpy.app.timers.register(tick, first_interval=0.05)
-    return True, f"Started the test copy in {dest}. It runs in the background; the Game panel shows how far it is."
+    return True, f"Started the game copy in {dest}. It runs in the background; the Game panel shows how far it is."
 
 
 def tick():
-    """One slice of the running copy (a timer calls this; returns the delay until the next, or None when it is over)."""
+    """One step of the running copy (a timer calls this; returns the delay until the next, or None when it is over)."""
     job = _STATE["job"]
     if job is None:
         return None
@@ -190,23 +190,23 @@ def cancel() -> str:
     """Stop the running copy and remove everything it made; returns what to tell the modder."""
     job = _STATE["job"]
     if job is None:
-        return "No test copy is being made."
+        return "No game copy is being made."
     job.cancel()
     dest = _STATE["dest"]
     _end(None)
-    _say("WARNING", f"The test copy was cancelled and what it had made in {dest} was removed.")
+    _say("WARNING", f"The game copy was cancelled and what it had made in {dest} was removed.")
     return _STATE["message"]
 
 
 # ---- operators -----------------------------------------------------------------------------------------------------------------------
 class BZ_OT_create_test_game(bpy.types.Operator):
-    """Make a private copy of the game to test your items in, and use it as the Test game folder"""
+    """Make another copy of the game and use it as the Install folder"""
     bl_idname = "bz.create_test_game"
-    bl_label = "Create Test Game Copy"
+    bl_label = "Make a Separate Game Copy"
     bl_options = {"REGISTER"}
 
     directory: StringProperty(name="Put the copy in", subtype="DIR_PATH", default="",
-                              description="A new or empty folder outside Steam. Empty uses 'IC Test Game' in your home folder")
+                              description="A new or empty folder outside Steam. Empty uses 'IC Game Copy' in your home folder")
     everything: BoolProperty(name="Copy everything (no links)", default=False,
                              description="Copy the big archives instead of linking to them. Slower and about 5 GB larger, "
                                          "but independent of the original game")
@@ -220,12 +220,12 @@ class BZ_OT_create_test_game(bpy.types.Operator):
     def invoke(self, context, event):
         if not self.directory.strip():
             self.directory = default_folder()
-        return context.window_manager.invoke_props_dialog(self, width=560, title="Create Test Game Copy",
+        return context.window_manager.invoke_props_dialog(self, width=560, title="Make a Separate Game Copy",
                                                           confirm_text="Create Copy")
 
     def draw(self, context):
         lay = self.layout
-        lay.label(text="A private copy of the game to test in.")
+        lay.label(text="Another copy of the game to install into.")
         lay.prop(self, "directory")
         lay.prop(self, "everything")
         if not available():
@@ -256,7 +256,7 @@ class BZ_OT_create_test_game(bpy.types.Operator):
 
 
 class BZ_OT_cancel_test_game(bpy.types.Operator):
-    """Stop making the test copy and remove what it has made so far"""
+    """Stop making the game copy and remove what it has made so far"""
     bl_idname = "bz.cancel_test_game"
     bl_label = "Cancel"
     bl_options = {"REGISTER"}
@@ -276,7 +276,7 @@ def draw_copy(layout, context) -> None:
     if job is not None:
         pct = int(100 * job.done / job.total)
         row = layout.row(align=True)
-        row.label(text=f"Making the test copy: {pct}%", icon="TIME")
+        row.label(text=f"Making the game copy: {pct}%", icon="TIME")
         row.operator(BZ_OT_cancel_test_game.bl_idname, text="Cancel", icon="CANCEL")
         return
     msg = _STATE["message"]

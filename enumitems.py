@@ -4,8 +4,7 @@ Blender asks the ``items`` callback of an EnumProperty again and again -- once p
 the panel that shows it -- and keeps only POINTERS into the strings the callback returned. Two things follow:
 
 * the strings must outlive the call. A callback that builds new strings each time frees the ones Blender still points at, and a button
-  then shows whatever took their place in memory (the New Project dialog showed other animals' names where "Replace the original
-  Camel" belonged). :func:`kept` returns, for equal items, the very list that was returned the first time, and never lets go of it;
+  then shows whatever took their place in memory. :func:`kept` returns, for equal items, the very list that was returned the first time, and never lets go of it;
 * the callback must be cheap. Anything it reads from disk belongs behind :func:`recent`, which answers from memory and looks again at
   most every few seconds.
 """
